@@ -16,6 +16,7 @@
     <Deterministic>true</Deterministic>
     <TargetFrameworkProfile />
     <PublishUrl>publish\</PublishUrl>
+    <PublishDir>publish\</PublishDir>
     <Install>true</Install>
     <InstallFrom>Disk</InstallFrom>
     <UpdateEnabled>false</UpdateEnabled>
@@ -26,10 +27,10 @@
     <UpdateRequired>false</UpdateRequired>
     <MapFileExtensions>true</MapFileExtensions>
     <ApplicationRevision>0</ApplicationRevision>
-    <ApplicationVersion>1.0.0.%2a</ApplicationVersion>
+    <ApplicationVersion>1.1.1.0</ApplicationVersion>
     <IsWebBootstrapper>false</IsWebBootstrapper>
     <UseApplicationTrust>false</UseApplicationTrust>
-    <BootstrapperEnabled>true</BootstrapperEnabled>
+    <BootstrapperEnabled>false</BootstrapperEnabled>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -130,6 +131,8 @@
       <DependentUpon>AboutWindow.xaml</DependentUpon>
     </Compile>
     <Compile Include="Animation\MouseAnimator.cs" />
+    <Compile Include="Cursors\CursorVisualInfo.cs" />
+    <Compile Include="Cursors\CursorVisualLoader.cs" />
     <Compile Include="DebugInfoWindow.xaml.cs">
       <DependentUpon>DebugInfoWindow.xaml</DependentUpon>
     </Compile>

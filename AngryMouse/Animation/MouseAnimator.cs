@@ -1,4 +1,5 @@
 ﻿using System;
+using AngryMouse.Cursors;
 using System.ComponentModel;
 using System.Windows;
 using System.Windows.Media;
@@ -11,7 +12,7 @@ namespace AngryMouse.Animation
         /// <summary>
         /// Maximum cursor size.
         /// </summary>
-        private const double MaxScale = 1;
+        private const double MaxScale = CursorVisualLoader.BuiltInCursorHeight;
 
         /// <summary>
         /// Scales the cursor.
@@ -23,10 +24,22 @@ namespace AngryMouse.Animation
         /// </summary>
         private bool _shaking;
 
+        private double _cursorVisualHeight = CursorVisualLoader.BuiltInCursorHeight;
+
         /// <summary>
         /// dpi info
         /// </summary>
         public DpiScale DpiInfo;
+
+        public double CursorVisualHeight
+        {
+            get => _cursorVisualHeight;
+            set
+            {
+                _cursorVisualHeight = Math.Max(1, value);
+                RefreshVisibleScale();
+            }
+        }
 
         /// <summary>
         /// For scale animation
@@ -55,6 +68,11 @@ namespace AngryMouse.Animation
                 _scaleAnimation.Duration =
                     new Duration(TimeSpan.FromMilliseconds(Properties.Settings.Default.CursorAnimationLength));
             }
+
+            if (e.PropertyName.Equals("CursorSize"))
+            {
+                RefreshVisibleScale();
+            }
         }
 
         public void SetMouseShake(bool shaking, DateTime timestamp)
@@ -63,11 +81,30 @@ namespace AngryMouse.Animation
             _shaking = shaking;
 
             _scaleAnimation.From = _cursorScale.ScaleX;
-            _scaleAnimation.To =
-                shaking ? MaxScale * (Properties.Settings.Default.CursorSize / 10.0) * DpiInfo.PixelsPerDip : 0;
+            _scaleAnimation.To = shaking ? GetTargetScale() : 0;
 
             _cursorScale.BeginAnimation(ScaleTransform.ScaleXProperty, _scaleAnimation);
             _cursorScale.BeginAnimation(ScaleTransform.ScaleYProperty, _scaleAnimation);
+        }
+
+        private double GetTargetScale()
+        {
+            return MaxScale / CursorVisualHeight *
+                   (Properties.Settings.Default.CursorSize / 10.0) *
+                   DpiInfo.PixelsPerDip;
+        }
+
+        private void RefreshVisibleScale()
+        {
+            if (!_shaking)
+            {
+                return;
+            }
+
+            _cursorScale.BeginAnimation(ScaleTransform.ScaleXProperty, null);
+            _cursorScale.BeginAnimation(ScaleTransform.ScaleYProperty, null);
+            _cursorScale.ScaleX = GetTargetScale();
+            _cursorScale.ScaleY = GetTargetScale();
         }
     }
 }

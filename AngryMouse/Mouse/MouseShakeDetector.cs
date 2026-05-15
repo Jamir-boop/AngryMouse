@@ -17,21 +17,6 @@ namespace AngryMouse.Mouse
         private const int MouseEventRate = 10;
 
         /// <summary>
-        /// Minimum tracked mouse movement time needed to detect a shake.
-        /// </summary>
-        private const int TrackingInterval = 500;
-
-        /// <summary>
-        /// Minimum speed required to detect a shake.
-        /// </summary>
-        private const double MinimumSpeed = 1.0;
-
-        /// <summary>
-        /// Minimum sharp turns required to detect a shake (negative dot product).
-        /// </summary>
-        private const int MinimumTurns = 4;
-
-        /// <summary>
         /// The hook into mouse events
         /// </summary>
         private readonly IKeyboardMouseEvents _mouseEvents;
@@ -153,6 +138,12 @@ namespace AngryMouse.Mouse
 
             return avgSpeed >= MinimumSpeed && sharpTurns >= MinimumTurns;
         }
+
+        private static int TrackingInterval => Math.Max(1, Properties.Settings.Default.ShakeTrackingInterval);
+
+        private static double MinimumSpeed => Math.Max(0, Properties.Settings.Default.ShakeMinimumSpeed);
+
+        private static int MinimumTurns => Math.Max(1, Properties.Settings.Default.ShakeMinimumTurns);
 
         private void SetShaking(bool shaking)
         {

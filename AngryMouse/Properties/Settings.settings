@@ -8,5 +8,26 @@
     <Setting Name="CursorAnimationLength" Type="System.Int32" Scope="User">
       <Value Profile="(Default)">300</Value>
     </Setting>
+    <Setting Name="CursorSourceMode" Type="System.String" Scope="User">
+      <Value Profile="(Default)">System</Value>
+    </Setting>
+    <Setting Name="CustomCursorPath" Type="System.String" Scope="User">
+      <Value Profile="(Default)" />
+    </Setting>
+    <Setting Name="CustomCursorHotspotX" Type="System.Int32" Scope="User">
+      <Value Profile="(Default)">0</Value>
+    </Setting>
+    <Setting Name="CustomCursorHotspotY" Type="System.Int32" Scope="User">
+      <Value Profile="(Default)">0</Value>
+    </Setting>
+    <Setting Name="ShakeTrackingInterval" Type="System.Int32" Scope="User">
+      <Value Profile="(Default)">500</Value>
+    </Setting>
+    <Setting Name="ShakeMinimumSpeed" Type="System.Double" Scope="User">
+      <Value Profile="(Default)">1</Value>
+    </Setting>
+    <Setting Name="ShakeMinimumTurns" Type="System.Int32" Scope="User">
+      <Value Profile="(Default)">4</Value>
+    </Setting>
   </Settings>
 </SettingsFile>

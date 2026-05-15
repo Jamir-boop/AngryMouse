@@ -33,7 +33,7 @@ namespace AngryMouse
 
         private void Github_OnClick(object sender, RoutedEventArgs e)
         {
-            System.Diagnostics.Process.Start("https://github.com/Longi94/AngryMouse");
+            System.Diagnostics.Process.Start("https://github.com/Jamir-boop/AngryMouse");
         }
     }
 }

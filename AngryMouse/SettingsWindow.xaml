@@ -1,4 +1,4 @@
-﻿<Window x:Class="AngryMouse.SettingsWindow"
+<Window x:Class="AngryMouse.SettingsWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -11,47 +11,241 @@
         SizeToContent="WidthAndHeight"
         ResizeMode="NoResize"
         Loaded="Window_Loaded">
-    <Grid Margin="8">
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="Auto" />
-            <ColumnDefinition Width="Auto" />
-            <ColumnDefinition Width="Auto" />
-        </Grid.ColumnDefinitions>
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-        </Grid.RowDefinitions>
+    <StackPanel Margin="10" Width="460">
+        <GroupBox Header="Cursor" Margin="0,0,0,8">
+            <Grid Margin="8">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="130" />
+                    <ColumnDefinition Width="220" />
+                    <ColumnDefinition Width="50" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
 
-        <Label Grid.Column="0" Grid.Row="0" Content="Size" Margin="2" />
-        <Slider
-            Name="SizeSlider"
-            Grid.Column="1"
-            Grid.Row="0"
-            Width="200"
-            VerticalAlignment="Center"
-            Minimum="2"
-            Maximum="10"
-            TickFrequency="1"
-            IsSnapToTickEnabled="True"
-            TickPlacement="BottomRight"
-            Margin="2" />
-        <Label Grid.Column="2" Grid.Row="0"
-               Content="{Binding ElementName=SizeSlider, Path=Value, UpdateSourceTrigger=PropertyChanged}" Margin="2" />
+                <Label Grid.Column="0" Grid.Row="0" Content="Zoom cursor" Margin="2" />
+                <ComboBox
+                    Name="CursorSourceComboBox"
+                    Grid.Column="1"
+                    Grid.Row="0"
+                    Grid.ColumnSpan="3"
+                    Width="220"
+                    HorizontalAlignment="Left"
+                    Margin="2"
+                    SelectionChanged="CursorSourceComboBox_OnSelectionChanged">
+                    <ComboBoxItem Content="Active Windows cursor" Tag="System" />
+                    <ComboBoxItem Content="Custom file" Tag="Custom" />
+                    <ComboBoxItem Content="Built-in arrow" Tag="BuiltIn" />
+                </ComboBox>
+                <TextBlock
+                    Grid.Column="1"
+                    Grid.Row="1"
+                    Grid.ColumnSpan="3"
+                    Text="Active follows the current Windows pointer. Custom uses PNG, ICO, or CUR. Built-in uses the old arrow."
+                    TextWrapping="Wrap"
+                    FontSize="11"
+                    Foreground="#666666"
+                    Margin="2,0,2,6" />
 
-        <Label Grid.Column="0" Grid.Row="1" Content="Animation Length" Margin="2" />
-        <Slider
-            Name="AnimationLengthSlider"
-            Grid.Column="1"
-            Grid.Row="1"
-            Width="200"
-            VerticalAlignment="Center"
-            Minimum="0"
-            Maximum="1000"
-            TickFrequency="50"
-            IsSnapToTickEnabled="True"
-            TickPlacement="BottomRight"
-            Margin="2" />
-        <Label Grid.Column="2" Grid.Row="1"
-               Content="{Binding ElementName=AnimationLengthSlider, Path=Value, UpdateSourceTrigger=PropertyChanged}" Margin="2" />
-    </Grid>
+                <Label Grid.Column="0" Grid.Row="2" Content="Custom cursor file" Margin="2" />
+                <TextBox
+                    Name="CustomCursorPathTextBox"
+                    Grid.Column="1"
+                    Grid.Row="2"
+                    Width="220"
+                    Margin="2"
+                    TextChanged="CustomCursorPathTextBox_OnTextChanged" />
+                <Button
+                    Name="BrowseCustomCursorButton"
+                    Grid.Column="2"
+                    Grid.Row="2"
+                    Grid.ColumnSpan="2"
+                    Content="Browse"
+                    Margin="2"
+                    Padding="8,2"
+                    Click="BrowseCustomCursorButton_OnClick" />
+
+                <Label Grid.Column="0" Grid.Row="3" Content="Click point" Margin="2" />
+                <StackPanel Grid.Column="1" Grid.Row="3" Grid.ColumnSpan="3" Orientation="Horizontal" Margin="2">
+                    <Label Content="X" Padding="0,2,4,2" />
+                    <TextBox
+                        Name="CustomCursorHotspotXTextBox"
+                        Width="50"
+                        TextChanged="CustomCursorHotspotXTextBox_OnTextChanged" />
+                    <Label Content="Y" Padding="8,2,4,2" />
+                    <TextBox
+                        Name="CustomCursorHotspotYTextBox"
+                        Width="50"
+                        TextChanged="CustomCursorHotspotYTextBox_OnTextChanged" />
+                </StackPanel>
+                <TextBlock
+                    Grid.Column="1"
+                    Grid.Row="4"
+                    Grid.ColumnSpan="3"
+                    Text="For PNG and ICO, set X/Y to the cursor tip pixel. CUR files already store this."
+                    TextWrapping="Wrap"
+                    FontSize="11"
+                    Foreground="#666666"
+                    Margin="2,0,2,6" />
+
+                <TextBlock
+                    Name="CursorStatusTextBlock"
+                    Grid.Column="0"
+                    Grid.Row="5"
+                    Grid.ColumnSpan="4"
+                    Margin="2,4,2,8"
+                    TextWrapping="Wrap" />
+
+                <Label Grid.Column="0" Grid.Row="6" Content="Zoom size" Margin="2" />
+                <Slider
+                    Name="SizeSlider"
+                    Grid.Column="1"
+                    Grid.Row="6"
+                    Width="220"
+                    VerticalAlignment="Center"
+                    Minimum="2"
+                    Maximum="10"
+                    TickFrequency="1"
+                    IsSnapToTickEnabled="True"
+                    TickPlacement="BottomRight"
+                    Margin="2"
+                    ValueChanged="SizeSlider_OnValueChanged" />
+                <Label Grid.Column="2" Grid.Row="6"
+                       Content="{Binding ElementName=SizeSlider, Path=Value, UpdateSourceTrigger=PropertyChanged, StringFormat={}{0:0}}" Margin="2" />
+
+                <Label Grid.Column="0" Grid.Row="7" Content="Grow/shrink speed" Margin="2" />
+                <Slider
+                    Name="AnimationLengthSlider"
+                    Grid.Column="1"
+                    Grid.Row="7"
+                    Width="220"
+                    VerticalAlignment="Center"
+                    Minimum="0"
+                    Maximum="1000"
+                    TickFrequency="50"
+                    IsSnapToTickEnabled="True"
+                    TickPlacement="BottomRight"
+                    Margin="2"
+                    ValueChanged="AnimationLengthSlider_OnValueChanged" />
+                <Label Grid.Column="2" Grid.Row="7"
+                       Content="{Binding ElementName=AnimationLengthSlider, Path=Value, UpdateSourceTrigger=PropertyChanged, StringFormat={}{0:0}}" Margin="2" />
+                <Label Grid.Column="3" Grid.Row="7" Content="ms" Margin="2" />
+            </Grid>
+        </GroupBox>
+
+        <GroupBox Header="Shake detection" Margin="0,0,0,8">
+            <Grid Margin="8">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="130" />
+                    <ColumnDefinition Width="220" />
+                    <ColumnDefinition Width="50" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <Label Grid.Column="0" Grid.Row="0" Content="Shake window" Margin="2" />
+                <Slider
+                    Name="ShakeTrackingIntervalSlider"
+                    Grid.Column="1"
+                    Grid.Row="0"
+                    Width="220"
+                    VerticalAlignment="Center"
+                    Minimum="100"
+                    Maximum="2000"
+                    TickFrequency="50"
+                    IsSnapToTickEnabled="True"
+                    TickPlacement="BottomRight"
+                    Margin="2"
+                    ValueChanged="ShakeTrackingIntervalSlider_OnValueChanged" />
+                <Label Grid.Column="2" Grid.Row="0"
+                       Content="{Binding ElementName=ShakeTrackingIntervalSlider, Path=Value, UpdateSourceTrigger=PropertyChanged, StringFormat={}{0:0}}" Margin="2" />
+                <Label Grid.Column="3" Grid.Row="0" Content="ms" Margin="2" />
+                <TextBlock
+                    Grid.Column="1"
+                    Grid.Row="1"
+                    Grid.ColumnSpan="3"
+                    Text="Lower reacts to shorter shakes. Higher needs a longer shake."
+                    TextWrapping="Wrap"
+                    FontSize="11"
+                    Foreground="#666666"
+                    Margin="2,0,2,6" />
+
+                <Label Grid.Column="0" Grid.Row="2" Content="Shake speed" Margin="2" />
+                <Slider
+                    Name="ShakeMinimumSpeedSlider"
+                    Grid.Column="1"
+                    Grid.Row="2"
+                    Width="220"
+                    VerticalAlignment="Center"
+                    Minimum="0.2"
+                    Maximum="5"
+                    TickFrequency="0.1"
+                    IsSnapToTickEnabled="True"
+                    TickPlacement="BottomRight"
+                    Margin="2"
+                    ValueChanged="ShakeMinimumSpeedSlider_OnValueChanged" />
+                <Label Grid.Column="2" Grid.Row="2"
+                       Content="{Binding ElementName=ShakeMinimumSpeedSlider, Path=Value, UpdateSourceTrigger=PropertyChanged, StringFormat={}{0:0.0}}" Margin="2" />
+                <Label Grid.Column="3" Grid.Row="2" Content="px/ms" Margin="2" />
+                <TextBlock
+                    Grid.Column="1"
+                    Grid.Row="3"
+                    Grid.ColumnSpan="3"
+                    Text="Lower is easier to trigger. Higher requires faster movement."
+                    TextWrapping="Wrap"
+                    FontSize="11"
+                    Foreground="#666666"
+                    Margin="2,0,2,6" />
+
+                <Label Grid.Column="0" Grid.Row="4" Content="Direction changes" Margin="2" />
+                <Slider
+                    Name="ShakeMinimumTurnsSlider"
+                    Grid.Column="1"
+                    Grid.Row="4"
+                    Width="220"
+                    VerticalAlignment="Center"
+                    Minimum="1"
+                    Maximum="12"
+                    TickFrequency="1"
+                    IsSnapToTickEnabled="True"
+                    TickPlacement="BottomRight"
+                    Margin="2"
+                    ValueChanged="ShakeMinimumTurnsSlider_OnValueChanged" />
+                <Label Grid.Column="2" Grid.Row="4"
+                       Content="{Binding ElementName=ShakeMinimumTurnsSlider, Path=Value, UpdateSourceTrigger=PropertyChanged, StringFormat={}{0:0}}" Margin="2" />
+                <Label Grid.Column="3" Grid.Row="4" Content="turns" Margin="2" />
+                <TextBlock
+                    Grid.Column="1"
+                    Grid.Row="5"
+                    Grid.ColumnSpan="3"
+                    Text="Lower is easier to trigger. Higher requires more back-and-forth movement."
+                    TextWrapping="Wrap"
+                    FontSize="11"
+                    Foreground="#666666"
+                    Margin="2,0,2,0" />
+            </Grid>
+        </GroupBox>
+
+        <Button
+            Content="Reset Defaults"
+            HorizontalAlignment="Left"
+            Margin="0,2,0,0"
+            Padding="8,2"
+            Click="ResetDefaultsButton_OnClick" />
+    </StackPanel>
 </Window>

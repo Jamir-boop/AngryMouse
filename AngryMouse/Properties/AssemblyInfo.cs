@@ -8,9 +8,9 @@ using System.Windows;
 [assembly: AssemblyTitle("AngryMouse")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("")]
+[assembly: AssemblyCompany("Jamir-boop")]
 [assembly: AssemblyProduct("AngryMouse")]
-[assembly: AssemblyCopyright("Copyright © 2018 Long Tran")]
+[assembly: AssemblyCopyright("Copyright © 2026 Jamir-boop")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
@@ -49,6 +49,6 @@ using System.Windows;
 // You can specify all the values or you can default the Build and Revision Numbers
 // by using the '*' as shown below:
 // [assembly: AssemblyVersion("1.0.*")]
-[assembly: AssemblyVersion("1.1.0.0")]
-[assembly: AssemblyFileVersion("1.1.0.0")]
+[assembly: AssemblyVersion("1.1.1.0")]
+[assembly: AssemblyFileVersion("1.1.1.0")]
 
