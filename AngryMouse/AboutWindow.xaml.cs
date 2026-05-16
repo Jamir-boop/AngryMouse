@@ -19,9 +19,12 @@ namespace AngryMouse
 
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
-            AppName.Content = Assembly.GetExecutingAssembly().GetName().Name;
-            AppVersion.Content = Assembly.GetExecutingAssembly().GetName().Version.ToString();
-            AppCopyright.Content = Assembly.GetExecutingAssembly().GetCustomAttribute<AssemblyCopyrightAttribute>().Copyright;
+            var assembly = Assembly.GetExecutingAssembly();
+
+            AppName.Content = assembly.GetName().Name;
+            AppVersion.Content = assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion
+                ?? assembly.GetName().Version.ToString(3);
+            AppCopyright.Content = assembly.GetCustomAttribute<AssemblyCopyrightAttribute>().Copyright;
 
             ImageSource imageSource = Imaging.CreateBitmapSourceFromHBitmap(
                 Properties.Resources.IconPng.GetHbitmap(),

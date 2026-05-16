@@ -15,8 +15,8 @@
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     <Deterministic>true</Deterministic>
     <TargetFrameworkProfile />
-    <PublishUrl>publish\</PublishUrl>
-    <PublishDir>publish\</PublishDir>
+    <PublishUrl>..\publish\</PublishUrl>
+    <PublishDir>..\publish\</PublishDir>
     <Install>true</Install>
     <InstallFrom>Disk</InstallFrom>
     <UpdateEnabled>false</UpdateEnabled>
@@ -27,10 +27,17 @@
     <UpdateRequired>false</UpdateRequired>
     <MapFileExtensions>true</MapFileExtensions>
     <ApplicationRevision>0</ApplicationRevision>
-    <ApplicationVersion>1.1.1.0</ApplicationVersion>
+    <ApplicationVersion>1.1.2.0</ApplicationVersion>
     <IsWebBootstrapper>false</IsWebBootstrapper>
     <UseApplicationTrust>false</UseApplicationTrust>
     <BootstrapperEnabled>false</BootstrapperEnabled>
+    <GenerateManifests>true</GenerateManifests>
+    <!-- This install has mage.exe but not signtool.exe, so sign ClickOnce manifests after publish. -->
+    <SignManifests>false</SignManifests>
+    <MageSignManifests>true</MageSignManifests>
+    <ManifestCertificateThumbprint>3FAA00BECE69EF6180B4B737A0DAA94084EA3ADA</ManifestCertificateThumbprint>
+    <MageToolPath Condition="'$(MageToolPath)' == '' And Exists('$(TargetFrameworkSDKToolsDirectory)mage.exe')">$(TargetFrameworkSDKToolsDirectory)mage.exe</MageToolPath>
+    <MageToolPath Condition="'$(MageToolPath)' == '' And Exists('$(MSBuildProgramFiles32)\Microsoft SDKs\Windows\v10.0A\bin\NETFX 4.7.2 Tools\mage.exe')">$(MSBuildProgramFiles32)\Microsoft SDKs\Windows\v10.0A\bin\NETFX 4.7.2 Tools\mage.exe</MageToolPath>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -227,4 +234,16 @@
     <None Include="Resources\IconPng.png" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <Target Name="EnsureMageToolPath" BeforeTargets="Publish" Condition="'$(MageSignManifests)' == 'true' And !Exists('$(MageToolPath)')">
+    <Error Text="MageSignManifests is true, but mage.exe was not found. Install .NET Framework SDK ClickOnce tools or set MageToolPath." />
+  </Target>
+  <Target Name="SignClickOnceManifestsWithMage" AfterTargets="Publish" Condition="'$(MageSignManifests)' == 'true' And Exists('$(MageToolPath)')">
+    <PropertyGroup>
+      <ClickOnceVersionFolder>$([System.String]::Copy('$(ApplicationVersion)').Replace('.', '_'))</ClickOnceVersionFolder>
+      <ClickOnceApplicationManifest>$(PublishUrl)Application Files\$(AssemblyName)_$(ClickOnceVersionFolder)\$(TargetFileName).manifest</ClickOnceApplicationManifest>
+      <ClickOnceDeploymentManifest>$(PublishUrl)$(AssemblyName).application</ClickOnceDeploymentManifest>
+    </PropertyGroup>
+    <Exec Command="&quot;$(MageToolPath)&quot; -Sign &quot;$(ClickOnceApplicationManifest)&quot; -CertHash &quot;$(ManifestCertificateThumbprint)&quot; -Algorithm sha256RSA" />
+    <Exec Command="&quot;$(MageToolPath)&quot; -Update &quot;$(ClickOnceDeploymentManifest)&quot; -AppManifest &quot;$(ClickOnceApplicationManifest)&quot; -CertHash &quot;$(ManifestCertificateThumbprint)&quot; -Algorithm sha256RSA" />
+  </Target>
 </Project>
