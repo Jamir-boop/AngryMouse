@@ -145,6 +145,8 @@ namespace AngryMouse.Mouse
 
         private static int MinimumTurns => Math.Max(1, Properties.Settings.Default.ShakeMinimumTurns);
 
+        private static int VisibleDuration => Math.Max(1, Properties.Settings.Default.CursorVisibleDuration);
+
         private void SetShaking(bool shaking)
         {
             if (_shaking != shaking)
@@ -157,7 +159,7 @@ namespace AngryMouse.Mouse
 
         private void Timer_Tick(object sender, ElapsedEventArgs e)
         {
-            if (_shaking && DateTime.Now.AddMilliseconds(-500) > _lastMouseEvent)
+            if (_shaking && DateTime.Now.AddMilliseconds(-VisibleDuration) > _lastMouseEvent)
             {
                 Application.Current.Dispatcher.Invoke(() => { SetShaking(false); });
             }

@@ -8,6 +8,9 @@
     <Setting Name="CursorAnimationLength" Type="System.Int32" Scope="User">
       <Value Profile="(Default)">300</Value>
     </Setting>
+    <Setting Name="CursorVisibleDuration" Type="System.Int32" Scope="User">
+      <Value Profile="(Default)">800</Value>
+    </Setting>
     <Setting Name="CursorSourceMode" Type="System.String" Scope="User">
       <Value Profile="(Default)">System</Value>
     </Setting>

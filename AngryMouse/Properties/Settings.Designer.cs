@@ -49,6 +49,18 @@ namespace AngryMouse.Properties {
 
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("800")]
+        public int CursorVisibleDuration {
+            get {
+                return ((int)(this["CursorVisibleDuration"]));
+            }
+            set {
+                this["CursorVisibleDuration"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("System")]
         public string CursorSourceMode {
             get {

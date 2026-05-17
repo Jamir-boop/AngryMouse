@@ -40,6 +40,7 @@ namespace AngryMouse
             CustomCursorHotspotYTextBox.Text = Properties.Settings.Default.CustomCursorHotspotY.ToString();
             SizeSlider.Value = Properties.Settings.Default.CursorSize;
             AnimationLengthSlider.Value = Properties.Settings.Default.CursorAnimationLength;
+            VisibleDurationSlider.Value = Properties.Settings.Default.CursorVisibleDuration;
             ShakeTrackingIntervalSlider.Value = Properties.Settings.Default.ShakeTrackingInterval;
             ShakeMinimumSpeedSlider.Value = Properties.Settings.Default.ShakeMinimumSpeed;
             ShakeMinimumTurnsSlider.Value = Properties.Settings.Default.ShakeMinimumTurns;
@@ -158,6 +159,14 @@ namespace AngryMouse
             if (_loading) return;
 
             Properties.Settings.Default.CursorAnimationLength = (int)e.NewValue;
+            SaveSettings();
+        }
+
+        private void VisibleDurationSlider_OnValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        {
+            if (_loading) return;
+
+            Properties.Settings.Default.CursorVisibleDuration = (int)e.NewValue;
             SaveSettings();
         }
 

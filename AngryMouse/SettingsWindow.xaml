@@ -29,6 +29,7 @@
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
 
                 <Label Grid.Column="0" Grid.Row="0" Content="Zoom cursor" Margin="2" />
@@ -138,6 +139,24 @@
                 <Label Grid.Column="2" Grid.Row="7"
                        Content="{Binding ElementName=AnimationLengthSlider, Path=Value, UpdateSourceTrigger=PropertyChanged, StringFormat={}{0:0}}" Margin="2" />
                 <Label Grid.Column="3" Grid.Row="7" Content="ms" Margin="2" />
+
+                <Label Grid.Column="0" Grid.Row="8" Content="Visible duration" Margin="2" />
+                <Slider
+                    Name="VisibleDurationSlider"
+                    Grid.Column="1"
+                    Grid.Row="8"
+                    Width="220"
+                    VerticalAlignment="Center"
+                    Minimum="100"
+                    Maximum="3000"
+                    TickFrequency="100"
+                    IsSnapToTickEnabled="True"
+                    TickPlacement="BottomRight"
+                    Margin="2"
+                    ValueChanged="VisibleDurationSlider_OnValueChanged" />
+                <Label Grid.Column="2" Grid.Row="8"
+                       Content="{Binding ElementName=VisibleDurationSlider, Path=Value, UpdateSourceTrigger=PropertyChanged, StringFormat={}{0:0}}" Margin="2" />
+                <Label Grid.Column="3" Grid.Row="8" Content="ms" Margin="2" />
             </Grid>
         </GroupBox>
 
