@@ -23,6 +23,19 @@ namespace AngryMouse
     /// </summary>
     public partial class App
     {
+        private const string SingleInstanceMutexName = @"Global\JamirBoop.AngryMouse.SingleInstance";
+        private const string SingleInstanceOpenSettingsEventName = @"Global\JamirBoop.AngryMouse.OpenSettings";
+
+        private Mutex _singleInstanceMutex;
+
+        private EventWaitHandle _singleInstanceOpenSettingsEvent;
+
+        private Thread _singleInstanceSignalThread;
+
+        private volatile bool _singleInstanceSignalListenerStopping;
+
+        private bool _singleInstanceReady;
+
         /// <summary>
         /// Debug mode
         /// </summary>
@@ -74,6 +87,15 @@ namespace AngryMouse
 
         protected override void OnStartup(StartupEventArgs e)
         {
+            if (!TryAcquireSingleInstance())
+            {
+                SignalExistingInstance();
+                Shutdown(0);
+                return;
+            }
+
+            StartSingleInstanceSignalListener();
+
             base.OnStartup(e);
             AppTheme.Initialize();
 
@@ -118,13 +140,138 @@ namespace AngryMouse
 
             ApplyCurrentCursorVisual(force: true);
             StartActiveCollectionPrewarm();
+            _singleInstanceReady = true;
             OpenSettingsWindow();
         }
 
         protected override void OnExit(ExitEventArgs e)
         {
+            _singleInstanceReady = false;
+            StopSingleInstanceSignalListener();
             AppTheme.Dispose();
+            ReleaseSingleInstance();
             base.OnExit(e);
+        }
+
+        private bool TryAcquireSingleInstance()
+        {
+            bool createdNew;
+
+            try
+            {
+                _singleInstanceMutex = new Mutex(true, SingleInstanceMutexName, out createdNew);
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return false;
+            }
+
+            if (createdNew)
+            {
+                return true;
+            }
+
+            _singleInstanceMutex.Dispose();
+            _singleInstanceMutex = null;
+            return false;
+        }
+
+        private static void SignalExistingInstance()
+        {
+            try
+            {
+                using (var signal = EventWaitHandle.OpenExisting(SingleInstanceOpenSettingsEventName))
+                {
+                    signal.Set();
+                }
+            }
+            catch (WaitHandleCannotBeOpenedException)
+            {
+            }
+            catch (UnauthorizedAccessException)
+            {
+            }
+        }
+
+        private void StartSingleInstanceSignalListener()
+        {
+            _singleInstanceOpenSettingsEvent = new EventWaitHandle(
+                false,
+                EventResetMode.AutoReset,
+                SingleInstanceOpenSettingsEventName);
+            _singleInstanceSignalListenerStopping = false;
+            _singleInstanceSignalThread = new Thread(WaitForSingleInstanceSignals)
+            {
+                IsBackground = true,
+                Name = "AngryMouseSingleInstanceSignal"
+            };
+            _singleInstanceSignalThread.Start();
+        }
+
+        private void WaitForSingleInstanceSignals()
+        {
+            while (!_singleInstanceSignalListenerStopping)
+            {
+                try
+                {
+                    _singleInstanceOpenSettingsEvent.WaitOne();
+                }
+                catch (ObjectDisposedException)
+                {
+                    return;
+                }
+
+                if (_singleInstanceSignalListenerStopping)
+                {
+                    return;
+                }
+
+                Current.Dispatcher.BeginInvoke(new Action(OpenSettingsWindowFromSingleInstanceSignal));
+            }
+        }
+
+        private void OpenSettingsWindowFromSingleInstanceSignal()
+        {
+            if (!_singleInstanceReady)
+            {
+                return;
+            }
+
+            OpenSettingsWindow();
+        }
+
+        private void StopSingleInstanceSignalListener()
+        {
+            _singleInstanceSignalListenerStopping = true;
+
+            if (_singleInstanceOpenSettingsEvent == null)
+            {
+                return;
+            }
+
+            try
+            {
+                _singleInstanceOpenSettingsEvent.Set();
+            }
+            catch (ObjectDisposedException)
+            {
+            }
+
+            _singleInstanceOpenSettingsEvent.Dispose();
+            _singleInstanceOpenSettingsEvent = null;
+            _singleInstanceSignalThread = null;
+        }
+
+        private void ReleaseSingleInstance()
+        {
+            if (_singleInstanceMutex == null)
+            {
+                return;
+            }
+
+            _singleInstanceMutex.ReleaseMutex();
+            _singleInstanceMutex.Dispose();
+            _singleInstanceMutex = null;
         }
 
         /// <summary>

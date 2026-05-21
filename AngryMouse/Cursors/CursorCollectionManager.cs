@@ -19,7 +19,7 @@ namespace AngryMouse.Cursors
         private const string CursorCollectionsFolderName = "CursorCollections";
         private const string PackageSettingsFileName = "settings.xml";
         private const string PackageCollectionsRoot = "CursorCollections";
-        private const string PackageVersion = "2.5.0";
+        private const string PackageVersion = "2.5.1";
 
         public static readonly CursorRoleDefinition[] Roles =
         {
