@@ -52,6 +52,7 @@ namespace AngryMouse
             AnimationLengthSlider.Value = Properties.Settings.Default.CursorAnimationLength;
             VisibleDurationSlider.Value = Properties.Settings.Default.CursorVisibleDuration;
             HideBuiltInCursorCheckBox.IsChecked = Properties.Settings.Default.HideBuiltInCursor;
+            SyncHideBuiltInCursorAvailability(saveWhenChanged: true);
             ShakeTrackingIntervalSlider.Value = Properties.Settings.Default.ShakeTrackingInterval;
             ShakeMinimumSpeedSlider.Value = Properties.Settings.Default.ShakeMinimumSpeed;
             ShakeMinimumTurnsSlider.Value = Properties.Settings.Default.ShakeMinimumTurns;
@@ -167,6 +168,7 @@ namespace AngryMouse
             if (_loading) return;
 
             Properties.Settings.Default.CursorSourceMode = GetCursorSourceMode();
+            SyncHideBuiltInCursorAvailability(saveWhenChanged: false);
             SaveSettings();
             UpdateCollectionUiAvailability();
             if (IsCollectionMode())
@@ -452,7 +454,12 @@ namespace AngryMouse
         {
             if (_loading) return;
 
-            Properties.Settings.Default.HideBuiltInCursor = HideBuiltInCursorCheckBox.IsChecked == true;
+            SyncHideBuiltInCursorAvailability(saveWhenChanged: false);
+            if (!IsSystemMode())
+            {
+                Properties.Settings.Default.HideBuiltInCursor = HideBuiltInCursorCheckBox.IsChecked == true;
+            }
+
             SaveSettings();
         }
 
@@ -649,6 +656,34 @@ namespace AngryMouse
         private bool IsCollectionMode()
         {
             return string.Equals(GetCursorSourceMode(), CursorCollectionManager.CollectionMode, StringComparison.OrdinalIgnoreCase);
+        }
+
+        private bool IsSystemMode()
+        {
+            return string.Equals(GetCursorSourceMode(), CursorCollectionManager.SystemMode, StringComparison.OrdinalIgnoreCase);
+        }
+
+        private void SyncHideBuiltInCursorAvailability(bool saveWhenChanged)
+        {
+            if (!IsSystemMode())
+            {
+                HideBuiltInCursorCheckBox.IsEnabled = true;
+                return;
+            }
+
+            HideBuiltInCursorCheckBox.IsEnabled = false;
+            HideBuiltInCursorCheckBox.IsChecked = false;
+
+            if (!Properties.Settings.Default.HideBuiltInCursor)
+            {
+                return;
+            }
+
+            Properties.Settings.Default.HideBuiltInCursor = false;
+            if (saveWhenChanged)
+            {
+                SaveSettings();
+            }
         }
 
         private void UpdateCollectionUiAvailability()

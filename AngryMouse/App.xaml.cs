@@ -508,6 +508,10 @@ namespace AngryMouse
             }
 
             var shouldHide = AngryMouse.Properties.Settings.Default.HideBuiltInCursor &&
+                             !string.Equals(
+                                 AngryMouse.Properties.Settings.Default.CursorSourceMode,
+                                 CursorCollectionManager.SystemMode,
+                                 StringComparison.OrdinalIgnoreCase) &&
                              (_detectorShaking || _testPreviewActive);
             if (shouldHide)
             {
