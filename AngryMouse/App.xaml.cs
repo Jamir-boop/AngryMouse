@@ -94,6 +94,8 @@ namespace AngryMouse
                 return;
             }
 
+            SystemCursorHider.Restore();
+            RegisterSystemCursorRestoreHandlers();
             StartSingleInstanceSignalListener();
 
             base.OnStartup(e);
@@ -146,11 +148,18 @@ namespace AngryMouse
 
         protected override void OnExit(ExitEventArgs e)
         {
+            SystemCursorHider.Restore();
             _singleInstanceReady = false;
             StopSingleInstanceSignalListener();
             AppTheme.Dispose();
             ReleaseSingleInstance();
             base.OnExit(e);
+        }
+
+        private void RegisterSystemCursorRestoreHandlers()
+        {
+            DispatcherUnhandledException += (sender, args) => SystemCursorHider.Restore();
+            AppDomain.CurrentDomain.UnhandledException += (sender, args) => SystemCursorHider.Restore();
         }
 
         private bool TryAcquireSingleInstance()
@@ -350,7 +359,10 @@ namespace AngryMouse
             _testPreviewActive = true;
             _testPreviewRoleKey = string.IsNullOrWhiteSpace(roleKey) ? "arrow" : roleKey;
             _lastCursorIdentity = null;
-            ApplyCurrentCursorVisual(force: true);
+            if (!UpdateSystemCursorVisibility() && !SystemCursorHider.IsHidden)
+            {
+                ApplyCurrentCursorVisual(force: true);
+            }
 
             var position = System.Windows.Forms.Cursor.Position;
             _overlayWindows.ForEach(window =>
@@ -376,8 +388,11 @@ namespace AngryMouse
             _testPreviewActive = false;
             _testPreviewRoleKey = null;
             _lastCursorIdentity = null;
-            ApplyCurrentCursorVisual(force: true);
             _overlayWindows.ForEach(window => window.SetMouseShake(_detectorShaking, _lastDetectorShakeTimestamp));
+            if (!UpdateSystemCursorVisibility() && !SystemCursorHider.IsHidden)
+            {
+                ApplyCurrentCursorVisual(force: true);
+            }
         }
 
         /// <summary>
@@ -385,6 +400,7 @@ namespace AngryMouse
         /// </summary>
         private void ExitApp()
         {
+            SystemCursorHider.Restore();
             AngryMouse.Properties.Settings.Default.PropertyChanged -= SettingsOnPropertyChanged;
             CursorCollectionManager.CollectionChanged -= CursorCollectionManagerOnCollectionChanged;
             CancelActiveCollectionPrewarm();
@@ -409,6 +425,7 @@ namespace AngryMouse
 
             _detectorShaking = e.IsShaking;
             _lastDetectorShakeTimestamp = e.Timestamp;
+            UpdateSystemCursorVisibility();
             if (_testPreviewActive)
             {
                 return;
@@ -447,7 +464,10 @@ namespace AngryMouse
                 _mouseMoveQueued = false;
             }
 
-            ApplyCurrentCursorVisual(force: false);
+            if (!SystemCursorHider.IsHidden)
+            {
+                ApplyCurrentCursorVisual(force: false);
+            }
             _overlayWindows.ForEach(window => window.UpdateMousePosition(x, y));
         }
 
@@ -457,16 +477,67 @@ namespace AngryMouse
                 e.PropertyName == "CursorCollectionName")
             {
                 _lastCursorIdentity = null;
-                ApplyCurrentCursorVisual(force: true);
+                if (!SystemCursorHider.IsHidden)
+                {
+                    ApplyCurrentCursorVisual(force: true);
+                }
+
                 StartActiveCollectionPrewarm();
+            }
+
+            if (e.PropertyName == "HideBuiltInCursor")
+            {
+                UpdateSystemCursorVisibility();
             }
         }
 
         private void CursorCollectionManagerOnCollectionChanged(object sender, EventArgs e)
         {
             _lastCursorIdentity = null;
-            ApplyCurrentCursorVisual(force: true);
+            if (!SystemCursorHider.IsHidden)
+            {
+                ApplyCurrentCursorVisual(force: true);
+            }
+
             StartActiveCollectionPrewarm();
+        }
+
+        private bool UpdateSystemCursorVisibility()
+        {
+            if (!Current.Dispatcher.CheckAccess())
+            {
+                Current.Dispatcher.BeginInvoke(new Action(() => UpdateSystemCursorVisibility()));
+                return false;
+            }
+
+            var shouldHide = AngryMouse.Properties.Settings.Default.HideBuiltInCursor &&
+                             (_detectorShaking || _testPreviewActive);
+            if (shouldHide)
+            {
+                if (SystemCursorHider.IsHidden)
+                {
+                    return false;
+                }
+
+                _lastCursorIdentity = null;
+                ApplyCurrentCursorVisual(force: true);
+                SystemCursorHider.Hide();
+                return true;
+            }
+
+            if (!SystemCursorHider.IsHidden)
+            {
+                return false;
+            }
+
+            if (!SystemCursorHider.Restore())
+            {
+                return false;
+            }
+
+            _lastCursorIdentity = null;
+            ApplyCurrentCursorVisual(force: true);
+            return true;
         }
 
         private void ApplyCurrentCursorVisual(bool force)

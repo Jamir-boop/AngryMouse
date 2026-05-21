@@ -61,6 +61,18 @@ namespace AngryMouse.Properties {
 
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool HideBuiltInCursor {
+            get {
+                return ((bool)(this["HideBuiltInCursor"]));
+            }
+            set {
+                this["HideBuiltInCursor"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("System")]
         public string CursorSourceMode {
             get {

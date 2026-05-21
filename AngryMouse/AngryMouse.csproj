@@ -28,7 +28,7 @@
     <MapFileExtensions>true</MapFileExtensions>
     <ApplicationRevision>0</ApplicationRevision>
     <!-- ClickOnce manifest identity requires four version parts. Public app version is AssemblyInformationalVersion. -->
-    <ApplicationVersion>2.5.1.0</ApplicationVersion>
+    <ApplicationVersion>2.5.6.0</ApplicationVersion>
     <IsWebBootstrapper>false</IsWebBootstrapper>
     <UseApplicationTrust>false</UseApplicationTrust>
     <BootstrapperEnabled>false</BootstrapperEnabled>
@@ -165,6 +165,7 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Compile Include="AppIcon.cs" />
     <Compile Include="AboutWindow.xaml.cs">
       <DependentUpon>AboutWindow.xaml</DependentUpon>
     </Compile>
@@ -182,6 +183,7 @@
     <Compile Include="Cursors\CursorVisualCache.cs" />
     <Compile Include="Cursors\CursorVisualInfo.cs" />
     <Compile Include="Cursors\CursorVisualLoader.cs" />
+    <Compile Include="Cursors\SystemCursorHider.cs" />
     <Compile Include="DebugInfoWindow.xaml.cs">
       <DependentUpon>DebugInfoWindow.xaml</DependentUpon>
     </Compile>

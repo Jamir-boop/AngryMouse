@@ -26,6 +26,8 @@ namespace AngryMouse.Mouse
         /// </summary>
         private DateTime _lastMouseEvent = DateTime.MinValue;
 
+        private DateTime _visibleUntil = DateTime.MinValue;
+
         /// <summary>
         /// Stores the recorded mouse positions.
         /// </summary>
@@ -88,7 +90,11 @@ namespace AngryMouse.Mouse
 
                 _mousePositions.AddFirst(e);
 
-                SetShaking(IsShaking());
+                if (IsShaking())
+                {
+                    _visibleUntil = currentTime.AddMilliseconds(VisibleDuration);
+                    SetShaking(true);
+                }
             }
         }
 
@@ -159,9 +165,15 @@ namespace AngryMouse.Mouse
 
         private void Timer_Tick(object sender, ElapsedEventArgs e)
         {
-            if (_shaking && DateTime.Now.AddMilliseconds(-VisibleDuration) > _lastMouseEvent)
+            if (_shaking && DateTime.Now >= _visibleUntil)
             {
-                Application.Current.Dispatcher.Invoke(() => { SetShaking(false); });
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    if (DateTime.Now >= _visibleUntil)
+                    {
+                        SetShaking(false);
+                    }
+                });
             }
         }
 

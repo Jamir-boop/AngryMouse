@@ -19,7 +19,7 @@ namespace AngryMouse.Cursors
         private const string CursorCollectionsFolderName = "CursorCollections";
         private const string PackageSettingsFileName = "settings.xml";
         private const string PackageCollectionsRoot = "CursorCollections";
-        private const string PackageVersion = "2.5.1";
+        private const string PackageVersion = "2.5.2";
 
         public static readonly CursorRoleDefinition[] Roles =
         {
@@ -577,6 +577,7 @@ namespace AngryMouse.Cursors
                     CreateSettingElement("CursorSize", settings.CursorSize.ToString(CultureInfo.InvariantCulture)),
                     CreateSettingElement("CursorAnimationLength", settings.CursorAnimationLength.ToString(CultureInfo.InvariantCulture)),
                     CreateSettingElement("CursorVisibleDuration", settings.CursorVisibleDuration.ToString(CultureInfo.InvariantCulture)),
+                    CreateSettingElement("HideBuiltInCursor", settings.HideBuiltInCursor.ToString().ToLowerInvariant()),
                     CreateSettingElement("CursorSourceMode", settings.CursorSourceMode ?? string.Empty),
                     CreateSettingElement("CursorCollectionName", settings.CursorCollectionName ?? string.Empty),
                     CreateSettingElement("ThemeMode", settings.ThemeMode ?? string.Empty),
@@ -697,6 +698,7 @@ namespace AngryMouse.Cursors
 
             double doubleValue;
             int intValue;
+            bool boolValue;
             string stringValue;
 
             if (TryGetSettingValue(values, "CursorSize", out stringValue) &&
@@ -715,6 +717,12 @@ namespace AngryMouse.Cursors
                 int.TryParse(stringValue, NumberStyles.Integer, CultureInfo.InvariantCulture, out intValue))
             {
                 settings.CursorVisibleDuration = intValue;
+            }
+
+            if (TryGetSettingValue(values, "HideBuiltInCursor", out stringValue) &&
+                bool.TryParse(stringValue, out boolValue))
+            {
+                settings.HideBuiltInCursor = boolValue;
             }
 
             if (TryGetSettingValue(values, "CursorSourceMode", out stringValue))

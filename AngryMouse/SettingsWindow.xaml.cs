@@ -51,6 +51,7 @@ namespace AngryMouse
             SizeSlider.Value = Properties.Settings.Default.CursorSize;
             AnimationLengthSlider.Value = Properties.Settings.Default.CursorAnimationLength;
             VisibleDurationSlider.Value = Properties.Settings.Default.CursorVisibleDuration;
+            HideBuiltInCursorCheckBox.IsChecked = Properties.Settings.Default.HideBuiltInCursor;
             ShakeTrackingIntervalSlider.Value = Properties.Settings.Default.ShakeTrackingInterval;
             ShakeMinimumSpeedSlider.Value = Properties.Settings.Default.ShakeMinimumSpeed;
             ShakeMinimumTurnsSlider.Value = Properties.Settings.Default.ShakeMinimumTurns;
@@ -58,6 +59,7 @@ namespace AngryMouse
             UpdateCursorEditor(loadPreviews: false);
             UpdateCursorStatus();
             UpdateRemoveCollectionButton();
+            UpdateCollectionUiAvailability();
         }
 
         private void LoadCollectionsToControls()
@@ -166,6 +168,12 @@ namespace AngryMouse
 
             Properties.Settings.Default.CursorSourceMode = GetCursorSourceMode();
             SaveSettings();
+            UpdateCollectionUiAvailability();
+            if (IsCollectionMode())
+            {
+                UpdateCursorEditor(loadPreviews: false);
+            }
+
             UpdateCursorStatus();
             StartPrewarmSelectedCollection();
         }
@@ -440,6 +448,14 @@ namespace AngryMouse
             SaveSettings();
         }
 
+        private void HideBuiltInCursorCheckBox_OnChanged(object sender, RoutedEventArgs e)
+        {
+            if (_loading) return;
+
+            Properties.Settings.Default.HideBuiltInCursor = HideBuiltInCursorCheckBox.IsChecked == true;
+            SaveSettings();
+        }
+
         private void ShakeTrackingIntervalSlider_OnValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
             if (_loading) return;
@@ -483,6 +499,12 @@ namespace AngryMouse
 
         private void UpdateCursorEditor(bool loadPreviews)
         {
+            if (!IsCollectionMode())
+            {
+                CursorRoleDataGrid.ItemsSource = null;
+                return;
+            }
+
             var collectionName = GetSelectedCollectionName();
             var collectionPath = CursorCollectionManager.GetCollectionPath(collectionName);
             var assignments = CursorCollectionManager.LoadAssignments(collectionName);
@@ -540,6 +562,12 @@ namespace AngryMouse
         private void StartPrewarmSelectedCollection()
         {
             CancelPrewarm();
+
+            if (!IsCollectionMode())
+            {
+                HideCursorRenderStatus();
+                return;
+            }
 
             var collectionName = GetSelectedCollectionName();
             if (string.IsNullOrWhiteSpace(collectionName))
@@ -615,7 +643,44 @@ namespace AngryMouse
 
         private void UpdateRemoveCollectionButton()
         {
-            RemoveCollectionButton.IsEnabled = CursorCollectionManager.CanRemoveCollection(GetSelectedRemoveCollectionName());
+            RemoveCollectionButton.IsEnabled = IsCollectionMode() && CursorCollectionManager.CanRemoveCollection(GetSelectedRemoveCollectionName());
+        }
+
+        private bool IsCollectionMode()
+        {
+            return string.Equals(GetCursorSourceMode(), CursorCollectionManager.CollectionMode, StringComparison.OrdinalIgnoreCase);
+        }
+
+        private void UpdateCollectionUiAvailability()
+        {
+            var collectionMode = IsCollectionMode();
+
+            CollectionLabel.IsEnabled = collectionMode;
+            CollectionComboBox.IsEnabled = collectionMode;
+            ImportCollectionButton.IsEnabled = collectionMode;
+            ImportSettingsButton.IsEnabled = collectionMode;
+            ExportSettingsButton.IsEnabled = collectionMode;
+            CollectionHelpTextBlock.Visibility = collectionMode ? Visibility.Visible : Visibility.Collapsed;
+            RemoveCollectionLabel.IsEnabled = collectionMode;
+            RemoveCollectionComboBox.IsEnabled = collectionMode;
+            CursorRenderPanel.Visibility = collectionMode ? Visibility.Visible : Visibility.Collapsed;
+            CursorRoleDataGrid.Visibility = collectionMode ? Visibility.Visible : Visibility.Collapsed;
+
+            if (!collectionMode)
+            {
+                CancelPrewarm();
+                HideCursorRenderStatus();
+                CursorRoleDataGrid.ItemsSource = null;
+            }
+
+            UpdateRemoveCollectionButton();
+        }
+
+        private void HideCursorRenderStatus()
+        {
+            CursorRenderProgressBar.Visibility = Visibility.Collapsed;
+            CursorRenderStatusTextBlock.Visibility = Visibility.Collapsed;
+            CursorRenderStatusTextBlock.Text = "";
         }
 
         private void UpdateCursorStatus()

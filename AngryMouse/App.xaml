@@ -37,6 +37,39 @@
             <Setter Property="Foreground" Value="{DynamicResource Theme.ControlForegroundBrush}" />
         </Style>
 
+        <Style TargetType="{x:Type ToolTip}">
+            <Setter Property="Foreground" Value="#000000" />
+            <Setter Property="Background" Value="#FFFFFFE1" />
+            <Setter Property="BorderBrush" Value="#FF767676" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Padding" Value="8,5" />
+            <Setter Property="MaxWidth" Value="360" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type ToolTip}">
+                        <Border
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            Padding="{TemplateBinding Padding}"
+                            SnapsToDevicePixels="True">
+                            <Border.Resources>
+                                <Style TargetType="{x:Type TextBlock}">
+                                    <Setter Property="Foreground" Value="#000000" />
+                                </Style>
+                            </Border.Resources>
+                            <ContentPresenter
+                                Content="{TemplateBinding Content}"
+                                ContentTemplate="{TemplateBinding ContentTemplate}"
+                                ContentStringFormat="{TemplateBinding ContentStringFormat}"
+                                RecognizesAccessKey="True"
+                                TextElement.Foreground="#000000" />
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <Style TargetType="{x:Type GroupBox}">
             <Setter Property="Foreground" Value="{DynamicResource Theme.ControlForegroundBrush}" />
             <Setter Property="BorderBrush" Value="{DynamicResource Theme.BorderBrush}" />

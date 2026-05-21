@@ -6,6 +6,7 @@
         xmlns:local="clr-namespace:AngryMouse"
         mc:Ignorable="d"
         Title="AboutWindow"
+        Icon="{x:Static local:AppIcon.ImageSource}"
         Height="Auto"
         Width="Auto"
         SizeToContent="WidthAndHeight"

@@ -1,6 +1,8 @@
 # AngryMouse
 
-![Icon](https://github.com/Jamir-boop/AngryMouse/raw/master/icon.png)
+<p align="center">
+  <img src="icon.png" alt="MinimalFox Icon" width="100" height="100">
+</p>
 
 This is a very dumb application that implements OS X's shake to find mouse feature using WPF. This is a detached fork from the now abandoned Longi94/AngryMouse project.
 
