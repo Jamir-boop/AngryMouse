@@ -4,7 +4,7 @@
 
 This is a very dumb application that implements OS X's shake to find mouse feature using WPF. This is a detached fork from the now abandoned Longi94/AngryMouse project.
 
-https://github.com/user-attachments/assets/6b8f7c20-b922-478f-a597-b68f37301949
+https://github.com/user-attachments/assets/6c866990-69a0-4d82-98f8-f695c3d7d6f3
 
 ## Installation (Windows Only)
 
