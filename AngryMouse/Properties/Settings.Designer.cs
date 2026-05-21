@@ -61,7 +61,7 @@ namespace AngryMouse.Properties {
 
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
         public bool HideBuiltInCursor {
             get {
                 return ((bool)(this["HideBuiltInCursor"]));

@@ -464,10 +464,7 @@ namespace AngryMouse
                 _mouseMoveQueued = false;
             }
 
-            if (!SystemCursorHider.IsHidden)
-            {
-                ApplyCurrentCursorVisual(force: false);
-            }
+            ApplyCurrentCursorVisual(force: false);
             _overlayWindows.ForEach(window => window.UpdateMousePosition(x, y));
         }
 

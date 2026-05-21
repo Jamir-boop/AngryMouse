@@ -12,7 +12,7 @@
       <Value Profile="(Default)">800</Value>
     </Setting>
     <Setting Name="HideBuiltInCursor" Type="System.Boolean" Scope="User">
-      <Value Profile="(Default)">True</Value>
+      <Value Profile="(Default)">False</Value>
     </Setting>
     <Setting Name="CursorSourceMode" Type="System.String" Scope="User">
       <Value Profile="(Default)">System</Value>

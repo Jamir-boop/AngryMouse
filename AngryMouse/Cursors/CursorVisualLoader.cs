@@ -56,6 +56,12 @@ namespace AngryMouse.Cursors
                 return BuiltIn("System cursor unavailable. Using built-in cursor.");
             }
 
+            CursorVisualInfo originalVisual;
+            if (SystemCursorHider.TryGetOriginalCursorVisual(cursorHandle, out originalVisual))
+            {
+                return originalVisual;
+            }
+
             return LoadCursorHandle(cursorHandle, copyHandle: true, "Using active Windows cursor.");
         }
 
@@ -92,7 +98,12 @@ namespace AngryMouse.Cursors
                 return false;
             }
 
-            return CursorRolesByHandle.TryGetValue(cursorHandle, out roleKey);
+            if (CursorRolesByHandle.TryGetValue(cursorHandle, out roleKey))
+            {
+                return true;
+            }
+
+            return SystemCursorHider.TryGetHiddenCursorRoleKey(cursorHandle, out roleKey);
         }
 
         public static CursorVisualInfo LoadCollectionCursor()
@@ -207,6 +218,17 @@ namespace AngryMouse.Cursors
             }
 
             return LoadCursorHandle(handle, copyHandle: false, "Using custom CUR cursor.");
+        }
+
+        internal static CursorVisualInfo LoadSystemCursorRole(int windowsCursorId)
+        {
+            var cursorHandle = LoadCursor(IntPtr.Zero, new IntPtr(windowsCursorId));
+            if (cursorHandle == IntPtr.Zero)
+            {
+                return BuiltIn("System cursor unavailable. Using built-in cursor.");
+            }
+
+            return LoadCursorHandle(cursorHandle, copyHandle: true, "Using saved Windows cursor.");
         }
 
         private static CursorVisualInfo LoadCursorHandle(IntPtr cursorHandle, bool copyHandle, string status)

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Runtime.InteropServices;
 
 namespace AngryMouse.Cursors
@@ -15,6 +16,9 @@ namespace AngryMouse.Cursors
         private static readonly object SyncRoot = new object();
 
         private static bool _isHidden;
+        private static Dictionary<IntPtr, string> _hiddenCursorRolesByHandle = new Dictionary<IntPtr, string>();
+        private static Dictionary<string, CursorVisualInfo> _originalVisualsByRoleKey =
+            new Dictionary<string, CursorVisualInfo>(StringComparer.OrdinalIgnoreCase);
 
         public static bool IsHidden
         {
@@ -36,15 +40,25 @@ namespace AngryMouse.Cursors
                     return true;
                 }
 
+                ClearHiddenCursorState();
+
                 var changedAny = false;
+                var hiddenCursorRolesByHandle = new Dictionary<IntPtr, string>();
+                var originalVisualsByRoleKey = SnapshotOriginalCursorVisuals();
                 foreach (var role in CursorCollectionManager.Roles)
                 {
                     var cursor = CreateTransparentCursor();
                     if (cursor == IntPtr.Zero)
                     {
-                        if (!Restore() && changedAny)
+                        if (!RestoreSystemCursors() && changedAny)
                         {
                             _isHidden = true;
+                            _hiddenCursorRolesByHandle = hiddenCursorRolesByHandle;
+                            _originalVisualsByRoleKey = originalVisualsByRoleKey;
+                        }
+                        else
+                        {
+                            ClearHiddenCursorState();
                         }
 
                         return false;
@@ -53,18 +67,27 @@ namespace AngryMouse.Cursors
                     if (SetSystemCursor(cursor, (uint)role.WindowsCursorId))
                     {
                         changedAny = true;
+                        hiddenCursorRolesByHandle[cursor] = role.Key;
                         continue;
                     }
 
                     DestroyCursor(cursor);
-                    if (!Restore() && changedAny)
+                    if (!RestoreSystemCursors() && changedAny)
                     {
                         _isHidden = true;
+                        _hiddenCursorRolesByHandle = hiddenCursorRolesByHandle;
+                        _originalVisualsByRoleKey = originalVisualsByRoleKey;
+                    }
+                    else
+                    {
+                        ClearHiddenCursorState();
                     }
 
                     return false;
                 }
 
+                _hiddenCursorRolesByHandle = hiddenCursorRolesByHandle;
+                _originalVisualsByRoleKey = originalVisualsByRoleKey;
                 _isHidden = true;
                 return true;
             }
@@ -74,14 +97,73 @@ namespace AngryMouse.Cursors
         {
             lock (SyncRoot)
             {
-                var restored = SystemParametersInfo(SpiSetCursors, 0, IntPtr.Zero, 0);
+                var restored = RestoreSystemCursors();
                 if (restored)
                 {
-                    _isHidden = false;
+                    ClearHiddenCursorState();
                 }
 
                 return restored;
             }
+        }
+
+        public static bool TryGetHiddenCursorRoleKey(IntPtr cursorHandle, out string roleKey)
+        {
+            roleKey = null;
+            if (cursorHandle == IntPtr.Zero)
+            {
+                return false;
+            }
+
+            lock (SyncRoot)
+            {
+                return _hiddenCursorRolesByHandle.TryGetValue(cursorHandle, out roleKey);
+            }
+        }
+
+        public static bool TryGetOriginalCursorVisual(IntPtr hiddenCursorHandle, out CursorVisualInfo visual)
+        {
+            visual = null;
+            if (hiddenCursorHandle == IntPtr.Zero)
+            {
+                return false;
+            }
+
+            lock (SyncRoot)
+            {
+                string roleKey;
+                return _hiddenCursorRolesByHandle.TryGetValue(hiddenCursorHandle, out roleKey) &&
+                       _originalVisualsByRoleKey.TryGetValue(roleKey, out visual) &&
+                       visual != null;
+            }
+        }
+
+        private static Dictionary<string, CursorVisualInfo> SnapshotOriginalCursorVisuals()
+        {
+            var visualsByRoleKey = new Dictionary<string, CursorVisualInfo>(StringComparer.OrdinalIgnoreCase);
+            foreach (var role in CursorCollectionManager.Roles)
+            {
+                visualsByRoleKey[role.Key] = CursorVisualLoader.LoadSystemCursorRole(role.WindowsCursorId);
+            }
+
+            return visualsByRoleKey;
+        }
+
+        private static void ClearHiddenCursorState()
+        {
+            _hiddenCursorRolesByHandle = new Dictionary<IntPtr, string>();
+            _originalVisualsByRoleKey = new Dictionary<string, CursorVisualInfo>(StringComparer.OrdinalIgnoreCase);
+        }
+
+        private static bool RestoreSystemCursors()
+        {
+            var restored = SystemParametersInfo(SpiSetCursors, 0, IntPtr.Zero, 0);
+            if (restored)
+            {
+                _isHidden = false;
+            }
+
+            return restored;
         }
 
         private static IntPtr CreateTransparentCursor()
