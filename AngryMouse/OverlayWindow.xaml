@@ -38,7 +38,7 @@
                         Name="CursorImage"
                         Stretch="None"
                         Visibility="Hidden"
-                        RenderOptions.BitmapScalingMode="HighQuality" />
+                        RenderOptions.BitmapScalingMode="LowQuality" />
                 </Canvas>
                 <Rectangle Name="MousePosDebug" Width="20" Height="20" Fill="Green"/>
             </Canvas>

@@ -1,9 +1,16 @@
 using AngryMouse.Cursors;
 using Microsoft.Win32;
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media.Imaging;
+using Forms = System.Windows.Forms;
+using Input = System.Windows.Input;
 
 namespace AngryMouse
 {
@@ -13,6 +20,7 @@ namespace AngryMouse
     public partial class SettingsWindow
     {
         private bool _loading = true;
+        private CancellationTokenSource _prewarmCancellation;
 
         public SettingsWindow()
         {
@@ -26,18 +34,20 @@ namespace AngryMouse
         /// <param name="e"></param>
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
+            CursorCollectionManager.InitializeDefaults();
+            CursorTestItemsControl.ItemsSource = CreateCursorTestTiles();
             LoadSettingsToControls();
             _loading = false;
+            StartPrewarmSelectedCollection();
         }
 
         private void LoadSettingsToControls()
         {
             _loading = true;
 
-            SelectCursorSourceMode(Properties.Settings.Default.CursorSourceMode);
-            CustomCursorPathTextBox.Text = Properties.Settings.Default.CustomCursorPath;
-            CustomCursorHotspotXTextBox.Text = Properties.Settings.Default.CustomCursorHotspotX.ToString();
-            CustomCursorHotspotYTextBox.Text = Properties.Settings.Default.CustomCursorHotspotY.ToString();
+            SelectCursorSourceMode(GetSavedCursorSourceMode());
+            DarkModeCheckBox.IsChecked = AppTheme.IsDarkMode(Properties.Settings.Default.ThemeMode);
+            LoadCollectionsToControls();
             SizeSlider.Value = Properties.Settings.Default.CursorSize;
             AnimationLengthSlider.Value = Properties.Settings.Default.CursorAnimationLength;
             VisibleDurationSlider.Value = Properties.Settings.Default.CursorVisibleDuration;
@@ -45,8 +55,35 @@ namespace AngryMouse
             ShakeMinimumSpeedSlider.Value = Properties.Settings.Default.ShakeMinimumSpeed;
             ShakeMinimumTurnsSlider.Value = Properties.Settings.Default.ShakeMinimumTurns;
 
-            UpdateCustomCursorControls();
+            UpdateCursorEditor(loadPreviews: false);
             UpdateCursorStatus();
+            UpdateRemoveCollectionButton();
+        }
+
+        private void LoadCollectionsToControls()
+        {
+            var collectionNames = CursorCollectionManager.GetCollectionNames();
+
+            CollectionComboBox.Items.Clear();
+            foreach (var collectionName in collectionNames)
+            {
+                CollectionComboBox.Items.Add(collectionName);
+            }
+
+            SelectCollection(Properties.Settings.Default.CursorCollectionName);
+            LoadRemoveCollections(collectionNames, null);
+        }
+
+        private void LoadRemoveCollections(IEnumerable<string> collectionNames, string preferredCollectionName)
+        {
+            RemoveCollectionComboBox.Items.Clear();
+            foreach (var collectionName in collectionNames.Where(CursorCollectionManager.CanRemoveCollection))
+            {
+                RemoveCollectionComboBox.Items.Add(collectionName);
+            }
+
+            SelectRemoveCollection(preferredCollectionName);
+            UpdateRemoveCollectionButton();
         }
 
         private void SelectCursorSourceMode(string mode)
@@ -54,7 +91,7 @@ namespace AngryMouse
             foreach (var item in CursorSourceComboBox.Items)
             {
                 var comboBoxItem = item as ComboBoxItem;
-                if (comboBoxItem?.Tag as string == mode)
+                if (string.Equals(comboBoxItem?.Tag as string, mode, StringComparison.OrdinalIgnoreCase))
                 {
                     CursorSourceComboBox.SelectedItem = comboBoxItem;
                     return;
@@ -64,10 +101,63 @@ namespace AngryMouse
             CursorSourceComboBox.SelectedIndex = 0;
         }
 
+        private void SelectCollection(string collectionName)
+        {
+            foreach (var item in CollectionComboBox.Items)
+            {
+                var itemText = item as string;
+                if (string.Equals(itemText, collectionName, StringComparison.OrdinalIgnoreCase))
+                {
+                    CollectionComboBox.SelectedItem = itemText;
+                    return;
+                }
+            }
+
+            if (CollectionComboBox.Items.Count > 0)
+            {
+                CollectionComboBox.SelectedIndex = 0;
+            }
+        }
+
+        private void SelectRemoveCollection(string collectionName)
+        {
+            if (!string.IsNullOrWhiteSpace(collectionName))
+            {
+                foreach (var item in RemoveCollectionComboBox.Items)
+                {
+                    var itemText = item as string;
+                    if (string.Equals(itemText, collectionName, StringComparison.OrdinalIgnoreCase))
+                    {
+                        RemoveCollectionComboBox.SelectedItem = itemText;
+                        return;
+                    }
+                }
+            }
+
+            RemoveCollectionComboBox.SelectedIndex = RemoveCollectionComboBox.Items.Count > 0 ? 0 : -1;
+        }
+
         private string GetCursorSourceMode()
         {
             var comboBoxItem = CursorSourceComboBox.SelectedItem as ComboBoxItem;
-            return comboBoxItem?.Tag as string ?? "System";
+            return comboBoxItem?.Tag as string ?? CursorCollectionManager.CollectionMode;
+        }
+
+        private static string GetSavedCursorSourceMode()
+        {
+            return string.Equals(Properties.Settings.Default.CursorSourceMode, CursorCollectionManager.SystemMode, StringComparison.OrdinalIgnoreCase)
+                ? CursorCollectionManager.SystemMode
+                : CursorCollectionManager.CollectionMode;
+        }
+
+        private string GetSelectedCollectionName()
+        {
+            return CollectionComboBox.SelectedItem as string ?? CursorCollectionManager.BundledAdwaitaName;
+        }
+
+        private string GetSelectedRemoveCollectionName()
+        {
+            return RemoveCollectionComboBox.SelectedItem as string;
         }
 
         private void CursorSourceComboBox_OnSelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -76,74 +166,254 @@ namespace AngryMouse
 
             Properties.Settings.Default.CursorSourceMode = GetCursorSourceMode();
             SaveSettings();
-            UpdateCustomCursorControls();
             UpdateCursorStatus();
+            StartPrewarmSelectedCollection();
         }
 
-        private void CustomCursorPathTextBox_OnTextChanged(object sender, TextChangedEventArgs e)
+        private void CollectionComboBox_OnSelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (_loading) return;
 
-            Properties.Settings.Default.CustomCursorPath = CustomCursorPathTextBox.Text;
+            Properties.Settings.Default.CursorCollectionName = GetSelectedCollectionName();
             SaveSettings();
-            UpdateCustomCursorControls();
+            UpdateCursorEditor(loadPreviews: false);
             UpdateCursorStatus();
+            UpdateRemoveCollectionButton();
+            StartPrewarmSelectedCollection();
         }
 
-        private void BrowseCustomCursorButton_OnClick(object sender, RoutedEventArgs e)
+        private void ImportCollectionButton_OnClick(object sender, RoutedEventArgs e)
+        {
+            using (var dialog = new Forms.FolderBrowserDialog())
+            {
+                dialog.Description = "Import SVG cursor collection";
+                dialog.ShowNewFolderButton = false;
+
+                if (dialog.ShowDialog() != Forms.DialogResult.OK)
+                {
+                    return;
+                }
+
+                var collectionName = CursorCollectionManager.ImportCollectionFolder(dialog.SelectedPath);
+                Properties.Settings.Default.CursorCollectionName = collectionName;
+                Properties.Settings.Default.CursorSourceMode = CursorCollectionManager.CollectionMode;
+                SaveSettings();
+
+                LoadSettingsToControls();
+                _loading = false;
+                StartPrewarmSelectedCollection();
+            }
+        }
+
+        private void ImportSettingsButton_OnClick(object sender, RoutedEventArgs e)
         {
             var dialog = new OpenFileDialog
             {
-                Filter = "Cursor files (*.png;*.ico;*.cur)|*.png;*.ico;*.cur|PNG (*.png)|*.png|ICO (*.ico)|*.ico|CUR (*.cur)|*.cur",
+                Filter = "AngryMouse settings package (*.zip)|*.zip",
                 CheckFileExists = true
             };
 
-            var currentPath = CustomCursorPathTextBox.Text;
-            if (!string.IsNullOrWhiteSpace(currentPath))
+            if (dialog.ShowDialog(this) != true)
             {
-                var directory = Path.GetDirectoryName(currentPath);
-                if (!string.IsNullOrWhiteSpace(directory) && Directory.Exists(directory))
-                {
-                    dialog.InitialDirectory = directory;
-                }
+                return;
             }
 
-            if (dialog.ShowDialog(this) == true)
+            try
             {
-                CustomCursorPathTextBox.Text = dialog.FileName;
-                if (GetCursorSourceMode() != "Custom")
-                {
-                    SelectCursorSourceMode("Custom");
-                    Properties.Settings.Default.CursorSourceMode = "Custom";
-                    SaveSettings();
-                }
+                var result = CursorCollectionManager.ImportSettingsPackage(dialog.FileName);
+                LoadSettingsToControls();
+                _loading = false;
+                StartPrewarmSelectedCollection();
+
+                MessageBox.Show(
+                    this,
+                    "Imported settings and " + result.ImportedCollectionCount + " collection(s).",
+                    "Import settings",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
             }
-        }
-
-        private void CustomCursorHotspotXTextBox_OnTextChanged(object sender, TextChangedEventArgs e)
-        {
-            if (_loading) return;
-
-            int value;
-            if (TryReadNonNegativeInt(CustomCursorHotspotXTextBox, out value))
+            catch (Exception ex) when (
+                ex is IOException ||
+                ex is UnauthorizedAccessException ||
+                ex is InvalidDataException ||
+                ex is InvalidOperationException ||
+                ex is System.Xml.XmlException)
             {
-                Properties.Settings.Default.CustomCursorHotspotX = value;
-                SaveSettings();
-                UpdateCursorStatus();
+                MessageBox.Show(this, "Import failed: " + ex.Message, "Import settings", MessageBoxButton.OK, MessageBoxImage.Warning);
             }
         }
 
-        private void CustomCursorHotspotYTextBox_OnTextChanged(object sender, TextChangedEventArgs e)
+        private void ExportSettingsButton_OnClick(object sender, RoutedEventArgs e)
+        {
+            var dialog = new SaveFileDialog
+            {
+                Filter = "AngryMouse settings package (*.zip)|*.zip",
+                DefaultExt = ".zip",
+                FileName = "AngryMouse-settings.zip",
+                OverwritePrompt = true
+            };
+
+            if (dialog.ShowDialog(this) != true)
+            {
+                return;
+            }
+
+            try
+            {
+                CursorCollectionManager.ExportSettingsPackage(dialog.FileName);
+                MessageBox.Show(this, "Exported settings package.", "Export settings", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex) when (
+                ex is IOException ||
+                ex is UnauthorizedAccessException ||
+                ex is InvalidOperationException)
+            {
+                MessageBox.Show(this, "Export failed: " + ex.Message, "Export settings", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+        }
+
+        private void RemoveCollectionButton_OnClick(object sender, RoutedEventArgs e)
+        {
+            var collectionName = GetSelectedRemoveCollectionName();
+            if (!CursorCollectionManager.CanRemoveCollection(collectionName))
+            {
+                return;
+            }
+
+            var result = MessageBox.Show(
+                this,
+                "Remove cursor folder \"" + collectionName + "\"?",
+                "Remove cursor folder",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Warning);
+            if (result != MessageBoxResult.Yes)
+            {
+                return;
+            }
+
+            var removedActiveCollection = string.Equals(
+                collectionName,
+                Properties.Settings.Default.CursorCollectionName,
+                StringComparison.OrdinalIgnoreCase);
+            CursorCollectionManager.RemoveCollection(collectionName);
+            LoadSettingsToControls();
+            _loading = false;
+            if (removedActiveCollection)
+            {
+                StartPrewarmSelectedCollection();
+            }
+        }
+
+        private void RemoveCollectionComboBox_OnSelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (_loading) return;
 
-            int value;
-            if (TryReadNonNegativeInt(CustomCursorHotspotYTextBox, out value))
+            UpdateRemoveCollectionButton();
+        }
+
+        private void DarkModeCheckBox_OnChanged(object sender, RoutedEventArgs e)
+        {
+            if (_loading) return;
+
+            Properties.Settings.Default.ThemeMode = DarkModeCheckBox.IsChecked == true
+                ? AppTheme.DarkMode
+                : AppTheme.LightMode;
+            SaveSettings();
+            AppTheme.ApplySavedTheme();
+        }
+
+        private void TestTabButton_OnClick(object sender, RoutedEventArgs e)
+        {
+            MainTabControl.SelectedItem = TestTabItem;
+        }
+
+        private void CursorTestTile_OnMouseEnter(object sender, Input.MouseEventArgs e)
+        {
+            var tile = (sender as FrameworkElement)?.DataContext as CursorTestTile;
+            if (tile == null)
             {
-                Properties.Settings.Default.CustomCursorHotspotY = value;
-                SaveSettings();
-                UpdateCursorStatus();
+                return;
             }
+
+            (Application.Current as App)?.BeginCursorTestPreview(tile.RoleKey);
+        }
+
+        private void CursorTestTile_OnMouseLeave(object sender, Input.MouseEventArgs e)
+        {
+            (Application.Current as App)?.EndCursorTestPreview();
+        }
+
+        private void ChangeRoleButton_OnClick(object sender, RoutedEventArgs e)
+        {
+            var row = (sender as FrameworkElement)?.DataContext as CursorRoleRow;
+            if (row == null || string.IsNullOrWhiteSpace(row.RoleKey))
+            {
+                return;
+            }
+
+            var collectionName = GetSelectedCollectionName();
+            var collectionPath = CursorCollectionManager.GetCollectionPath(collectionName);
+            var dialog = new OpenFileDialog
+            {
+                Filter = "SVG files (*.svg)|*.svg",
+                CheckFileExists = true,
+                InitialDirectory = Directory.Exists(collectionPath) ? collectionPath : null
+            };
+
+            if (dialog.ShowDialog(this) != true)
+            {
+                return;
+            }
+
+            var fileName = CursorCollectionManager.CopyFileIntoCollection(collectionName, dialog.FileName);
+            var assignments = CursorCollectionManager.LoadAssignments(collectionName);
+            assignments[row.RoleKey] = fileName;
+            CursorCollectionManager.SaveAssignments(collectionName, assignments);
+
+            UpdateCursorEditor(loadPreviews: false);
+            UpdateCursorStatus();
+            StartPrewarmSelectedCollection();
+        }
+
+        private void ClearRoleButton_OnClick(object sender, RoutedEventArgs e)
+        {
+            var row = (sender as FrameworkElement)?.DataContext as CursorRoleRow;
+            if (row == null || string.IsNullOrWhiteSpace(row.RoleKey))
+            {
+                return;
+            }
+
+            var collectionName = GetSelectedCollectionName();
+            var assignments = CursorCollectionManager.LoadAssignments(collectionName);
+            assignments.Remove(row.RoleKey);
+            CursorCollectionManager.SaveAssignments(collectionName, assignments);
+
+            UpdateCursorEditor(loadPreviews: false);
+            UpdateCursorStatus();
+            StartPrewarmSelectedCollection();
+        }
+
+        private void AdjustRoleButton_OnClick(object sender, RoutedEventArgs e)
+        {
+            var row = (sender as FrameworkElement)?.DataContext as CursorRoleRow;
+            if (row == null || string.IsNullOrWhiteSpace(row.RoleKey) || string.IsNullOrWhiteSpace(row.FilePath))
+            {
+                return;
+            }
+
+            var dialog = new CursorRoleAdjustWindow(GetSelectedCollectionName(), row.RoleKey, row.FilePath)
+            {
+                Owner = this
+            };
+
+            if (dialog.ShowDialog() != true)
+            {
+                return;
+            }
+
+            UpdateCursorEditor(loadPreviews: false);
+            UpdateCursorStatus();
+            StartPrewarmSelectedCollection();
         }
 
         private void SizeSlider_OnValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
@@ -197,93 +467,259 @@ namespace AngryMouse
         private void ResetDefaultsButton_OnClick(object sender, RoutedEventArgs e)
         {
             Properties.Settings.Default.Reset();
+            CursorCollectionManager.InitializeDefaults();
             Properties.Settings.Default.Save();
+            AppTheme.ApplySavedTheme();
             LoadSettingsToControls();
             _loading = false;
+            StartPrewarmSelectedCollection();
         }
 
-        private static bool TryReadNonNegativeInt(TextBox textBox, out int value)
+        private void Window_Closed(object sender, EventArgs e)
         {
-            if (int.TryParse(textBox.Text, out value) && value >= 0)
+            (Application.Current as App)?.EndCursorTestPreview();
+            CancelPrewarm();
+        }
+
+        private void UpdateCursorEditor(bool loadPreviews)
+        {
+            var collectionName = GetSelectedCollectionName();
+            var collectionPath = CursorCollectionManager.GetCollectionPath(collectionName);
+            var assignments = CursorCollectionManager.LoadAssignments(collectionName);
+            var rows = new List<CursorRoleRow>();
+            var assignedFiles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var role in CursorCollectionManager.Roles)
             {
-                return true;
+                string assignedFile;
+                assignments.TryGetValue(role.Key, out assignedFile);
+
+                var filePath = string.IsNullOrWhiteSpace(assignedFile)
+                    ? null
+                    : Path.Combine(collectionPath, Path.GetFileName(assignedFile));
+                var exists = !string.IsNullOrWhiteSpace(filePath) && File.Exists(filePath);
+                if (exists)
+                {
+                    assignedFiles.Add(Path.GetFileName(filePath));
+                }
+
+                rows.Add(new CursorRoleRow
+                {
+                    RoleKey = role.Key,
+                    Role = role.DisplayName,
+                    FilePath = exists ? filePath : null,
+                    AssignedFile = string.IsNullOrWhiteSpace(assignedFile) ? "" : Path.GetFileName(assignedFile),
+                    Status = GetRoleStatus(assignedFile, exists),
+                    Preview = loadPreviews && exists ? CursorVisualCache.GetPreview(collectionName, role.Key, filePath) : null,
+                    CanAdjust = exists
+                });
             }
 
-            value = 0;
-            return false;
+            if (Directory.Exists(collectionPath))
+            {
+                foreach (var file in Directory.GetFiles(collectionPath, "*.svg", SearchOption.TopDirectoryOnly)
+                             .OrderBy(Path.GetFileName))
+                {
+                    var fileName = Path.GetFileName(file);
+                    if (!assignedFiles.Contains(fileName))
+                    {
+                        rows.Add(new CursorRoleRow
+                        {
+                            Role = "Unassigned",
+                            AssignedFile = fileName,
+                            Status = "Unassigned",
+                            Preview = loadPreviews ? CursorVisualLoader.LoadSvgPreview(file) : null
+                        });
+                    }
+                }
+            }
+
+            CursorRoleDataGrid.ItemsSource = rows;
         }
 
-        private void UpdateCustomCursorControls()
+        private void StartPrewarmSelectedCollection()
         {
-            var isCustom = GetCursorSourceMode() == "Custom";
-            var extension = Path.GetExtension(CustomCursorPathTextBox.Text);
-            var usesFileHotspot = isCustom && !string.Equals(extension, ".cur", StringComparison.OrdinalIgnoreCase);
+            CancelPrewarm();
 
-            CustomCursorPathTextBox.IsEnabled = isCustom;
-            BrowseCustomCursorButton.IsEnabled = isCustom;
-            CustomCursorHotspotXTextBox.IsEnabled = usesFileHotspot;
-            CustomCursorHotspotYTextBox.IsEnabled = usesFileHotspot;
+            var collectionName = GetSelectedCollectionName();
+            if (string.IsNullOrWhiteSpace(collectionName))
+            {
+                return;
+            }
+
+            var source = new CancellationTokenSource();
+            _prewarmCancellation = source;
+
+            CursorRenderProgressBar.Visibility = Visibility.Visible;
+            CursorRenderProgressBar.IsIndeterminate = true;
+            CursorRenderProgressBar.Value = 0;
+            CursorRenderStatusTextBlock.Visibility = Visibility.Visible;
+            CursorRenderStatusTextBlock.Text = "Rendering cursors 0/0";
+
+            var progress = new Progress<CursorPrewarmProgress>(item =>
+            {
+                if (source.IsCancellationRequested)
+                {
+                    return;
+                }
+
+                CursorRenderProgressBar.IsIndeterminate = item.Total <= 0;
+                CursorRenderProgressBar.Maximum = Math.Max(1, item.Total);
+                CursorRenderProgressBar.Value = Math.Min(item.Completed, Math.Max(1, item.Total));
+                CursorRenderStatusTextBlock.Text = "Rendering cursors " + item.Completed + "/" + item.Total;
+            });
+
+            CursorRenderPrewarmer.PrewarmCollectionAsync(collectionName, progress, source.Token)
+                .ContinueWith(task =>
+                {
+                    Dispatcher.BeginInvoke(new Action(() =>
+                    {
+                        var isCurrent = ReferenceEquals(_prewarmCancellation, source);
+                        source.Dispose();
+
+                        if (!isCurrent)
+                        {
+                            return;
+                        }
+
+                        _prewarmCancellation = null;
+                        CursorRenderProgressBar.Visibility = Visibility.Collapsed;
+
+                        if (task.IsFaulted)
+                        {
+                            var ignored = task.Exception;
+                            CursorRenderStatusTextBlock.Visibility = Visibility.Visible;
+                            CursorRenderStatusTextBlock.Text = "Cursor render failed.";
+                            return;
+                        }
+
+                        CursorRenderStatusTextBlock.Visibility = Visibility.Collapsed;
+                        CursorRenderStatusTextBlock.Text = "";
+                        UpdateCursorEditor(loadPreviews: true);
+                        UpdateCursorStatus();
+                    }));
+                }, TaskScheduler.Default);
+        }
+
+        private void CancelPrewarm()
+        {
+            var source = _prewarmCancellation;
+            if (source == null)
+            {
+                return;
+            }
+
+            _prewarmCancellation = null;
+            source.Cancel();
+        }
+
+        private void UpdateRemoveCollectionButton()
+        {
+            RemoveCollectionButton.IsEnabled = CursorCollectionManager.CanRemoveCollection(GetSelectedRemoveCollectionName());
         }
 
         private void UpdateCursorStatus()
         {
-            CursorVisualInfo info;
             var mode = GetCursorSourceMode();
-
-            if (mode == "System")
+            if (string.Equals(mode, CursorCollectionManager.SystemMode, StringComparison.OrdinalIgnoreCase))
             {
-                info = CursorVisualLoader.LoadSystemCursor();
+                var info = CursorVisualLoader.LoadSystemCursor();
                 CursorStatusTextBlock.Text = info.HasBitmap
                     ? "Using active Windows cursor."
-                    : "System cursor unavailable. Using built-in arrow.";
+                    : "System cursor unavailable. Using selected collection fallback.";
+                return;
             }
-            else if (mode == "Custom")
+
+            var collectionName = GetSelectedCollectionName();
+            var assignments = CursorCollectionManager.LoadAssignments(collectionName);
+            var validCount = CursorCollectionManager.Roles.Count(role =>
             {
-                info = CursorVisualLoader.LoadCustomCursor(
-                    Properties.Settings.Default.CustomCursorPath,
-                    Properties.Settings.Default.CustomCursorHotspotX,
-                    Properties.Settings.Default.CustomCursorHotspotY);
-                CursorStatusTextBlock.Text = GetCustomCursorStatus(info);
-            }
-            else
-            {
-                CursorStatusTextBlock.Text = "Using built-in arrow.";
-            }
+                string assignedFile;
+                if (!assignments.TryGetValue(role.Key, out assignedFile) || string.IsNullOrWhiteSpace(assignedFile))
+                {
+                    return false;
+                }
+
+                return File.Exists(Path.Combine(CursorCollectionManager.GetCollectionPath(collectionName), Path.GetFileName(assignedFile)));
+            });
+
+            CursorStatusTextBlock.Text = "Using collection: " + collectionName + " (" + validCount + "/" + CursorCollectionManager.Roles.Length + " roles assigned).";
         }
 
-        private static string GetCustomCursorStatus(CursorVisualInfo info)
+        private static string GetRoleStatus(string assignedFile, bool exists)
         {
-            var path = Properties.Settings.Default.CustomCursorPath;
-
-            if (string.IsNullOrWhiteSpace(path))
+            if (string.IsNullOrWhiteSpace(assignedFile))
             {
-                return "Choose a PNG, ICO, or CUR file. Using built-in arrow.";
+                return "Unassigned";
             }
 
-            if (!File.Exists(path))
-            {
-                return "Custom file missing. Using built-in arrow.";
-            }
-
-            var extension = Path.GetExtension(path);
-            if (!string.Equals(extension, ".png", StringComparison.OrdinalIgnoreCase) &&
-                !string.Equals(extension, ".ico", StringComparison.OrdinalIgnoreCase) &&
-                !string.Equals(extension, ".cur", StringComparison.OrdinalIgnoreCase))
-            {
-                return "Unsupported file type. Use PNG, ICO, or CUR. Using built-in arrow.";
-            }
-
-            if (info.HasBitmap)
-            {
-                return "Using custom cursor: " + Path.GetFileName(path);
-            }
-
-            return "Custom cursor failed to load. Using built-in arrow.";
+            return exists ? "Valid" : "Missing";
         }
 
         private static void SaveSettings()
         {
             Properties.Settings.Default.Save();
+        }
+
+        private static List<CursorTestTile> CreateCursorTestTiles()
+        {
+            return new List<CursorTestTile>
+            {
+                Tile("Arrow", "arrow", Input.Cursors.Arrow),
+                Tile("I-beam", "ibeam", Input.Cursors.IBeam),
+                Tile("Wait", "wait", Input.Cursors.Wait),
+                Tile("App starting", "appstarting", Input.Cursors.AppStarting),
+                Tile("Crosshair", "crosshair", Input.Cursors.Cross),
+                Tile("Up arrow", "uparrow", Input.Cursors.UpArrow),
+                Tile("Size NS", "sizens", Input.Cursors.SizeNS),
+                Tile("Size WE", "sizewe", Input.Cursors.SizeWE),
+                Tile("Size NWSE", "sizenwse", Input.Cursors.SizeNWSE),
+                Tile("Size NESW", "sizenesw", Input.Cursors.SizeNESW),
+                Tile("Size all", "sizeall", Input.Cursors.SizeAll),
+                Tile("No", "no", Input.Cursors.No),
+                Tile("Hand", "hand", Input.Cursors.Hand),
+                Tile("Help", "help", Input.Cursors.Help)
+            };
+        }
+
+        private static CursorTestTile Tile(string name, string roleKey, Input.Cursor cursor)
+        {
+            return new CursorTestTile
+            {
+                Name = name,
+                RoleKey = roleKey,
+                Cursor = cursor
+            };
+        }
+
+        private sealed class CursorRoleRow
+        {
+            public string RoleKey { get; set; }
+
+            public string Role { get; set; }
+
+            public string FilePath { get; set; }
+
+            public string AssignedFile { get; set; }
+
+            public string Status { get; set; }
+
+            public BitmapSource Preview { get; set; }
+
+            public bool CanEditRole => !string.IsNullOrWhiteSpace(RoleKey);
+
+            public bool CanAdjust { get; set; }
+
+            public bool CanClear => CanEditRole && !string.IsNullOrWhiteSpace(AssignedFile);
+        }
+
+        private sealed class CursorTestTile
+        {
+            public string Name { get; set; }
+
+            public string RoleKey { get; set; }
+
+            public Input.Cursor Cursor { get; set; }
         }
     }
 }

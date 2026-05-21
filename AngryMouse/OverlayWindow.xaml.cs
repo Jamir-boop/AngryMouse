@@ -1,10 +1,7 @@
 ﻿using AngryMouse.Animation;
 using AngryMouse.Cursors;
-using AngryMouse.Mouse;
 using AngryMouse.Screen;
-using Gma.System.MouseKeyHook;
 using System;
-using System.ComponentModel;
 using System.Text;
 using System.Windows;
 using System.Windows.Controls;
@@ -58,16 +55,6 @@ namespace AngryMouse
         private MouseAnimator _mouseAnimator;
 
         /// <summary>
-        /// Last active Windows cursor handle rendered in System mode.
-        /// </summary>
-        private IntPtr _lastSystemCursorHandle = IntPtr.Zero;
-
-        /// <summary>
-        /// We also subscribe to mouse move events so we know where to draw.
-        /// </summary>
-        private readonly IKeyboardMouseEvents _mouseEvents;
-
-        /// <summary>
         /// Main constructor.
         /// </summary>
         /// <param name="screen">The window to show the screen in.</param>
@@ -79,9 +66,6 @@ namespace AngryMouse
             _debug = debug;
             _screen = screen;
 
-            _mouseEvents = StaticHook.GlobalEvents();
-            _mouseEvents.MouseMoveExt += OnMouseMove;
-            Properties.Settings.Default.PropertyChanged += SettingsOnPropertyChanged;
         }
 
         protected override void OnSourceInitialized(EventArgs e)
@@ -144,24 +128,22 @@ namespace AngryMouse
             }
 
             _mouseAnimator = new MouseAnimator(_cursorScale, _dpiInfo);
-            RefreshCursorVisual(force: true);
         }
 
         private void Window_Closed(object sender, EventArgs e)
         {
-            _mouseEvents.MouseMoveExt -= OnMouseMove;
-            Properties.Settings.Default.PropertyChanged -= SettingsOnPropertyChanged;
         }
 
-        /// <summary>
-        /// Called when the position of the mouse is changed.
-        /// </summary>
-        /// <param name="sender"></param>
-        /// <param name="e"></param>
-        private void OnMouseMove(object sender, MouseEventExtArgs e)
+        public void UpdateMousePosition(int x, int y)
         {
-            var mouseInScreen = e.X >= _screen.BoundX && e.X <= _screen.BoundX + _screen.BoundWidth &&
-                                e.Y >= _screen.BoundY && e.Y <= _screen.BoundY + _screen.BoundHeight;
+            if (!Dispatcher.CheckAccess())
+            {
+                Dispatcher.BeginInvoke(new Action(() => UpdateMousePosition(x, y)));
+                return;
+            }
+
+            var mouseInScreen = x >= _screen.BoundX && x <= _screen.BoundX + _screen.BoundWidth &&
+                                y >= _screen.BoundY && y <= _screen.BoundY + _screen.BoundHeight;
             if (_debug)
             {
                 var infoBuilder = new StringBuilder();
@@ -169,13 +151,13 @@ namespace AngryMouse
                     .AppendFormat("Name {0}", _screen.Name).AppendLine()
                     .AppendFormat("Primary {0}", _screen.Primary).AppendLine()
                     .AppendFormat("PixelsPerDip {0}", _dpiInfo.PixelsPerDip).AppendLine()
-                    .AppendFormat("Mouse {0},{1}", e.X, e.Y).AppendLine()
+                    .AppendFormat("Mouse {0},{1}", x, y).AppendLine()
                     .AppendFormat("InScreen {0}", mouseInScreen).AppendLine()
-                    .AppendFormat("Draw {0},{1}", e.X - _screen.BoundX, e.Y - _screen.BoundY);
+                    .AppendFormat("Draw {0},{1}", x - _screen.BoundX, y - _screen.BoundY);
                 DebugInfo.Content = infoBuilder.ToString();
 
-                Canvas.SetTop(MousePosDebug, e.Y - _screen.BoundY);
-                Canvas.SetLeft(MousePosDebug, e.X - _screen.BoundX);
+                Canvas.SetTop(MousePosDebug, y - _screen.BoundY);
+                Canvas.SetLeft(MousePosDebug, x - _screen.BoundX);
             }
 
             CursorHost.Visibility = mouseInScreen ? Visibility.Visible : Visibility.Hidden;
@@ -184,62 +166,22 @@ namespace AngryMouse
                 return;
             }
 
-            RefreshSystemCursorVisual();
-
-            _cursorTranslate.X = e.X - _screen.BoundX;
-            _cursorTranslate.Y = e.Y - _screen.BoundY;
+            _cursorTranslate.X = x - _screen.BoundX;
+            _cursorTranslate.Y = y - _screen.BoundY;
         }
 
-        private void SettingsOnPropertyChanged(object sender, PropertyChangedEventArgs e)
+        internal void SetCursorVisual(CursorVisualInfo cursorVisual)
         {
-            if (e.PropertyName == "CursorSourceMode" ||
-                e.PropertyName == "CustomCursorPath" ||
-                e.PropertyName == "CustomCursorHotspotX" ||
-                e.PropertyName == "CustomCursorHotspotY")
+            if (!Dispatcher.CheckAccess())
             {
-                if (Dispatcher.CheckAccess())
-                {
-                    RefreshCursorVisual(force: true);
-                }
-                else
-                {
-                    Dispatcher.Invoke(() => RefreshCursorVisual(force: true));
-                }
-            }
-        }
-
-        private void RefreshSystemCursorVisual()
-        {
-            if (!string.Equals(
-                    Properties.Settings.Default.CursorSourceMode,
-                    "System",
-                    StringComparison.OrdinalIgnoreCase))
-            {
+                Dispatcher.BeginInvoke(new Action(() => SetCursorVisual(cursorVisual)));
                 return;
             }
 
-            var cursorHandle = CursorVisualLoader.GetCurrentSystemCursorHandle();
-            if (cursorHandle == _lastSystemCursorHandle)
+            if (cursorVisual == null)
             {
-                return;
+                cursorVisual = CursorVisualLoader.BuiltIn();
             }
-
-            _lastSystemCursorHandle = cursorHandle;
-            RefreshCursorVisual(force: false);
-        }
-
-        private void RefreshCursorVisual(bool force)
-        {
-            if (!force &&
-                !string.Equals(
-                    Properties.Settings.Default.CursorSourceMode,
-                    "System",
-                    StringComparison.OrdinalIgnoreCase))
-            {
-                return;
-            }
-
-            var cursorVisual = CursorVisualLoader.LoadFromSettings();
 
             CursorImage.Source = cursorVisual.Bitmap;
             CursorImage.Width = cursorVisual.Width;
@@ -267,6 +209,17 @@ namespace AngryMouse
         /// <param name="timestamp">The timestamp the shake change occured at.</param>
         public void SetMouseShake(bool shaking, DateTime timestamp)
         {
+            if (!Dispatcher.CheckAccess())
+            {
+                Dispatcher.BeginInvoke(new Action(() => SetMouseShake(shaking, timestamp)));
+                return;
+            }
+
+            if (_mouseAnimator == null)
+            {
+                return;
+            }
+
             _mouseAnimator.SetMouseShake(shaking, timestamp);
         }
     }

@@ -27,7 +27,8 @@
     <UpdateRequired>false</UpdateRequired>
     <MapFileExtensions>true</MapFileExtensions>
     <ApplicationRevision>0</ApplicationRevision>
-    <ApplicationVersion>1.1.2.0</ApplicationVersion>
+    <!-- ClickOnce manifest identity requires four version parts. Public app version is AssemblyInformationalVersion. -->
+    <ApplicationVersion>2.5.0.0</ApplicationVersion>
     <IsWebBootstrapper>false</IsWebBootstrapper>
     <UseApplicationTrust>false</UseApplicationTrust>
     <BootstrapperEnabled>false</BootstrapperEnabled>
@@ -72,6 +73,34 @@
     <Reference Include="Gma.System.MouseKeyHook, Version=5.6.130.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\MouseKeyHook.5.6.0\lib\net40\Gma.System.MouseKeyHook.dll</HintPath>
     </Reference>
+    <Reference Include="SharpVectors.Converters.Wpf">
+      <HintPath>..\packages\SharpVectors.Wpf.1.8.5\lib\net47\SharpVectors.Converters.Wpf.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="SharpVectors.Core">
+      <HintPath>..\packages\SharpVectors.Wpf.1.8.5\lib\net47\SharpVectors.Core.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="SharpVectors.Css">
+      <HintPath>..\packages\SharpVectors.Wpf.1.8.5\lib\net47\SharpVectors.Css.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="SharpVectors.Dom">
+      <HintPath>..\packages\SharpVectors.Wpf.1.8.5\lib\net47\SharpVectors.Dom.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="SharpVectors.Model">
+      <HintPath>..\packages\SharpVectors.Wpf.1.8.5\lib\net47\SharpVectors.Model.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="SharpVectors.Rendering.Wpf">
+      <HintPath>..\packages\SharpVectors.Wpf.1.8.5\lib\net47\SharpVectors.Rendering.Wpf.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="SharpVectors.Runtime.Wpf">
+      <HintPath>..\packages\SharpVectors.Wpf.1.8.5\lib\net47\SharpVectors.Runtime.Wpf.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.ComponentModel.Composition" />
     <Reference Include="System.Console, Version=4.0.1.1, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
@@ -86,6 +115,8 @@
       <Private>True</Private>
       <Private>True</Private>
     </Reference>
+    <Reference Include="System.IO.Compression" />
+    <Reference Include="System.IO.Compression.FileSystem" />
     <Reference Include="System.Linq, Version=4.1.1.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
       <HintPath>..\packages\System.Linq.4.3.0\lib\net463\System.Linq.dll</HintPath>
       <Private>True</Private>
@@ -138,6 +169,17 @@
       <DependentUpon>AboutWindow.xaml</DependentUpon>
     </Compile>
     <Compile Include="Animation\MouseAnimator.cs" />
+    <Compile Include="CursorRoleAdjustWindow.xaml.cs">
+      <DependentUpon>CursorRoleAdjustWindow.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Cursors\CursorCachedBitmap.cs" />
+    <Compile Include="Cursors\CursorCollectionManager.cs" />
+    <Compile Include="Cursors\CursorPrewarmProgress.cs" />
+    <Compile Include="Cursors\CursorRenderPrewarmer.cs" />
+    <Compile Include="Cursors\CursorRoleDefinition.cs" />
+    <Compile Include="Cursors\CursorRoleRenderSettings.cs" />
+    <Compile Include="Cursors\CursorSvgRenderResult.cs" />
+    <Compile Include="Cursors\CursorVisualCache.cs" />
     <Compile Include="Cursors\CursorVisualInfo.cs" />
     <Compile Include="Cursors\CursorVisualLoader.cs" />
     <Compile Include="DebugInfoWindow.xaml.cs">
@@ -159,6 +201,10 @@
       <SubType>Code</SubType>
     </Compile>
     <Page Include="AboutWindow.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="CursorRoleAdjustWindow.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
@@ -233,6 +279,14 @@
   <ItemGroup>
     <None Include="Resources\IconPng.png" />
   </ItemGroup>
+  <ItemGroup>
+    <Content Include="Resources\CursorCollections\**\*.svg">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Resources\CursorCollections\**\*.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Target Name="EnsureMageToolPath" BeforeTargets="Publish" Condition="'$(MageSignManifests)' == 'true' And !Exists('$(MageToolPath)')">
     <Error Text="MageSignManifests is true, but mage.exe was not found. Install .NET Framework SDK ClickOnce tools or set MageToolPath." />
@@ -240,10 +294,11 @@
   <Target Name="SignClickOnceManifestsWithMage" AfterTargets="Publish" Condition="'$(MageSignManifests)' == 'true' And Exists('$(MageToolPath)')">
     <PropertyGroup>
       <ClickOnceVersionFolder>$([System.String]::Copy('$(ApplicationVersion)').Replace('.', '_'))</ClickOnceVersionFolder>
-      <ClickOnceApplicationManifest>$(PublishUrl)Application Files\$(AssemblyName)_$(ClickOnceVersionFolder)\$(TargetFileName).manifest</ClickOnceApplicationManifest>
-      <ClickOnceDeploymentManifest>$(PublishUrl)$(AssemblyName).application</ClickOnceDeploymentManifest>
+      <ClickOnceApplicationManifest>$(ClickOncePublishDir)Application Files\$(AssemblyName)_$(ClickOnceVersionFolder)\$(TargetFileName).manifest</ClickOnceApplicationManifest>
+      <ClickOnceApplicationCodeBase>Application Files\$(AssemblyName)_$(ClickOnceVersionFolder)\$(TargetFileName).manifest</ClickOnceApplicationCodeBase>
+      <ClickOnceDeploymentManifest>$(ClickOncePublishDir)$(AssemblyName).application</ClickOnceDeploymentManifest>
     </PropertyGroup>
     <Exec Command="&quot;$(MageToolPath)&quot; -Sign &quot;$(ClickOnceApplicationManifest)&quot; -CertHash &quot;$(ManifestCertificateThumbprint)&quot; -Algorithm sha256RSA" />
-    <Exec Command="&quot;$(MageToolPath)&quot; -Update &quot;$(ClickOnceDeploymentManifest)&quot; -AppManifest &quot;$(ClickOnceApplicationManifest)&quot; -CertHash &quot;$(ManifestCertificateThumbprint)&quot; -Algorithm sha256RSA" />
+    <Exec Command="&quot;$(MageToolPath)&quot; -Update &quot;$(ClickOnceDeploymentManifest)&quot; -AppManifest &quot;$(ClickOnceApplicationManifest)&quot; -AppCodeBase &quot;$(ClickOnceApplicationCodeBase)&quot; -CertHash &quot;$(ManifestCertificateThumbprint)&quot; -Algorithm sha256RSA" />
   </Target>
 </Project>

@@ -6,265 +6,435 @@
         xmlns:local="clr-namespace:AngryMouse"
         mc:Ignorable="d"
         Title="Settings"
-        Height="Auto"
-        Width="Auto"
-        SizeToContent="WidthAndHeight"
-        ResizeMode="NoResize"
-        Loaded="Window_Loaded">
-    <StackPanel Margin="10" Width="460">
-        <GroupBox Header="Cursor" Margin="0,0,0,8">
-            <Grid Margin="8">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="130" />
-                    <ColumnDefinition Width="220" />
-                    <ColumnDefinition Width="50" />
-                    <ColumnDefinition Width="Auto" />
-                </Grid.ColumnDefinitions>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                </Grid.RowDefinitions>
+        Width="980"
+        Height="720"
+        MinWidth="860"
+        MinHeight="600"
+        ResizeMode="CanResizeWithGrip"
+        Loaded="Window_Loaded"
+        Closed="Window_Closed">
+    <Grid Margin="10" Background="{DynamicResource Theme.WindowBackgroundBrush}">
+        <TabControl Name="MainTabControl">
+            <TabItem Header="Settings">
+                <Grid Margin="8" Background="{DynamicResource Theme.WindowBackgroundBrush}">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
 
-                <Label Grid.Column="0" Grid.Row="0" Content="Zoom cursor" Margin="2" />
-                <ComboBox
-                    Name="CursorSourceComboBox"
-                    Grid.Column="1"
-                    Grid.Row="0"
-                    Grid.ColumnSpan="3"
-                    Width="220"
-                    HorizontalAlignment="Left"
-                    Margin="2"
-                    SelectionChanged="CursorSourceComboBox_OnSelectionChanged">
-                    <ComboBoxItem Content="Active Windows cursor" Tag="System" />
-                    <ComboBoxItem Content="Custom file" Tag="Custom" />
-                    <ComboBoxItem Content="Built-in arrow" Tag="BuiltIn" />
-                </ComboBox>
-                <TextBlock
-                    Grid.Column="1"
-                    Grid.Row="1"
-                    Grid.ColumnSpan="3"
-                    Text="Active follows the current Windows pointer. Custom uses PNG, ICO, or CUR. Built-in uses the old arrow."
-                    TextWrapping="Wrap"
-                    FontSize="11"
-                    Foreground="#666666"
-                    Margin="2,0,2,6" />
+                    <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,0,0,8">
+                        <TextBlock Text="Theme" VerticalAlignment="Center" Margin="0,0,8,0" />
+                        <CheckBox
+                            Name="DarkModeCheckBox"
+                            Content="Dark mode"
+                            VerticalAlignment="Center"
+                            Checked="DarkModeCheckBox_OnChanged"
+                            Unchecked="DarkModeCheckBox_OnChanged" />
+                    </StackPanel>
 
-                <Label Grid.Column="0" Grid.Row="2" Content="Custom cursor file" Margin="2" />
-                <TextBox
-                    Name="CustomCursorPathTextBox"
-                    Grid.Column="1"
-                    Grid.Row="2"
-                    Width="220"
-                    Margin="2"
-                    TextChanged="CustomCursorPathTextBox_OnTextChanged" />
-                <Button
-                    Name="BrowseCustomCursorButton"
-                    Grid.Column="2"
-                    Grid.Row="2"
-                    Grid.ColumnSpan="2"
-                    Content="Browse"
-                    Margin="2"
-                    Padding="8,2"
-                    Click="BrowseCustomCursorButton_OnClick" />
+                    <GroupBox Grid.Row="1" Header="Cursor" Margin="0,0,0,8">
+                        <Grid Margin="8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="130" />
+                                <ColumnDefinition Width="270" />
+                                <ColumnDefinition Width="110" />
+                                <ColumnDefinition Width="110" />
+                                <ColumnDefinition Width="110" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
 
-                <Label Grid.Column="0" Grid.Row="3" Content="Click point" Margin="2" />
-                <StackPanel Grid.Column="1" Grid.Row="3" Grid.ColumnSpan="3" Orientation="Horizontal" Margin="2">
-                    <Label Content="X" Padding="0,2,4,2" />
-                    <TextBox
-                        Name="CustomCursorHotspotXTextBox"
-                        Width="50"
-                        TextChanged="CustomCursorHotspotXTextBox_OnTextChanged" />
-                    <Label Content="Y" Padding="8,2,4,2" />
-                    <TextBox
-                        Name="CustomCursorHotspotYTextBox"
-                        Width="50"
-                        TextChanged="CustomCursorHotspotYTextBox_OnTextChanged" />
-                </StackPanel>
-                <TextBlock
-                    Grid.Column="1"
-                    Grid.Row="4"
-                    Grid.ColumnSpan="3"
-                    Text="For PNG and ICO, set X/Y to the cursor tip pixel. CUR files already store this."
-                    TextWrapping="Wrap"
-                    FontSize="11"
-                    Foreground="#666666"
-                    Margin="2,0,2,6" />
+                            <Label Grid.Column="0" Grid.Row="0" Content="Zoom cursor" Margin="2" />
+                            <ComboBox
+                                Name="CursorSourceComboBox"
+                                Grid.Column="1"
+                                Grid.Row="0"
+                                Width="260"
+                                HorizontalAlignment="Left"
+                                Margin="2"
+                                SelectionChanged="CursorSourceComboBox_OnSelectionChanged">
+                                <ComboBoxItem Content="Cursor collection" Tag="Collection" />
+                                <ComboBoxItem Content="Active Windows cursor" Tag="System" />
+                            </ComboBox>
 
-                <TextBlock
-                    Name="CursorStatusTextBlock"
-                    Grid.Column="0"
-                    Grid.Row="5"
-                    Grid.ColumnSpan="4"
-                    Margin="2,4,2,8"
-                    TextWrapping="Wrap" />
+                            <Label Grid.Column="0" Grid.Row="1" Content="Collection" Margin="2" />
+                            <ComboBox
+                                Name="CollectionComboBox"
+                                Grid.Column="1"
+                                Grid.Row="1"
+                                Width="260"
+                                HorizontalAlignment="Left"
+                                Margin="2"
+                                SelectionChanged="CollectionComboBox_OnSelectionChanged" />
+                            <Button
+                                Name="ImportCollectionButton"
+                                Grid.Column="2"
+                                Grid.Row="1"
+                                Content="Import folder"
+                                Margin="2"
+                                Padding="8,2"
+                                Click="ImportCollectionButton_OnClick" />
+                            <Button
+                                Name="ImportSettingsButton"
+                                Grid.Column="3"
+                                Grid.Row="1"
+                                Content="Import zip"
+                                Margin="2"
+                                Padding="8,2"
+                                Click="ImportSettingsButton_OnClick" />
+                            <Button
+                                Name="ExportSettingsButton"
+                                Grid.Column="4"
+                                Grid.Row="1"
+                                Content="Export zip"
+                                Margin="2"
+                                Padding="8,2"
+                                Click="ExportSettingsButton_OnClick" />
 
-                <Label Grid.Column="0" Grid.Row="6" Content="Zoom size" Margin="2" />
-                <Slider
-                    Name="SizeSlider"
-                    Grid.Column="1"
-                    Grid.Row="6"
-                    Width="220"
-                    VerticalAlignment="Center"
-                    Minimum="2"
-                    Maximum="10"
-                    TickFrequency="1"
-                    IsSnapToTickEnabled="True"
-                    TickPlacement="BottomRight"
-                    Margin="2"
-                    ValueChanged="SizeSlider_OnValueChanged" />
-                <Label Grid.Column="2" Grid.Row="6"
-                       Content="{Binding ElementName=SizeSlider, Path=Value, UpdateSourceTrigger=PropertyChanged, StringFormat={}{0:0}}" Margin="2" />
+                            <Label Grid.Column="0" Grid.Row="2" Content="Remove collection" Margin="2" />
+                            <ComboBox
+                                Name="RemoveCollectionComboBox"
+                                Grid.Column="1"
+                                Grid.Row="2"
+                                Width="260"
+                                HorizontalAlignment="Left"
+                                Margin="2"
+                                SelectionChanged="RemoveCollectionComboBox_OnSelectionChanged" />
+                            <Button
+                                Name="RemoveCollectionButton"
+                                Grid.Column="2"
+                                Grid.Row="2"
+                                Content="Remove"
+                                Margin="2"
+                                Padding="8,2"
+                                Click="RemoveCollectionButton_OnClick" />
 
-                <Label Grid.Column="0" Grid.Row="7" Content="Grow/shrink speed" Margin="2" />
-                <Slider
-                    Name="AnimationLengthSlider"
-                    Grid.Column="1"
-                    Grid.Row="7"
-                    Width="220"
-                    VerticalAlignment="Center"
-                    Minimum="0"
-                    Maximum="1000"
-                    TickFrequency="50"
-                    IsSnapToTickEnabled="True"
-                    TickPlacement="BottomRight"
-                    Margin="2"
-                    ValueChanged="AnimationLengthSlider_OnValueChanged" />
-                <Label Grid.Column="2" Grid.Row="7"
-                       Content="{Binding ElementName=AnimationLengthSlider, Path=Value, UpdateSourceTrigger=PropertyChanged, StringFormat={}{0:0}}" Margin="2" />
-                <Label Grid.Column="3" Grid.Row="7" Content="ms" Margin="2" />
+                            <TextBlock
+                                Name="CursorStatusTextBlock"
+                                Grid.Column="0"
+                                Grid.Row="3"
+                                Grid.ColumnSpan="6"
+                                Margin="2,4,2,8"
+                                TextWrapping="Wrap" />
 
-                <Label Grid.Column="0" Grid.Row="8" Content="Visible duration" Margin="2" />
-                <Slider
-                    Name="VisibleDurationSlider"
-                    Grid.Column="1"
-                    Grid.Row="8"
-                    Width="220"
-                    VerticalAlignment="Center"
-                    Minimum="100"
-                    Maximum="3000"
-                    TickFrequency="100"
-                    IsSnapToTickEnabled="True"
-                    TickPlacement="BottomRight"
-                    Margin="2"
-                    ValueChanged="VisibleDurationSlider_OnValueChanged" />
-                <Label Grid.Column="2" Grid.Row="8"
-                       Content="{Binding ElementName=VisibleDurationSlider, Path=Value, UpdateSourceTrigger=PropertyChanged, StringFormat={}{0:0}}" Margin="2" />
-                <Label Grid.Column="3" Grid.Row="8" Content="ms" Margin="2" />
-            </Grid>
-        </GroupBox>
+                            <StackPanel
+                                Grid.Column="0"
+                                Grid.Row="4"
+                                Grid.ColumnSpan="6"
+                                Margin="2,0,2,8">
+                                <ProgressBar
+                                    Name="CursorRenderProgressBar"
+                                    Height="14"
+                                    Visibility="Collapsed" />
+                                <TextBlock
+                                    Name="CursorRenderStatusTextBlock"
+                                    Margin="0,2,0,0"
+                                    FontSize="11"
+                                    Foreground="{DynamicResource Theme.SecondaryForegroundBrush}"
+                                    Visibility="Collapsed" />
+                            </StackPanel>
 
-        <GroupBox Header="Shake detection" Margin="0,0,0,8">
-            <Grid Margin="8">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="130" />
-                    <ColumnDefinition Width="220" />
-                    <ColumnDefinition Width="50" />
-                    <ColumnDefinition Width="Auto" />
-                </Grid.ColumnDefinitions>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                </Grid.RowDefinitions>
+                            <DataGrid
+                                Name="CursorRoleDataGrid"
+                                Grid.Column="0"
+                                Grid.Row="5"
+                                Grid.ColumnSpan="6"
+                                MinHeight="240"
+                                Margin="2,0,2,8"
+                                AutoGenerateColumns="False"
+                                CanUserAddRows="False"
+                                CanUserDeleteRows="False"
+                                CanUserResizeRows="False"
+                                HeadersVisibility="Column"
+                                IsReadOnly="True"
+                                SelectionMode="Single">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="Role" Binding="{Binding Role}" Width="130" />
+                                    <DataGridTextColumn Header="Assigned file" Binding="{Binding AssignedFile}" Width="*" MinWidth="240" />
+                                    <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="90" />
+                                    <DataGridTemplateColumn Header="Adjust" Width="85">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <Button
+                                                    Content="Adjust"
+                                                    Padding="6,1"
+                                                    IsEnabled="{Binding CanAdjust}"
+                                                    Click="AdjustRoleButton_OnClick" />
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+                                    <DataGridTemplateColumn Header="Change" Width="85">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <Button
+                                                    Content="Change"
+                                                    Padding="6,1"
+                                                    IsEnabled="{Binding CanEditRole}"
+                                                    Click="ChangeRoleButton_OnClick" />
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+                                    <DataGridTemplateColumn Header="Clear" Width="75">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <Button
+                                                    Content="Clear"
+                                                    Padding="6,1"
+                                                    IsEnabled="{Binding CanClear}"
+                                                    Click="ClearRoleButton_OnClick" />
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+                                    <DataGridTemplateColumn Header="Preview" Width="85">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <Border Width="36" Height="36" BorderBrush="{DynamicResource Theme.BorderBrush}" BorderThickness="1" Padding="2">
+                                                    <Image Source="{Binding Preview}" Stretch="Uniform" />
+                                                </Border>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+                                </DataGrid.Columns>
+                            </DataGrid>
 
-                <Label Grid.Column="0" Grid.Row="0" Content="Shake window" Margin="2" />
-                <Slider
-                    Name="ShakeTrackingIntervalSlider"
-                    Grid.Column="1"
-                    Grid.Row="0"
-                    Width="220"
-                    VerticalAlignment="Center"
-                    Minimum="100"
-                    Maximum="2000"
-                    TickFrequency="50"
-                    IsSnapToTickEnabled="True"
-                    TickPlacement="BottomRight"
-                    Margin="2"
-                    ValueChanged="ShakeTrackingIntervalSlider_OnValueChanged" />
-                <Label Grid.Column="2" Grid.Row="0"
-                       Content="{Binding ElementName=ShakeTrackingIntervalSlider, Path=Value, UpdateSourceTrigger=PropertyChanged, StringFormat={}{0:0}}" Margin="2" />
-                <Label Grid.Column="3" Grid.Row="0" Content="ms" Margin="2" />
-                <TextBlock
-                    Grid.Column="1"
-                    Grid.Row="1"
-                    Grid.ColumnSpan="3"
-                    Text="Lower reacts to shorter shakes. Higher needs a longer shake."
-                    TextWrapping="Wrap"
-                    FontSize="11"
-                    Foreground="#666666"
-                    Margin="2,0,2,6" />
+                            <Label Grid.Column="0" Grid.Row="6" Content="Zoom size" Margin="2" />
+                            <Slider
+                                Name="SizeSlider"
+                                Grid.Column="1"
+                                Grid.Row="6"
+                                Width="260"
+                                VerticalAlignment="Center"
+                                Minimum="2"
+                                Maximum="10"
+                                TickFrequency="1"
+                                IsSnapToTickEnabled="True"
+                                TickPlacement="BottomRight"
+                                Margin="2"
+                                ValueChanged="SizeSlider_OnValueChanged" />
+                            <Label Grid.Column="2" Grid.Row="6"
+                                   Content="{Binding ElementName=SizeSlider, Path=Value, UpdateSourceTrigger=PropertyChanged, StringFormat={}{0:0}}" Margin="2" />
 
-                <Label Grid.Column="0" Grid.Row="2" Content="Shake speed" Margin="2" />
-                <Slider
-                    Name="ShakeMinimumSpeedSlider"
-                    Grid.Column="1"
-                    Grid.Row="2"
-                    Width="220"
-                    VerticalAlignment="Center"
-                    Minimum="0.2"
-                    Maximum="5"
-                    TickFrequency="0.1"
-                    IsSnapToTickEnabled="True"
-                    TickPlacement="BottomRight"
-                    Margin="2"
-                    ValueChanged="ShakeMinimumSpeedSlider_OnValueChanged" />
-                <Label Grid.Column="2" Grid.Row="2"
-                       Content="{Binding ElementName=ShakeMinimumSpeedSlider, Path=Value, UpdateSourceTrigger=PropertyChanged, StringFormat={}{0:0.0}}" Margin="2" />
-                <Label Grid.Column="3" Grid.Row="2" Content="px/ms" Margin="2" />
-                <TextBlock
-                    Grid.Column="1"
-                    Grid.Row="3"
-                    Grid.ColumnSpan="3"
-                    Text="Lower is easier to trigger. Higher requires faster movement."
-                    TextWrapping="Wrap"
-                    FontSize="11"
-                    Foreground="#666666"
-                    Margin="2,0,2,6" />
+                            <Label Grid.Column="0" Grid.Row="7" Content="Grow/shrink speed" Margin="2" />
+                            <Slider
+                                Name="AnimationLengthSlider"
+                                Grid.Column="1"
+                                Grid.Row="7"
+                                Width="260"
+                                VerticalAlignment="Center"
+                                Minimum="0"
+                                Maximum="1000"
+                                TickFrequency="50"
+                                IsSnapToTickEnabled="True"
+                                TickPlacement="BottomRight"
+                                Margin="2"
+                                ValueChanged="AnimationLengthSlider_OnValueChanged" />
+                            <Label Grid.Column="2" Grid.Row="7"
+                                   Content="{Binding ElementName=AnimationLengthSlider, Path=Value, UpdateSourceTrigger=PropertyChanged, StringFormat={}{0:0}}" Margin="2" />
+                            <Label Grid.Column="3" Grid.Row="7" Content="ms" Margin="2" />
 
-                <Label Grid.Column="0" Grid.Row="4" Content="Direction changes" Margin="2" />
-                <Slider
-                    Name="ShakeMinimumTurnsSlider"
-                    Grid.Column="1"
-                    Grid.Row="4"
-                    Width="220"
-                    VerticalAlignment="Center"
-                    Minimum="1"
-                    Maximum="12"
-                    TickFrequency="1"
-                    IsSnapToTickEnabled="True"
-                    TickPlacement="BottomRight"
-                    Margin="2"
-                    ValueChanged="ShakeMinimumTurnsSlider_OnValueChanged" />
-                <Label Grid.Column="2" Grid.Row="4"
-                       Content="{Binding ElementName=ShakeMinimumTurnsSlider, Path=Value, UpdateSourceTrigger=PropertyChanged, StringFormat={}{0:0}}" Margin="2" />
-                <Label Grid.Column="3" Grid.Row="4" Content="turns" Margin="2" />
-                <TextBlock
-                    Grid.Column="1"
-                    Grid.Row="5"
-                    Grid.ColumnSpan="3"
-                    Text="Lower is easier to trigger. Higher requires more back-and-forth movement."
-                    TextWrapping="Wrap"
-                    FontSize="11"
-                    Foreground="#666666"
-                    Margin="2,0,2,0" />
-            </Grid>
-        </GroupBox>
+                            <Label Grid.Column="0" Grid.Row="8" Content="Visible duration" Margin="2" />
+                            <Slider
+                                Name="VisibleDurationSlider"
+                                Grid.Column="1"
+                                Grid.Row="8"
+                                Width="260"
+                                VerticalAlignment="Center"
+                                Minimum="100"
+                                Maximum="3000"
+                                TickFrequency="100"
+                                IsSnapToTickEnabled="True"
+                                TickPlacement="BottomRight"
+                                Margin="2"
+                                ValueChanged="VisibleDurationSlider_OnValueChanged" />
+                            <Label Grid.Column="2" Grid.Row="8"
+                                   Content="{Binding ElementName=VisibleDurationSlider, Path=Value, UpdateSourceTrigger=PropertyChanged, StringFormat={}{0:0}}" Margin="2" />
+                            <Label Grid.Column="3" Grid.Row="8" Content="ms" Margin="2" />
+                        </Grid>
+                    </GroupBox>
 
-        <Button
-            Content="Reset Defaults"
-            HorizontalAlignment="Left"
-            Margin="0,2,0,0"
-            Padding="8,2"
-            Click="ResetDefaultsButton_OnClick" />
-    </StackPanel>
+                    <GroupBox Grid.Row="2" Header="Shake detection" Margin="0,0,0,8">
+                        <Grid Margin="8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="130" />
+                                <ColumnDefinition Width="260" />
+                                <ColumnDefinition Width="50" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+
+                            <Label Grid.Column="0" Grid.Row="0" Content="Shake window" Margin="2" />
+                            <Slider
+                                Name="ShakeTrackingIntervalSlider"
+                                Grid.Column="1"
+                                Grid.Row="0"
+                                Width="260"
+                                VerticalAlignment="Center"
+                                Minimum="100"
+                                Maximum="2000"
+                                TickFrequency="50"
+                                IsSnapToTickEnabled="True"
+                                TickPlacement="BottomRight"
+                                Margin="2"
+                                ValueChanged="ShakeTrackingIntervalSlider_OnValueChanged" />
+                            <Label Grid.Column="2" Grid.Row="0"
+                                   Content="{Binding ElementName=ShakeTrackingIntervalSlider, Path=Value, UpdateSourceTrigger=PropertyChanged, StringFormat={}{0:0}}" Margin="2" />
+                            <Label Grid.Column="3" Grid.Row="0" Content="ms" Margin="2" />
+                            <TextBlock
+                                Grid.Column="4"
+                                Grid.Row="0"
+                                Text="Lower reacts to shorter shakes. Higher needs a longer shake."
+                                TextWrapping="Wrap"
+                                FontSize="11"
+                                Foreground="{DynamicResource Theme.SecondaryForegroundBrush}"
+                                Margin="8,4,2,2" />
+
+                            <Label Grid.Column="0" Grid.Row="1" Content="Shake speed" Margin="2" />
+                            <Slider
+                                Name="ShakeMinimumSpeedSlider"
+                                Grid.Column="1"
+                                Grid.Row="1"
+                                Width="260"
+                                VerticalAlignment="Center"
+                                Minimum="0.2"
+                                Maximum="5"
+                                TickFrequency="0.1"
+                                IsSnapToTickEnabled="True"
+                                TickPlacement="BottomRight"
+                                Margin="2"
+                                ValueChanged="ShakeMinimumSpeedSlider_OnValueChanged" />
+                            <Label Grid.Column="2" Grid.Row="1"
+                                   Content="{Binding ElementName=ShakeMinimumSpeedSlider, Path=Value, UpdateSourceTrigger=PropertyChanged, StringFormat={}{0:0.0}}" Margin="2" />
+                            <Label Grid.Column="3" Grid.Row="1" Content="px/ms" Margin="2" />
+                            <TextBlock
+                                Grid.Column="4"
+                                Grid.Row="1"
+                                Text="Lower is easier to trigger. Higher requires faster movement."
+                                TextWrapping="Wrap"
+                                FontSize="11"
+                                Foreground="{DynamicResource Theme.SecondaryForegroundBrush}"
+                                Margin="8,4,2,2" />
+
+                            <Label Grid.Column="0" Grid.Row="2" Content="Direction changes" Margin="2" />
+                            <Slider
+                                Name="ShakeMinimumTurnsSlider"
+                                Grid.Column="1"
+                                Grid.Row="2"
+                                Width="260"
+                                VerticalAlignment="Center"
+                                Minimum="1"
+                                Maximum="12"
+                                TickFrequency="1"
+                                IsSnapToTickEnabled="True"
+                                TickPlacement="BottomRight"
+                                Margin="2"
+                                ValueChanged="ShakeMinimumTurnsSlider_OnValueChanged" />
+                            <Label Grid.Column="2" Grid.Row="2"
+                                   Content="{Binding ElementName=ShakeMinimumTurnsSlider, Path=Value, UpdateSourceTrigger=PropertyChanged, StringFormat={}{0:0}}" Margin="2" />
+                            <Label Grid.Column="3" Grid.Row="2" Content="turns" Margin="2" />
+                            <TextBlock
+                                Grid.Column="4"
+                                Grid.Row="2"
+                                Text="Lower is easier to trigger. Higher requires more back-and-forth movement."
+                                TextWrapping="Wrap"
+                                FontSize="11"
+                                Foreground="{DynamicResource Theme.SecondaryForegroundBrush}"
+                                Margin="8,4,2,2" />
+                        </Grid>
+                    </GroupBox>
+
+                    <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,2,0,0">
+                        <Button
+                            Content="Reset Defaults"
+                            Margin="0,0,6,0"
+                            Padding="8,2"
+                            Click="ResetDefaultsButton_OnClick" />
+                        <Button
+                            Content="[test]"
+                            Padding="8,2"
+                            Click="TestTabButton_OnClick" />
+                    </StackPanel>
+                </Grid>
+            </TabItem>
+
+            <TabItem Name="TestTabItem" Header="Test">
+                <ScrollViewer
+                    Background="{DynamicResource Theme.WindowBackgroundBrush}"
+                    VerticalScrollBarVisibility="Auto">
+                    <ItemsControl Name="CursorTestItemsControl" Margin="8">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <WrapPanel />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border
+                                    Width="150"
+                                    Height="150"
+                                    Margin="6"
+                                    Cursor="{Binding Cursor}"
+                                    MouseEnter="CursorTestTile_OnMouseEnter"
+                                    MouseLeave="CursorTestTile_OnMouseLeave"
+                                    RenderTransformOrigin="0.5,0.5"
+                                    SnapsToDevicePixels="True">
+                                    <Border.Style>
+                                        <Style TargetType="{x:Type Border}">
+                                            <Setter Property="Background" Value="{DynamicResource Theme.ControlBackgroundBrush}" />
+                                            <Setter Property="BorderBrush" Value="{DynamicResource Theme.BorderBrush}" />
+                                            <Setter Property="BorderThickness" Value="1" />
+                                            <Setter Property="RenderTransform">
+                                                <Setter.Value>
+                                                    <ScaleTransform ScaleX="1" ScaleY="1" />
+                                                </Setter.Value>
+                                            </Setter>
+                                            <Style.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter Property="Background" Value="{DynamicResource Theme.ControlBackgroundHoverBrush}" />
+                                                    <Setter Property="BorderBrush" Value="{DynamicResource Theme.SelectionBrush}" />
+                                                    <Setter Property="Panel.ZIndex" Value="1" />
+                                                    <Setter Property="RenderTransform">
+                                                        <Setter.Value>
+                                                            <ScaleTransform ScaleX="1.05" ScaleY="1.05" />
+                                                        </Setter.Value>
+                                                    </Setter>
+                                                </Trigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
+                                    <Grid>
+                                        <TextBlock
+                                            Text="{Binding Name}"
+                                            HorizontalAlignment="Center"
+                                            VerticalAlignment="Center"
+                                            TextAlignment="Center"
+                                            TextWrapping="Wrap"
+                                            FontSize="17"
+                                            FontWeight="SemiBold"
+                                            Margin="10" />
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+            </TabItem>
+        </TabControl>
+    </Grid>
 </Window>

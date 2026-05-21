@@ -1,10 +1,16 @@
 using System;
+using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Interop;
+using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using System.Xml.Linq;
+using SharpVectors.Converters;
+using SharpVectors.Renderers.Wpf;
 
 namespace AngryMouse.Cursors
 {
@@ -18,12 +24,19 @@ namespace AngryMouse.Cursors
         private const uint LoadFromFile = 0x00000010;
         private const uint CreateDibSection = 0x00002000;
 
+        private static readonly Dictionary<IntPtr, string> CursorRolesByHandle = CreateCursorRolesByHandle();
+
         public static CursorVisualInfo BuiltIn(string status = "Using built-in cursor.")
         {
             return new CursorVisualInfo(null, new Point(0, 0), status);
         }
 
         public static CursorVisualInfo LoadFromSettings()
+        {
+            return LoadFromSettings(GetCurrentWindowsCursorRoleKey());
+        }
+
+        public static CursorVisualInfo LoadFromSettings(string roleKey)
         {
             var mode = Properties.Settings.Default.CursorSourceMode;
 
@@ -32,15 +45,7 @@ namespace AngryMouse.Cursors
                 return LoadSystemCursor();
             }
 
-            if (string.Equals(mode, "Custom", StringComparison.OrdinalIgnoreCase))
-            {
-                return LoadCustomCursor(
-                    Properties.Settings.Default.CustomCursorPath,
-                    Properties.Settings.Default.CustomCursorHotspotX,
-                    Properties.Settings.Default.CustomCursorHotspotY);
-            }
-
-            return BuiltIn();
+            return LoadCollectionRole(roleKey);
         }
 
         public static CursorVisualInfo LoadSystemCursor()
@@ -69,6 +74,53 @@ namespace AngryMouse.Cursors
             }
 
             return cursorInfo.hCursor;
+        }
+
+        public static string GetCurrentWindowsCursorRoleKey()
+        {
+            string roleKey;
+            return TryGetCurrentWindowsCursorRoleKey(out roleKey) ? roleKey : "arrow";
+        }
+
+        public static bool TryGetCurrentWindowsCursorRoleKey(out string roleKey)
+        {
+            roleKey = null;
+
+            var cursorHandle = GetCurrentSystemCursorHandle();
+            if (cursorHandle == IntPtr.Zero)
+            {
+                return false;
+            }
+
+            return CursorRolesByHandle.TryGetValue(cursorHandle, out roleKey);
+        }
+
+        public static CursorVisualInfo LoadCollectionCursor()
+        {
+            var roleKey = GetCurrentWindowsCursorRoleKey();
+            return LoadCollectionRole(roleKey);
+        }
+
+        public static CursorVisualInfo LoadCollectionRole(string roleKey)
+        {
+            return CursorVisualCache.GetRuntimeVisual(roleKey);
+        }
+
+        public static BitmapSource LoadSvgPreview(string path)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
+                {
+                    return null;
+                }
+
+                return CursorVisualCache.GetPreview(path);
+            }
+            catch (Exception)
+            {
+                return null;
+            }
         }
 
         public static CursorVisualInfo LoadCustomCursor(string path, int hotspotX, int hotspotY)
@@ -251,6 +303,218 @@ namespace AngryMouse.Cursors
             return value == 0 ? 256 : value;
         }
 
+        public static BitmapSource LoadSvgBitmap(string path, int targetHeight)
+        {
+            return RenderSvgBitmap(path, targetHeight, false).Bitmap;
+        }
+
+        public static CursorSvgRenderResult RenderSvgBitmap(string path, int targetHeight, bool trimTransparentPadding)
+        {
+            var settings = new WpfDrawingSettings
+            {
+                IncludeRuntime = false,
+                TextAsGeometry = true,
+                EnsureViewboxSize = true,
+                EnsureViewboxPosition = false
+            };
+
+            DrawingGroup drawing;
+            using (var reader = new FileSvgReader(settings))
+            {
+                drawing = reader.Read(path);
+            }
+
+            if (drawing == null)
+            {
+                throw new InvalidOperationException("SVG drawing is empty.");
+            }
+
+            var viewport = ReadSvgViewport(path);
+            var bounds = viewport ?? drawing.Bounds;
+            if (bounds.Width <= 0 || bounds.Height <= 0)
+            {
+                throw new InvalidOperationException("SVG bounds are empty.");
+            }
+
+            var scale = targetHeight > 0 ? targetHeight / bounds.Height : 1;
+            var width = Math.Max(1, (int)Math.Ceiling(bounds.Width * scale));
+            var height = Math.Max(1, (int)Math.Ceiling(bounds.Height * scale));
+
+            var visual = new DrawingVisual();
+            using (var context = visual.RenderOpen())
+            {
+                var transform = new TransformGroup();
+                if (!viewport.HasValue)
+                {
+                    transform.Children.Add(new TranslateTransform(-bounds.Left, -bounds.Top));
+                }
+
+                transform.Children.Add(new ScaleTransform(scale, scale));
+
+                context.PushClip(new RectangleGeometry(new Rect(0, 0, width, height)));
+                context.PushTransform(transform);
+                context.DrawDrawing(drawing);
+                context.Pop();
+                context.Pop();
+            }
+
+            var bitmap = new RenderTargetBitmap(width, height, 96, 96, PixelFormats.Pbgra32);
+            bitmap.Render(visual);
+            bitmap.Freeze();
+
+            if (!trimTransparentPadding)
+            {
+                return new CursorSvgRenderResult(bitmap, 0, 0, width, height);
+            }
+
+            return TrimTransparentPadding(bitmap);
+        }
+
+        private static CursorSvgRenderResult TrimTransparentPadding(BitmapSource bitmap)
+        {
+            if (bitmap == null || bitmap.PixelWidth <= 0 || bitmap.PixelHeight <= 0)
+            {
+                return new CursorSvgRenderResult(bitmap, 0, 0, bitmap?.PixelWidth ?? 0, bitmap?.PixelHeight ?? 0);
+            }
+
+            var source = bitmap.Format == PixelFormats.Pbgra32
+                ? bitmap
+                : new FormatConvertedBitmap(bitmap, PixelFormats.Pbgra32, null, 0);
+            var width = source.PixelWidth;
+            var height = source.PixelHeight;
+            var stride = width * 4;
+            var pixels = new byte[stride * height];
+            source.CopyPixels(pixels, stride, 0);
+
+            var minX = width;
+            var minY = height;
+            var maxX = -1;
+            var maxY = -1;
+
+            for (var y = 0; y < height; y++)
+            {
+                var row = y * stride;
+                for (var x = 0; x < width; x++)
+                {
+                    var alpha = pixels[row + x * 4 + 3];
+                    if (alpha == 0)
+                    {
+                        continue;
+                    }
+
+                    if (x < minX) minX = x;
+                    if (y < minY) minY = y;
+                    if (x > maxX) maxX = x;
+                    if (y > maxY) maxY = y;
+                }
+            }
+
+            if (maxX < minX || maxY < minY)
+            {
+                return new CursorSvgRenderResult(bitmap, 0, 0, width, height);
+            }
+
+            if (minX == 0 && minY == 0 && maxX == width - 1 && maxY == height - 1)
+            {
+                return new CursorSvgRenderResult(bitmap, 0, 0, width, height);
+            }
+
+            var crop = new CroppedBitmap(source, new Int32Rect(minX, minY, maxX - minX + 1, maxY - minY + 1));
+            crop.Freeze();
+
+            return new CursorSvgRenderResult(crop, minX, minY, width, height);
+        }
+
+        internal static Rect? ReadSvgViewport(string path)
+        {
+            var document = XDocument.Load(path);
+            var root = document.Root;
+            if (root == null)
+            {
+                return null;
+            }
+
+            var viewBox = root.Attribute("viewBox")?.Value;
+            if (!string.IsNullOrWhiteSpace(viewBox))
+            {
+                var parts = viewBox
+                    .Split(new[] { ' ', '\t', '\r', '\n', ',' }, StringSplitOptions.RemoveEmptyEntries)
+                    .ToArray();
+
+                double left;
+                double top;
+                double width;
+                double height;
+                if (parts.Length == 4 &&
+                    TryParseSvgNumber(parts[0], out left) &&
+                    TryParseSvgNumber(parts[1], out top) &&
+                    TryParseSvgNumber(parts[2], out width) &&
+                    TryParseSvgNumber(parts[3], out height) &&
+                    width > 0 &&
+                    height > 0)
+                {
+                    return new Rect(left, top, width, height);
+                }
+            }
+
+            double viewportWidth;
+            double viewportHeight;
+            if (TryParseSvgLength(root.Attribute("width")?.Value, out viewportWidth) &&
+                TryParseSvgLength(root.Attribute("height")?.Value, out viewportHeight) &&
+                viewportWidth > 0 &&
+                viewportHeight > 0)
+            {
+                return new Rect(0, 0, viewportWidth, viewportHeight);
+            }
+
+            return null;
+        }
+
+        private static bool TryParseSvgLength(string value, out double result)
+        {
+            result = 0;
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return false;
+            }
+
+            var trimmed = value.Trim();
+            var length = 0;
+            while (length < trimmed.Length)
+            {
+                var ch = trimmed[length];
+                if ((ch >= '0' && ch <= '9') || ch == '-' || ch == '+' || ch == '.' || ch == 'e' || ch == 'E')
+                {
+                    length++;
+                    continue;
+                }
+
+                break;
+            }
+
+            return length > 0 && TryParseSvgNumber(trimmed.Substring(0, length), out result);
+        }
+
+        private static bool TryParseSvgNumber(string value, out double result)
+        {
+            return double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out result);
+        }
+
+        private static Dictionary<IntPtr, string> CreateCursorRolesByHandle()
+        {
+            var rolesByHandle = new Dictionary<IntPtr, string>();
+            foreach (var role in CursorCollectionManager.Roles)
+            {
+                var handle = LoadCursor(IntPtr.Zero, new IntPtr(role.WindowsCursorId));
+                if (handle != IntPtr.Zero && !rolesByHandle.ContainsKey(handle))
+                {
+                    rolesByHandle.Add(handle, role.Key);
+                }
+            }
+
+            return rolesByHandle;
+        }
+
         [DllImport("user32.dll")]
         private static extern bool GetCursorInfo(ref CursorInfo pci);
 
@@ -268,6 +532,9 @@ namespace AngryMouse.Cursors
             int cxDesired,
             int cyDesired,
             uint fuLoad);
+
+        [DllImport("user32.dll")]
+        private static extern IntPtr LoadCursor(IntPtr hInstance, IntPtr lpCursorName);
 
         [DllImport("user32.dll")]
         private static extern bool DestroyIcon(IntPtr hIcon);
