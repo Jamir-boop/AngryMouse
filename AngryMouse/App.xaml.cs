@@ -85,6 +85,8 @@ namespace AngryMouse
 
         private string _testPreviewRoleKey;
 
+        private bool _shellUiActive;
+
         protected override void OnStartup(StartupEventArgs e)
         {
             if (!TryAcquireSingleInstance())
@@ -94,7 +96,7 @@ namespace AngryMouse
                 return;
             }
 
-            SystemCursorHider.Restore();
+            RestoreAllSystemCursors();
             RegisterSystemCursorRestoreHandlers();
             StartSingleInstanceSignalListener();
 
@@ -119,6 +121,8 @@ namespace AngryMouse
             _detector = new MouseShakeDetector();
             _detector.MouseShake += OnMouseShake;
             _detector.MouseMove += OnMouseMove;
+            ShellUiDetector.ShellUiActiveChanged += OnShellUiActiveChanged;
+            ShellUiDetector.Start();
             AngryMouse.Properties.Settings.Default.PropertyChanged += SettingsOnPropertyChanged;
             CursorCollectionManager.CollectionChanged += CursorCollectionManagerOnCollectionChanged;
 
@@ -148,7 +152,9 @@ namespace AngryMouse
 
         protected override void OnExit(ExitEventArgs e)
         {
-            SystemCursorHider.Restore();
+            ShellUiDetector.ShellUiActiveChanged -= OnShellUiActiveChanged;
+            ShellUiDetector.Stop();
+            RestoreAllSystemCursors();
             _singleInstanceReady = false;
             StopSingleInstanceSignalListener();
             AppTheme.Dispose();
@@ -158,8 +164,25 @@ namespace AngryMouse
 
         private void RegisterSystemCursorRestoreHandlers()
         {
-            DispatcherUnhandledException += (sender, args) => SystemCursorHider.Restore();
-            AppDomain.CurrentDomain.UnhandledException += (sender, args) => SystemCursorHider.Restore();
+            DispatcherUnhandledException += (sender, args) => RestoreAllSystemCursors();
+            AppDomain.CurrentDomain.UnhandledException += (sender, args) => RestoreAllSystemCursors();
+        }
+
+        private static void RestoreAllSystemCursors()
+        {
+            SystemCursorOverride.Restore();
+            SystemCursorHider.Restore();
+        }
+
+        private void SetSystemCursorOverrideOnOverlays(bool active)
+        {
+            _overlayWindows.ForEach(window => window.SetSystemCursorOverrideActive(active));
+        }
+
+        private void UpdateOverlayMousePosition()
+        {
+            var position = System.Windows.Forms.Cursor.Position;
+            _overlayWindows.ForEach(window => window.UpdateMousePosition(position.X, position.Y));
         }
 
         private bool TryAcquireSingleInstance()
@@ -400,7 +423,9 @@ namespace AngryMouse
         /// </summary>
         private void ExitApp()
         {
-            SystemCursorHider.Restore();
+            ShellUiDetector.ShellUiActiveChanged -= OnShellUiActiveChanged;
+            ShellUiDetector.Stop();
+            RestoreAllSystemCursors();
             AngryMouse.Properties.Settings.Default.PropertyChanged -= SettingsOnPropertyChanged;
             CursorCollectionManager.CollectionChanged -= CursorCollectionManagerOnCollectionChanged;
             CancelActiveCollectionPrewarm();
@@ -425,13 +450,31 @@ namespace AngryMouse
 
             _detectorShaking = e.IsShaking;
             _lastDetectorShakeTimestamp = e.Timestamp;
+            ShellUiDetector.SetActive(e.IsShaking);
             UpdateSystemCursorVisibility();
+
             if (_testPreviewActive)
             {
                 return;
             }
 
             _overlayWindows.ForEach(window => window.SetMouseShake(e.IsShaking, e.Timestamp));
+        }
+
+        private void OnShellUiActiveChanged(bool active)
+        {
+            if (!Current.Dispatcher.CheckAccess())
+            {
+                Current.Dispatcher.BeginInvoke(new Action(() => OnShellUiActiveChanged(active)));
+                return;
+            }
+
+            _shellUiActive = active;
+            UpdateSystemCursorVisibility();
+            if (!active && _detectorShaking)
+            {
+                UpdateOverlayMousePosition();
+            }
         }
 
         private void OnMouseMove(object sender, MouseEventExtArgs e)
@@ -464,15 +507,26 @@ namespace AngryMouse
                 _mouseMoveQueued = false;
             }
 
-            ApplyCurrentCursorVisual(force: false);
+            if (!SystemCursorOverride.IsActive)
+            {
+                ApplyCurrentCursorVisual(force: false);
+            }
+
             _overlayWindows.ForEach(window => window.UpdateMousePosition(x, y));
         }
 
         private void SettingsOnPropertyChanged(object sender, PropertyChangedEventArgs e)
         {
             if (e.PropertyName == "CursorSourceMode" ||
-                e.PropertyName == "CursorCollectionName")
+                e.PropertyName == "CursorCollectionName" ||
+                e.PropertyName == "CursorSize")
             {
+                if (SystemCursorOverride.IsActive)
+                {
+                    SystemCursorOverride.Restore();
+                    SetSystemCursorOverrideOnOverlays(false);
+                }
+
                 _lastCursorIdentity = null;
                 if (!SystemCursorHider.IsHidden)
                 {
@@ -480,6 +534,7 @@ namespace AngryMouse
                 }
 
                 StartActiveCollectionPrewarm();
+                UpdateSystemCursorVisibility();
             }
 
             if (e.PropertyName == "HideBuiltInCursor")
@@ -490,6 +545,12 @@ namespace AngryMouse
 
         private void CursorCollectionManagerOnCollectionChanged(object sender, EventArgs e)
         {
+            if (SystemCursorOverride.IsActive)
+            {
+                SystemCursorOverride.Restore();
+                SetSystemCursorOverrideOnOverlays(false);
+            }
+
             _lastCursorIdentity = null;
             if (!SystemCursorHider.IsHidden)
             {
@@ -497,6 +558,7 @@ namespace AngryMouse
             }
 
             StartActiveCollectionPrewarm();
+            UpdateSystemCursorVisibility();
         }
 
         private bool UpdateSystemCursorVisibility()
@@ -505,6 +567,46 @@ namespace AngryMouse
             {
                 Current.Dispatcher.BeginInvoke(new Action(() => UpdateSystemCursorVisibility()));
                 return false;
+            }
+
+            var changed = false;
+            var shouldOverrideCursor = _detectorShaking && _shellUiActive && !_testPreviewActive;
+            if (shouldOverrideCursor)
+            {
+                if (SystemCursorOverride.IsActive)
+                {
+                    SetSystemCursorOverrideOnOverlays(true);
+                    return false;
+                }
+
+                if (SystemCursorHider.IsHidden)
+                {
+                    changed = SystemCursorHider.Restore();
+                }
+
+                _lastCursorIdentity = null;
+                ApplyCurrentCursorVisual(force: true);
+                var applied = SystemCursorOverride.ApplyScaledCursors();
+                SetSystemCursorOverrideOnOverlays(applied);
+                return applied || changed;
+            }
+
+            if (SystemCursorOverride.IsActive)
+            {
+                var restored = SystemCursorOverride.Restore();
+                SetSystemCursorOverrideOnOverlays(false);
+                if (!restored)
+                {
+                    return false;
+                }
+
+                _lastCursorIdentity = null;
+                ApplyCurrentCursorVisual(force: true);
+                changed = true;
+            }
+            else
+            {
+                SetSystemCursorOverrideOnOverlays(false);
             }
 
             var shouldHide = AngryMouse.Properties.Settings.Default.HideBuiltInCursor &&
@@ -517,7 +619,7 @@ namespace AngryMouse
             {
                 if (SystemCursorHider.IsHidden)
                 {
-                    return false;
+                    return changed;
                 }
 
                 _lastCursorIdentity = null;
@@ -528,7 +630,7 @@ namespace AngryMouse
 
             if (!SystemCursorHider.IsHidden)
             {
-                return false;
+                return changed;
             }
 
             if (!SystemCursorHider.Restore())

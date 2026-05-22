@@ -6,6 +6,7 @@ using System.Text;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using System.Windows.Threading;
 using static AngryMouse.Util.WindowUtil;
 
 namespace AngryMouse
@@ -54,6 +55,13 @@ namespace AngryMouse
         /// </summary>
         private MouseAnimator _mouseAnimator;
 
+        private readonly DispatcherTimer _topmostRefreshTimer = new DispatcherTimer
+        {
+            Interval = TimeSpan.FromMilliseconds(100)
+        };
+
+        private bool _systemCursorOverrideActive;
+
         /// <summary>
         /// Main constructor.
         /// </summary>
@@ -65,6 +73,7 @@ namespace AngryMouse
 
             _debug = debug;
             _screen = screen;
+            _topmostRefreshTimer.Tick += TopmostRefreshTimer_Tick;
 
         }
 
@@ -132,6 +141,8 @@ namespace AngryMouse
 
         private void Window_Closed(object sender, EventArgs e)
         {
+            _topmostRefreshTimer.Stop();
+            _topmostRefreshTimer.Tick -= TopmostRefreshTimer_Tick;
         }
 
         public void UpdateMousePosition(int x, int y)
@@ -160,8 +171,9 @@ namespace AngryMouse
                 Canvas.SetLeft(MousePosDebug, x - _screen.BoundX);
             }
 
-            CursorHost.Visibility = mouseInScreen ? Visibility.Visible : Visibility.Hidden;
-            if (!mouseInScreen)
+            var shouldShowCursor = mouseInScreen && !_systemCursorOverrideActive;
+            CursorHost.Visibility = shouldShowCursor ? Visibility.Visible : Visibility.Hidden;
+            if (!shouldShowCursor)
             {
                 return;
             }
@@ -220,7 +232,46 @@ namespace AngryMouse
                 return;
             }
 
+            if (shaking && !_systemCursorOverrideActive)
+            {
+                RefreshTopmost();
+                if (!_topmostRefreshTimer.IsEnabled)
+                {
+                    _topmostRefreshTimer.Start();
+                }
+            }
+            else
+            {
+                _topmostRefreshTimer.Stop();
+            }
+
             _mouseAnimator.SetMouseShake(shaking, timestamp);
+        }
+
+        private void TopmostRefreshTimer_Tick(object sender, EventArgs e)
+        {
+            RefreshTopmost();
+        }
+
+        private void RefreshTopmost()
+        {
+            SetTopmostNoActivate(this);
+        }
+
+        internal void SetSystemCursorOverrideActive(bool active)
+        {
+            if (!Dispatcher.CheckAccess())
+            {
+                Dispatcher.BeginInvoke(new Action(() => SetSystemCursorOverrideActive(active)));
+                return;
+            }
+
+            _systemCursorOverrideActive = active;
+            if (active)
+            {
+                _topmostRefreshTimer.Stop();
+                CursorHost.Visibility = Visibility.Hidden;
+            }
         }
     }
 }

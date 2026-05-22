@@ -28,7 +28,7 @@
     <MapFileExtensions>true</MapFileExtensions>
     <ApplicationRevision>0</ApplicationRevision>
     <!-- ClickOnce manifest identity requires four version parts. Public app version is AssemblyInformationalVersion. -->
-    <ApplicationVersion>2.5.9.0</ApplicationVersion>
+    <ApplicationVersion>2.6.0.0</ApplicationVersion>
     <IsWebBootstrapper>false</IsWebBootstrapper>
     <UseApplicationTrust>false</UseApplicationTrust>
     <BootstrapperEnabled>false</BootstrapperEnabled>
@@ -184,6 +184,7 @@
     <Compile Include="Cursors\CursorVisualInfo.cs" />
     <Compile Include="Cursors\CursorVisualLoader.cs" />
     <Compile Include="Cursors\SystemCursorHider.cs" />
+    <Compile Include="Cursors\SystemCursorOverride.cs" />
     <Compile Include="DebugInfoWindow.xaml.cs">
       <DependentUpon>DebugInfoWindow.xaml</DependentUpon>
     </Compile>
@@ -197,6 +198,7 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Util\Options.cs" />
+    <Compile Include="Util\ShellUiDetector.cs" />
     <Compile Include="Util\WindowUtil.cs" />
     <Compile Include="App.xaml.cs">
       <DependentUpon>App.xaml</DependentUpon>
