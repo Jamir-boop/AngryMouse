@@ -67,14 +67,19 @@
                     Height="320"
                     ClipToBounds="True">
                     <Image
-                        Name="ReferenceImage"
+                        Name="SystemCursorImage"
                         Stretch="None"
-                        Opacity="0.28"
+                        Opacity="0.82"
                         RenderOptions.BitmapScalingMode="NearestNeighbor" />
                     <Image
                         Name="PreviewImage"
+                        Cursor="SizeAll"
                         Stretch="None"
-                        RenderOptions.BitmapScalingMode="NearestNeighbor" />
+                        RenderOptions.BitmapScalingMode="NearestNeighbor"
+                        MouseLeftButtonDown="PreviewImage_OnMouseLeftButtonDown"
+                        MouseLeftButtonUp="PreviewImage_OnMouseLeftButtonUp"
+                        MouseMove="PreviewImage_OnMouseMove"
+                        LostMouseCapture="PreviewImage_OnLostMouseCapture" />
 
                     <Line Name="DefaultHotspotHorizontal" Stroke="{DynamicResource Theme.AccentBlueBrush}" StrokeThickness="1.5" StrokeDashArray="4 3" />
                     <Line Name="DefaultHotspotVertical" Stroke="{DynamicResource Theme.AccentBlueBrush}" StrokeThickness="1.5" StrokeDashArray="4 3" />
@@ -88,6 +93,8 @@
         </Border>
 
         <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,0,0,8">
+            <Rectangle Width="16" Height="3" Fill="{DynamicResource Theme.SecondaryForegroundBrush}" Margin="0,8,6,0" />
+            <TextBlock Text="System cursor" Foreground="{DynamicResource Theme.SecondaryForegroundBrush}" Margin="0,0,18,0" />
             <Rectangle Width="16" Height="3" Fill="{DynamicResource Theme.AccentBlueBrush}" Margin="0,8,6,0" />
             <TextBlock Text="Normal hotspot" Foreground="{DynamicResource Theme.SecondaryForegroundBrush}" Margin="0,0,18,0" />
             <Rectangle Width="16" Height="3" Fill="{DynamicResource Theme.AccentRedBrush}" Margin="0,8,6,0" />

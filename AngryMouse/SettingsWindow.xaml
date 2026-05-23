@@ -259,11 +259,26 @@
                                             </DataTemplate>
                                         </DataGridTemplateColumn.CellTemplate>
                                     </DataGridTemplateColumn>
-                                    <DataGridTemplateColumn Header="Preview" Width="85">
+                                    <DataGridTemplateColumn Header="Zoom preview" Width="150">
                                         <DataGridTemplateColumn.CellTemplate>
                                             <DataTemplate>
-                                                <Border Width="36" Height="36" BorderBrush="{DynamicResource Theme.BorderBrush}" BorderThickness="1" Padding="2">
-                                                    <Image Source="{Binding Preview}" Stretch="Uniform" />
+                                                <Border
+                                                    BorderBrush="{DynamicResource Theme.BorderBrush}"
+                                                    BorderThickness="1"
+                                                    Padding="3"
+                                                    Cursor="{Binding RoleCursor}"
+                                                    IsEnabled="{Binding CanPreview}"
+                                                    MouseEnter="CursorRolePreview_OnMouseEnter"
+                                                    MouseLeave="CursorRolePreview_OnMouseLeave"
+                                                    MouseLeftButtonDown="CursorRolePreview_OnMouseLeftButtonDown">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <Border Width="36" Height="36" Margin="0,0,6,0">
+                                                            <Image Source="{Binding SystemPreview}" Stretch="Uniform" />
+                                                        </Border>
+                                                        <Border Width="36" Height="36">
+                                                            <Image Source="{Binding ZoomPreview}" Stretch="Uniform" />
+                                                        </Border>
+                                                    </StackPanel>
                                                 </Border>
                                             </DataTemplate>
                                         </DataGridTemplateColumn.CellTemplate>
@@ -437,75 +452,8 @@
                             Margin="0,0,6,0"
                             Padding="8,2"
                             Click="ResetDefaultsButton_OnClick" />
-                        <Button
-                            Content="[test]"
-                            Padding="8,2"
-                            Click="TestTabButton_OnClick" />
                     </StackPanel>
                 </Grid>
-            </TabItem>
-
-            <TabItem Name="TestTabItem" Header="Test">
-                <ScrollViewer
-                    Background="{DynamicResource Theme.WindowBackgroundBrush}"
-                    VerticalScrollBarVisibility="Auto">
-                    <ItemsControl Name="CursorTestItemsControl" Margin="8">
-                        <ItemsControl.ItemsPanel>
-                            <ItemsPanelTemplate>
-                                <WrapPanel />
-                            </ItemsPanelTemplate>
-                        </ItemsControl.ItemsPanel>
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate>
-                                <Border
-                                    Width="150"
-                                    Height="150"
-                                    Margin="6"
-                                    Cursor="{Binding Cursor}"
-                                    MouseEnter="CursorTestTile_OnMouseEnter"
-                                    MouseLeave="CursorTestTile_OnMouseLeave"
-                                    RenderTransformOrigin="0.5,0.5"
-                                    SnapsToDevicePixels="True">
-                                    <Border.Style>
-                                        <Style TargetType="{x:Type Border}">
-                                            <Setter Property="Background" Value="{DynamicResource Theme.ControlBackgroundBrush}" />
-                                            <Setter Property="BorderBrush" Value="{DynamicResource Theme.BorderBrush}" />
-                                            <Setter Property="BorderThickness" Value="1" />
-                                            <Setter Property="RenderTransform">
-                                                <Setter.Value>
-                                                    <ScaleTransform ScaleX="1" ScaleY="1" />
-                                                </Setter.Value>
-                                            </Setter>
-                                            <Style.Triggers>
-                                                <Trigger Property="IsMouseOver" Value="True">
-                                                    <Setter Property="Background" Value="{DynamicResource Theme.ControlBackgroundHoverBrush}" />
-                                                    <Setter Property="BorderBrush" Value="{DynamicResource Theme.SelectionBrush}" />
-                                                    <Setter Property="Panel.ZIndex" Value="1" />
-                                                    <Setter Property="RenderTransform">
-                                                        <Setter.Value>
-                                                            <ScaleTransform ScaleX="1.05" ScaleY="1.05" />
-                                                        </Setter.Value>
-                                                    </Setter>
-                                                </Trigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </Border.Style>
-                                    <Grid>
-                                        <TextBlock
-                                            Text="{Binding Name}"
-                                            HorizontalAlignment="Center"
-                                            VerticalAlignment="Center"
-                                            TextAlignment="Center"
-                                            TextWrapping="Wrap"
-                                            FontSize="17"
-                                            FontWeight="SemiBold"
-                                            Margin="10" />
-                                    </Grid>
-                                </Border>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                </ScrollViewer>
             </TabItem>
         </TabControl>
     </Grid>

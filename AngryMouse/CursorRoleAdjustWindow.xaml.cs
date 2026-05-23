@@ -4,7 +4,9 @@ using System.Globalization;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media.Imaging;
 using System.Windows.Threading;
+using Input = System.Windows.Input;
 
 namespace AngryMouse
 {
@@ -17,6 +19,11 @@ namespace AngryMouse
         private bool _loading = true;
         private CursorRoleDefinition _role;
         private CursorCachedBitmap _previewBitmap;
+        private bool _draggingPreview;
+        private Point _dragStartPosition;
+        private double _dragStartOffsetX;
+        private double _dragStartOffsetY;
+        private double _previewScale = 1;
 
         public CursorRoleAdjustWindow(string collectionName, string roleKey, string filePath)
         {
@@ -45,6 +52,7 @@ namespace AngryMouse
             var settings = CursorCollectionManager.GetRoleSettings(_collectionName, _roleKey);
 
             RoleTextBlock.Text = _role.DisplayName + " - " + Path.GetFileName(_filePath);
+            SystemCursorImage.Source = CursorVisualLoader.LoadSystemCursorRole(_role.WindowsCursorId).Bitmap;
             HotspotOffsetXTextBox.Text = settings.HotspotOffsetX.ToString(CultureInfo.InvariantCulture);
             HotspotOffsetYTextBox.Text = settings.HotspotOffsetY.ToString(CultureInfo.InvariantCulture);
             TrimTransparentPaddingCheckBox.IsChecked = settings.TrimTransparentPadding;
@@ -132,7 +140,6 @@ namespace AngryMouse
                     }
 
                     PreviewImage.Source = _previewBitmap.Bitmap;
-                    ReferenceImage.Source = _previewBitmap.Bitmap;
                 }
                 catch (Exception)
                 {
@@ -168,14 +175,13 @@ namespace AngryMouse
             var imageHeight = bitmapHeight * scale;
             var targetX = canvasWidth / 2;
             var targetY = canvasHeight / 2;
-            var referenceLeft = targetX - referenceHotspot.X * scale;
-            var referenceTop = targetY - referenceHotspot.Y * scale;
             var currentLeft = targetX - adjustedHotspot.X * scale;
             var currentTop = targetY - adjustedHotspot.Y * scale;
             var normalHotspotX = currentLeft + referenceHotspot.X * scale;
             var normalHotspotY = currentTop + referenceHotspot.Y * scale;
+            _previewScale = scale;
 
-            SetImageBounds(ReferenceImage, referenceLeft, referenceTop, imageWidth, imageHeight);
+            SetSystemCursorBounds(targetX, targetY, imageWidth, imageHeight);
             SetImageBounds(PreviewImage, currentLeft, currentTop, imageWidth, imageHeight);
             SetCrosshair(DefaultHotspotHorizontal, DefaultHotspotVertical, DefaultHotspotDot, normalHotspotX, normalHotspotY, canvasWidth, canvasHeight);
             SetCrosshair(AdjustedHotspotHorizontal, AdjustedHotspotVertical, AdjustedHotspotDot, targetX, targetY, canvasWidth, canvasHeight);
@@ -198,6 +204,91 @@ namespace AngryMouse
                 "x" +
                 _previewBitmap.Bitmap.PixelHeight.ToString(CultureInfo.InvariantCulture) +
                 " px.";
+        }
+
+        private void SetSystemCursorBounds(double targetX, double targetY, double previewWidth, double previewHeight)
+        {
+            var bitmap = SystemCursorImage.Source as BitmapSource;
+            if (bitmap == null)
+            {
+                SystemCursorImage.Visibility = Visibility.Hidden;
+                return;
+            }
+
+            var targetHeight = Math.Max(32, Math.Min(96, previewHeight * 0.55));
+            var scale = Math.Min(3, Math.Max(1, targetHeight / Math.Max(1, bitmap.PixelHeight)));
+            var width = bitmap.PixelWidth * scale;
+            var height = bitmap.PixelHeight * scale;
+            var left = Math.Max(18, targetX - previewWidth / 2 - width - 42);
+            var top = targetY - height / 2;
+
+            SetImageBounds(SystemCursorImage, left, top, width, height);
+            SystemCursorImage.Visibility = Visibility.Visible;
+        }
+
+        private void PreviewImage_OnMouseLeftButtonDown(object sender, Input.MouseButtonEventArgs e)
+        {
+            CursorRoleRenderSettings settings;
+            if (!TryReadSettings(out settings))
+            {
+                return;
+            }
+
+            _draggingPreview = true;
+            _dragStartPosition = e.GetPosition(PreviewCanvas);
+            _dragStartOffsetX = settings.HotspotOffsetX;
+            _dragStartOffsetY = settings.HotspotOffsetY;
+            PreviewImage.CaptureMouse();
+            e.Handled = true;
+        }
+
+        private void PreviewImage_OnMouseMove(object sender, Input.MouseEventArgs e)
+        {
+            if (!_draggingPreview || _previewScale <= 0)
+            {
+                return;
+            }
+
+            var position = e.GetPosition(PreviewCanvas);
+            var offsetX = _dragStartOffsetX - (position.X - _dragStartPosition.X) / _previewScale;
+            var offsetY = _dragStartOffsetY - (position.Y - _dragStartPosition.Y) / _previewScale;
+
+            SetHotspotOffsetText(offsetX, offsetY);
+            RefreshPreview(renderBitmap: false);
+            e.Handled = true;
+        }
+
+        private void PreviewImage_OnMouseLeftButtonUp(object sender, Input.MouseButtonEventArgs e)
+        {
+            StopPreviewDrag();
+            e.Handled = true;
+        }
+
+        private void PreviewImage_OnLostMouseCapture(object sender, Input.MouseEventArgs e)
+        {
+            _draggingPreview = false;
+        }
+
+        private void StopPreviewDrag()
+        {
+            if (!_draggingPreview)
+            {
+                return;
+            }
+
+            _draggingPreview = false;
+            if (PreviewImage.IsMouseCaptured)
+            {
+                PreviewImage.ReleaseMouseCapture();
+            }
+        }
+
+        private void SetHotspotOffsetText(double offsetX, double offsetY)
+        {
+            _loading = true;
+            HotspotOffsetXTextBox.Text = FormatOffsetInput(offsetX);
+            HotspotOffsetYTextBox.Text = FormatOffsetInput(offsetY);
+            _loading = false;
         }
 
         private static void SetImageBounds(FrameworkElement image, double left, double top, double width, double height)
@@ -279,6 +370,11 @@ namespace AngryMouse
         {
             var rounded = Math.Round(value, 1);
             return rounded.ToString("+0.0;-0.0;0.0", CultureInfo.InvariantCulture);
+        }
+
+        private static string FormatOffsetInput(double value)
+        {
+            return Math.Round(value, 1).ToString("0.0", CultureInfo.InvariantCulture);
         }
     }
 }

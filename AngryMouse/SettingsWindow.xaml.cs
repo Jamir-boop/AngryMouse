@@ -47,10 +47,10 @@ namespace AngryMouse
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
             CursorCollectionManager.InitializeDefaults();
-            CursorTestItemsControl.ItemsSource = CreateCursorTestTiles();
             LoadSettingsToControls();
             _loading = false;
             ScheduleDebouncedUpdate();
+            StartPrewarmSelectedCollection();
         }
 
         private void LoadSettingsToControls()
@@ -350,27 +350,6 @@ namespace AngryMouse
             AppTheme.ApplySavedTheme();
         }
 
-        private void TestTabButton_OnClick(object sender, RoutedEventArgs e)
-        {
-            MainTabControl.SelectedItem = TestTabItem;
-        }
-
-        private void CursorTestTile_OnMouseEnter(object sender, Input.MouseEventArgs e)
-        {
-            var tile = (sender as FrameworkElement)?.DataContext as CursorTestTile;
-            if (tile == null)
-            {
-                return;
-            }
-
-            (Application.Current as App)?.BeginCursorTestPreview(tile.RoleKey);
-        }
-
-        private void CursorTestTile_OnMouseLeave(object sender, Input.MouseEventArgs e)
-        {
-            (Application.Current as App)?.EndCursorTestPreview();
-        }
-
         private void ChangeRoleButton_OnClick(object sender, RoutedEventArgs e)
         {
             var row = (sender as FrameworkElement)?.DataContext as CursorRoleRow;
@@ -518,12 +497,40 @@ namespace AngryMouse
 
         private void Window_Closed(object sender, EventArgs e)
         {
-            (Application.Current as App)?.EndCursorTestPreview();
+            (Application.Current as App)?.EndCursorRolePreview();
             CancelPrewarm();
+        }
+
+        private void CursorRolePreview_OnMouseEnter(object sender, Input.MouseEventArgs e)
+        {
+            TryBeginCursorRolePreview((sender as FrameworkElement)?.DataContext as CursorRoleRow);
+        }
+
+        private void CursorRolePreview_OnMouseLeftButtonDown(object sender, Input.MouseButtonEventArgs e)
+        {
+            TryBeginCursorRolePreview((sender as FrameworkElement)?.DataContext as CursorRoleRow);
+            e.Handled = true;
+        }
+
+        private void CursorRolePreview_OnMouseLeave(object sender, Input.MouseEventArgs e)
+        {
+            (Application.Current as App)?.EndCursorRolePreview();
+        }
+
+        private static void TryBeginCursorRolePreview(CursorRoleRow row)
+        {
+            if (row == null || !row.CanPreview || string.IsNullOrWhiteSpace(row.RoleKey))
+            {
+                return;
+            }
+
+            (Application.Current as App)?.BeginCursorRolePreview(row.RoleKey);
         }
 
         private void UpdateCursorEditor(bool loadPreviews)
         {
+            (Application.Current as App)?.EndCursorRolePreview();
+
             if (!IsCollectionMode())
             {
                 CursorRoleDataGrid.ItemsSource = null;
@@ -557,8 +564,11 @@ namespace AngryMouse
                     FilePath = exists ? filePath : null,
                     AssignedFile = string.IsNullOrWhiteSpace(assignedFile) ? "" : Path.GetFileName(assignedFile),
                     Status = GetRoleStatus(assignedFile, exists),
-                    Preview = loadPreviews && exists ? CursorVisualCache.GetPreview(collectionName, role.Key, filePath) : null,
-                    CanAdjust = exists
+                    SystemPreview = LoadSystemPreview(role),
+                    ZoomPreview = loadPreviews && exists ? CursorVisualCache.GetPreview(collectionName, role.Key, filePath) : null,
+                    RoleCursor = GetRoleCursor(role.Key),
+                    CanAdjust = exists,
+                    CanPreview = exists
                 });
             }
 
@@ -575,7 +585,8 @@ namespace AngryMouse
                             Role = "Unassigned",
                             AssignedFile = fileName,
                             Status = "Unassigned",
-                            Preview = loadPreviews ? CursorVisualLoader.LoadPngPreview(file) : null
+                            ZoomPreview = loadPreviews ? CursorVisualLoader.LoadPngPreview(file) : null,
+                            RoleCursor = Input.Cursors.Arrow
                         });
                     }
                 }
@@ -777,6 +788,48 @@ namespace AngryMouse
             return exists ? "Valid" : "Missing";
         }
 
+        private static BitmapSource LoadSystemPreview(CursorRoleDefinition role)
+        {
+            return CursorVisualLoader.LoadSystemCursorRole(role.WindowsCursorId).Bitmap;
+        }
+
+        private static Input.Cursor GetRoleCursor(string roleKey)
+        {
+            switch (roleKey)
+            {
+                case "arrow":
+                    return Input.Cursors.Arrow;
+                case "ibeam":
+                    return Input.Cursors.IBeam;
+                case "wait":
+                    return Input.Cursors.Wait;
+                case "appstarting":
+                    return Input.Cursors.AppStarting;
+                case "crosshair":
+                    return Input.Cursors.Cross;
+                case "uparrow":
+                    return Input.Cursors.UpArrow;
+                case "sizens":
+                    return Input.Cursors.SizeNS;
+                case "sizewe":
+                    return Input.Cursors.SizeWE;
+                case "sizenwse":
+                    return Input.Cursors.SizeNWSE;
+                case "sizenesw":
+                    return Input.Cursors.SizeNESW;
+                case "sizeall":
+                    return Input.Cursors.SizeAll;
+                case "no":
+                    return Input.Cursors.No;
+                case "hand":
+                    return Input.Cursors.Hand;
+                case "help":
+                    return Input.Cursors.Help;
+                default:
+                    return Input.Cursors.Arrow;
+            }
+        }
+
         private static void SaveSettings()
         {
             Properties.Settings.Default.Save();
@@ -825,37 +878,6 @@ namespace AngryMouse
             }
         }
 
-        private static List<CursorTestTile> CreateCursorTestTiles()
-        {
-            return new List<CursorTestTile>
-            {
-                Tile("Arrow", "arrow", Input.Cursors.Arrow),
-                Tile("I-beam", "ibeam", Input.Cursors.IBeam),
-                Tile("Wait", "wait", Input.Cursors.Wait),
-                Tile("App starting", "appstarting", Input.Cursors.AppStarting),
-                Tile("Crosshair", "crosshair", Input.Cursors.Cross),
-                Tile("Up arrow", "uparrow", Input.Cursors.UpArrow),
-                Tile("Size NS", "sizens", Input.Cursors.SizeNS),
-                Tile("Size WE", "sizewe", Input.Cursors.SizeWE),
-                Tile("Size NWSE", "sizenwse", Input.Cursors.SizeNWSE),
-                Tile("Size NESW", "sizenesw", Input.Cursors.SizeNESW),
-                Tile("Size all", "sizeall", Input.Cursors.SizeAll),
-                Tile("No", "no", Input.Cursors.No),
-                Tile("Hand", "hand", Input.Cursors.Hand),
-                Tile("Help", "help", Input.Cursors.Help)
-            };
-        }
-
-        private static CursorTestTile Tile(string name, string roleKey, Input.Cursor cursor)
-        {
-            return new CursorTestTile
-            {
-                Name = name,
-                RoleKey = roleKey,
-                Cursor = cursor
-            };
-        }
-
         private sealed class CursorRoleRow
         {
             public string RoleKey { get; set; }
@@ -868,22 +890,19 @@ namespace AngryMouse
 
             public string Status { get; set; }
 
-            public BitmapSource Preview { get; set; }
+            public BitmapSource SystemPreview { get; set; }
+
+            public BitmapSource ZoomPreview { get; set; }
+
+            public Input.Cursor RoleCursor { get; set; }
 
             public bool CanEditRole => !string.IsNullOrWhiteSpace(RoleKey);
 
             public bool CanAdjust { get; set; }
 
+            public bool CanPreview { get; set; }
+
             public bool CanClear => CanEditRole && !string.IsNullOrWhiteSpace(AssignedFile);
-        }
-
-        private sealed class CursorTestTile
-        {
-            public string Name { get; set; }
-
-            public string RoleKey { get; set; }
-
-            public Input.Cursor Cursor { get; set; }
         }
     }
 }

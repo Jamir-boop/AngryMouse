@@ -81,9 +81,9 @@ namespace AngryMouse
 
         private DateTime _lastDetectorShakeTimestamp = DateTime.Now;
 
-        private bool _testPreviewActive;
+        private bool _rolePreviewActive;
 
-        private string _testPreviewRoleKey;
+        private string _rolePreviewRoleKey;
 
         private bool _shellUiActive;
 
@@ -371,16 +371,16 @@ namespace AngryMouse
             _settingsWindow.Activate();
         }
 
-        internal void BeginCursorTestPreview(string roleKey)
+        internal void BeginCursorRolePreview(string roleKey)
         {
             if (!Current.Dispatcher.CheckAccess())
             {
-                Current.Dispatcher.BeginInvoke(new Action(() => BeginCursorTestPreview(roleKey)));
+                Current.Dispatcher.BeginInvoke(new Action(() => BeginCursorRolePreview(roleKey)));
                 return;
             }
 
-            _testPreviewActive = true;
-            _testPreviewRoleKey = string.IsNullOrWhiteSpace(roleKey) ? "arrow" : roleKey;
+            _rolePreviewActive = true;
+            _rolePreviewRoleKey = string.IsNullOrWhiteSpace(roleKey) ? "arrow" : roleKey;
             _lastCursorIdentity = null;
             if (!UpdateSystemCursorVisibility() && !SystemCursorHider.IsHidden)
             {
@@ -395,21 +395,21 @@ namespace AngryMouse
             });
         }
 
-        internal void EndCursorTestPreview()
+        internal void EndCursorRolePreview()
         {
             if (!Current.Dispatcher.CheckAccess())
             {
-                Current.Dispatcher.BeginInvoke(new Action(EndCursorTestPreview));
+                Current.Dispatcher.BeginInvoke(new Action(EndCursorRolePreview));
                 return;
             }
 
-            if (!_testPreviewActive)
+            if (!_rolePreviewActive)
             {
                 return;
             }
 
-            _testPreviewActive = false;
-            _testPreviewRoleKey = null;
+            _rolePreviewActive = false;
+            _rolePreviewRoleKey = null;
             _lastCursorIdentity = null;
             _overlayWindows.ForEach(window => window.SetMouseShake(_detectorShaking, _lastDetectorShakeTimestamp));
             if (!UpdateSystemCursorVisibility() && !SystemCursorHider.IsHidden)
@@ -453,7 +453,7 @@ namespace AngryMouse
             ShellUiDetector.SetActive(e.IsShaking);
             UpdateSystemCursorVisibility();
 
-            if (_testPreviewActive)
+            if (_rolePreviewActive)
             {
                 return;
             }
@@ -570,7 +570,7 @@ namespace AngryMouse
             }
 
             var changed = false;
-            var shouldOverrideCursor = _detectorShaking && _shellUiActive && !_testPreviewActive;
+            var shouldOverrideCursor = _detectorShaking && _shellUiActive && !_rolePreviewActive;
             if (shouldOverrideCursor)
             {
                 if (SystemCursorOverride.IsActive)
@@ -614,7 +614,7 @@ namespace AngryMouse
                                  AngryMouse.Properties.Settings.Default.CursorSourceMode,
                                  CursorCollectionManager.SystemMode,
                                  StringComparison.OrdinalIgnoreCase) &&
-                             (_detectorShaking || _testPreviewActive);
+                             (_detectorShaking || _rolePreviewActive);
             if (shouldHide)
             {
                 if (SystemCursorHider.IsHidden)
@@ -652,13 +652,13 @@ namespace AngryMouse
             }
 
             var mode = AngryMouse.Properties.Settings.Default.CursorSourceMode;
-            if (_testPreviewActive)
+            if (_rolePreviewActive)
             {
-                var previewRoleKey = string.IsNullOrWhiteSpace(_testPreviewRoleKey) ? "arrow" : _testPreviewRoleKey;
-                var previewSystemCursorHandle = CursorVisualLoader.GetCurrentSystemCursorHandle();
+                var previewRoleKey = string.IsNullOrWhiteSpace(_rolePreviewRoleKey) ? "arrow" : _rolePreviewRoleKey;
+                var previewRole = CursorCollectionManager.GetRole(previewRoleKey);
                 var previewIdentity = string.Equals(mode, CursorCollectionManager.SystemMode, StringComparison.OrdinalIgnoreCase)
-                    ? "test-system|" + previewSystemCursorHandle
-                    : "test-collection|" + AngryMouse.Properties.Settings.Default.CursorCollectionName + "|" + previewRoleKey;
+                    ? "preview-system|" + previewRole.WindowsCursorId
+                    : "preview-collection|" + AngryMouse.Properties.Settings.Default.CursorCollectionName + "|" + previewRoleKey;
 
                 if (!force && string.Equals(previewIdentity, _lastCursorIdentity, StringComparison.Ordinal))
                 {
@@ -667,7 +667,7 @@ namespace AngryMouse
 
                 _lastCursorIdentity = previewIdentity;
                 var previewCursorVisual = string.Equals(mode, CursorCollectionManager.SystemMode, StringComparison.OrdinalIgnoreCase)
-                    ? CursorVisualLoader.LoadSystemCursor()
+                    ? CursorVisualLoader.LoadSystemCursorRole(previewRole.WindowsCursorId)
                     : CursorVisualLoader.LoadCollectionRole(previewRoleKey);
                 _overlayWindows.ForEach(window => window.SetCursorVisual(previewCursorVisual));
                 return;
