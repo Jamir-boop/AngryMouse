@@ -94,7 +94,13 @@ namespace AngryMouse.Mouse
                 {
                     _visibleUntil = currentTime.AddMilliseconds(VisibleDuration);
                     SetShaking(true);
+                    if (!_timer.Enabled)
+                    {
+                        _timer.Enabled = true;
+                    }
                 }
+                // Note: we do not disable timer here because we need it to turn off shaking state
+                // Timer will be disabled in Timer_Tick when _shaking becomes false
             }
         }
 
@@ -165,7 +171,7 @@ namespace AngryMouse.Mouse
 
         private void Timer_Tick(object sender, ElapsedEventArgs e)
         {
-            if (_shaking && DateTime.Now >= _visibleUntil)
+            if (DateTime.Now >= _visibleUntil)
             {
                 Application.Current.Dispatcher.Invoke(() =>
                 {

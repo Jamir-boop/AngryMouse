@@ -57,7 +57,8 @@ namespace AngryMouse
 
         private readonly DispatcherTimer _topmostRefreshTimer = new DispatcherTimer
         {
-            Interval = TimeSpan.FromMilliseconds(100)
+            Interval = TimeSpan.FromMilliseconds(100),
+            IsEnabled = false
         };
 
         private bool _systemCursorOverrideActive;

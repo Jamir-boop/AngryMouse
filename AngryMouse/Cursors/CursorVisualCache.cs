@@ -2,8 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
+using System.Threading;
 using System.Windows;
 using System.Windows.Media.Imaging;
 
@@ -14,12 +16,67 @@ namespace AngryMouse.Cursors
         private const int RuntimeTargetHeight = (int)CursorVisualLoader.BuiltInCursorHeight;
         private const int PreviewTargetHeight = 32;
         private const string CacheVersion = "v2";
+        private const int MaxRuntimeCacheSize = 100;
+        private const int MaxPreviewCacheSize = 100;
+        private const int DiskCacheCleanupDays = 30;
 
         private static readonly object LockObject = new object();
+        private static readonly object RuntimeLock = new object();
+        private static readonly object PreviewLock = new object();
+        private static readonly LinkedList<string> RuntimeCacheOrder = new LinkedList<string>();
         private static readonly Dictionary<string, CursorVisualInfo> RuntimeCache =
             new Dictionary<string, CursorVisualInfo>(StringComparer.OrdinalIgnoreCase);
+        private static readonly LinkedList<string> PreviewCacheOrder = new LinkedList<string>();
         private static readonly Dictionary<string, BitmapSource> PreviewCache =
             new Dictionary<string, BitmapSource>(StringComparer.OrdinalIgnoreCase);
+
+        static CursorVisualCache()
+        {
+            CleanupDiskCache();
+        }
+
+        private static void CleanupDiskCache()
+        {
+            try
+            {
+                var cacheRoot = GetDiskCacheRoot();
+                if (Directory.Exists(cacheRoot))
+                {
+                    var cutoffDate = DateTime.UtcNow.AddDays(-DiskCacheCleanupDays);
+                    var files = Directory.EnumerateFiles(cacheRoot, "*.png", SearchOption.AllDirectories);
+
+                    foreach (var file in files)
+                    {
+                        try
+                        {
+                            var lastWriteTime = File.GetLastWriteTimeUtc(file);
+                            if (lastWriteTime < cutoffDate)
+                            {
+                                File.Delete(file);
+                                // Also delete associated metadata file
+                                var metadataFile = file + ".txt";
+                                if (File.Exists(metadataFile))
+                                {
+                                    File.Delete(metadataFile);
+                                }
+                            }
+                        }
+                        catch (IOException)
+                        {
+                            // File might be in use, skip it
+                        }
+                        catch (UnauthorizedAccessException)
+                        {
+                            // Skip files we can't access
+                        }
+                    }
+                }
+            }
+            catch (Exception)
+            {
+                // If cleanup fails, continue without it
+            }
+        }
 
         public static CursorVisualInfo GetRuntimeVisual(string roleKey)
         {
@@ -40,11 +97,14 @@ namespace AngryMouse.Cursors
             var key = "runtime|" + collectionName + "|" + role.Key + "|" +
                       CreateVisualCacheKey(path, RuntimeTargetHeight, role.Key, roleSettings);
 
-            lock (LockObject)
+            lock (RuntimeLock)
             {
                 CursorVisualInfo cached;
                 if (RuntimeCache.TryGetValue(key, out cached))
                 {
+                    // Move to end of LRU list
+                    RuntimeCacheOrder.Remove(key);
+                    RuntimeCacheOrder.AddLast(key);
                     return cached;
                 }
             }
@@ -58,9 +118,18 @@ namespace AngryMouse.Cursors
                     hotspot,
                     "Using cursor collection: " + Path.GetFileName(path));
 
-                lock (LockObject)
+                lock (RuntimeLock)
                 {
+                    // Evict if cache is full
+                    if (RuntimeCache.Count >= MaxRuntimeCacheSize)
+                    {
+                        var oldestKey = RuntimeCacheOrder.First.Value;
+                        RuntimeCache.Remove(oldestKey);
+                        RuntimeCacheOrder.RemoveFirst();
+                    }
+
                     RuntimeCache[key] = visual;
+                    RuntimeCacheOrder.AddLast(key);
                 }
 
                 return visual;
@@ -137,11 +206,14 @@ namespace AngryMouse.Cursors
 
             var key = "preview|" + CreateBitmapCacheKey(path, PreviewTargetHeight, roleSettings);
 
-            lock (LockObject)
+            lock (PreviewLock)
             {
                 BitmapSource cached;
                 if (PreviewCache.TryGetValue(key, out cached))
                 {
+                    // Move to end of LRU list
+                    PreviewCacheOrder.Remove(key);
+                    PreviewCacheOrder.AddLast(key);
                     return cached;
                 }
             }
@@ -150,9 +222,18 @@ namespace AngryMouse.Cursors
             {
                 var bitmap = GetCachedSvgBitmap(path, PreviewTargetHeight, roleKey, roleSettings).Bitmap;
 
-                lock (LockObject)
+                lock (PreviewLock)
                 {
+                    // Evict if cache is full
+                    if (PreviewCache.Count >= MaxPreviewCacheSize)
+                    {
+                        var oldestKey = PreviewCacheOrder.First.Value;
+                        PreviewCache.Remove(oldestKey);
+                        PreviewCacheOrder.RemoveFirst();
+                    }
+
                     PreviewCache[key] = bitmap;
+                    PreviewCacheOrder.AddLast(key);
                 }
 
                 return bitmap;

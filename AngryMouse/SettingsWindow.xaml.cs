@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media.Imaging;
+using System.Windows.Threading;
 using Forms = System.Windows.Forms;
 using Input = System.Windows.Input;
 
@@ -21,10 +22,21 @@ namespace AngryMouse
     {
         private bool _loading = true;
         private CancellationTokenSource _prewarmCancellation;
+        private readonly DispatcherTimer _debounceTimer;
+        private bool _needsCursorEditorUpdate;
+        private bool _needsCursorStatusUpdate;
+        private bool _needsRemoveCollectionButtonUpdate;
+        private bool _needsCollectionUiAvailabilityUpdate;
+        private bool _needsPrewarmRestart;
 
         public SettingsWindow()
         {
             InitializeComponent();
+            _debounceTimer = new DispatcherTimer
+            {
+                Interval = TimeSpan.FromMilliseconds(100)
+            };
+            _debounceTimer.Tick += DebounceTimer_Tick;
         }
 
         /// <summary>
@@ -38,7 +50,7 @@ namespace AngryMouse
             CursorTestItemsControl.ItemsSource = CreateCursorTestTiles();
             LoadSettingsToControls();
             _loading = false;
-            StartPrewarmSelectedCollection();
+            ScheduleDebouncedUpdate();
         }
 
         private void LoadSettingsToControls()
@@ -168,16 +180,15 @@ namespace AngryMouse
             if (_loading) return;
 
             Properties.Settings.Default.CursorSourceMode = GetCursorSourceMode();
-            SyncHideBuiltInCursorAvailability(saveWhenChanged: false);
             SaveSettings();
-            UpdateCollectionUiAvailability();
-            if (IsCollectionMode())
-            {
-                UpdateCursorEditor(loadPreviews: false);
-            }
 
-            UpdateCursorStatus();
-            StartPrewarmSelectedCollection();
+            _needsCursorEditorUpdate = true;
+            _needsCursorStatusUpdate = true;
+            _needsRemoveCollectionButtonUpdate = true;
+            _needsCollectionUiAvailabilityUpdate = true;
+            _needsPrewarmRestart = true;
+
+            ScheduleDebouncedUpdate();
         }
 
         private void CollectionComboBox_OnSelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -186,10 +197,13 @@ namespace AngryMouse
 
             Properties.Settings.Default.CursorCollectionName = GetSelectedCollectionName();
             SaveSettings();
-            UpdateCursorEditor(loadPreviews: false);
-            UpdateCursorStatus();
-            UpdateRemoveCollectionButton();
-            StartPrewarmSelectedCollection();
+
+            _needsCursorEditorUpdate = true;
+            _needsCursorStatusUpdate = true;
+            _needsRemoveCollectionButtonUpdate = true;
+            _needsPrewarmRestart = true;
+
+            ScheduleDebouncedUpdate();
         }
 
         private void ImportCollectionButton_OnClick(object sender, RoutedEventArgs e)
@@ -209,9 +223,13 @@ namespace AngryMouse
                 Properties.Settings.Default.CursorSourceMode = CursorCollectionManager.CollectionMode;
                 SaveSettings();
 
-                LoadSettingsToControls();
-                _loading = false;
-                StartPrewarmSelectedCollection();
+                _needsCursorEditorUpdate = true;
+                _needsCursorStatusUpdate = true;
+                _needsRemoveCollectionButtonUpdate = true;
+                _needsCollectionUiAvailabilityUpdate = true;
+                _needsPrewarmRestart = true;
+
+                ScheduleDebouncedUpdate();
             }
         }
 
@@ -759,6 +777,49 @@ namespace AngryMouse
         private static void SaveSettings()
         {
             Properties.Settings.Default.Save();
+        }
+
+        private void ScheduleDebouncedUpdate()
+        {
+            _debounceTimer.Stop();
+            _debounceTimer.Start();
+        }
+
+        private void DebounceTimer_Tick(object sender, EventArgs e)
+        {
+            _debounceTimer.Stop();
+
+            if (_loading) return;
+
+            if (_needsCursorEditorUpdate)
+            {
+                _needsCursorEditorUpdate = false;
+                UpdateCursorEditor(loadPreviews: false);
+            }
+
+            if (_needsCursorStatusUpdate)
+            {
+                _needsCursorStatusUpdate = false;
+                UpdateCursorStatus();
+            }
+
+            if (_needsRemoveCollectionButtonUpdate)
+            {
+                _needsRemoveCollectionButtonUpdate = false;
+                UpdateRemoveCollectionButton();
+            }
+
+            if (_needsCollectionUiAvailabilityUpdate)
+            {
+                _needsCollectionUiAvailabilityUpdate = false;
+                UpdateCollectionUiAvailability();
+            }
+
+            if (_needsPrewarmRestart)
+            {
+                _needsPrewarmRestart = false;
+                StartPrewarmSelectedCollection();
+            }
         }
 
         private static List<CursorTestTile> CreateCursorTestTiles()

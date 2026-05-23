@@ -262,3 +262,13 @@ __pycache__/
 
 .claude/*
 CLAUDE.md
+
+# .graphifyignore
+node_modules/
+dist/
+*.generated.py
+
+# only index src/, ignore everything else
+*
+!src/
+!src/**
