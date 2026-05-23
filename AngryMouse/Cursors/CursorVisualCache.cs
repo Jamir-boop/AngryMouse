@@ -1,3 +1,4 @@
+using AngryMouse.Util;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -73,8 +74,9 @@ namespace AngryMouse.Cursors
                     }
                 }
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                DebugLog.WriteException("Cursor disk cache cleanup failed", ex);
                 // If cleanup fails, continue without it
             }
         }
@@ -152,8 +154,9 @@ namespace AngryMouse.Cursors
 
                 return visual;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                DebugLog.WriteException("Cursor runtime visual failed: " + path, ex);
                 return CursorVisualLoader.BuiltIn("Cursor PNG failed to load. Using built-in cursor.");
             }
         }
@@ -256,8 +259,9 @@ namespace AngryMouse.Cursors
 
                 return bitmap;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                DebugLog.WriteException("Cursor preview failed: " + path, ex);
                 return null;
             }
         }
@@ -337,8 +341,9 @@ namespace AngryMouse.Cursors
                     bitmap.Freeze();
                 }
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                DebugLog.WriteException("Cursor bitmap load failed: " + path, ex);
                 return null;
             }
 

@@ -12,5 +12,8 @@ namespace AngryMouse.Util
         /// </summary>
         [Option('d', "debug", Default = false, HelpText = "Enable debug mode.", Required = false)]
         public bool Debug { get; set; }
+
+        [Option("autostart", Default = false, HelpText = "Start in tray without opening settings.", Required = false)]
+        public bool Autostart { get; set; }
     }
 }

@@ -1,3 +1,4 @@
+using AngryMouse.Util;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -59,8 +60,9 @@ namespace AngryMouse.Cursors
                 {
                     item.Render();
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
+                    DebugLog.WriteException("Cursor prewarm item failed: " + item.Name, ex);
                     // Bad cursor file should not stop other cursors from caching.
                 }
 

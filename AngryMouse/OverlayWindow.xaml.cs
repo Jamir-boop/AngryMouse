@@ -1,7 +1,9 @@
 ﻿using AngryMouse.Animation;
 using AngryMouse.Cursors;
 using AngryMouse.Screen;
+using AngryMouse.Util;
 using System;
+using System.IO;
 using System.Text;
 using System.Windows;
 using System.Windows.Controls;
@@ -91,6 +93,10 @@ namespace AngryMouse
         protected override void OnDpiChanged(DpiScale oldDpiScaleInfo, DpiScale newDpiScaleInfo)
         {
             _dpiInfo = newDpiScaleInfo;
+            DebugLog.Write(
+                "DPI changed: " + _screen.Name +
+                " " + oldDpiScaleInfo.DpiScaleX + "x" + oldDpiScaleInfo.DpiScaleY +
+                " -> " + newDpiScaleInfo.DpiScaleX + "x" + newDpiScaleInfo.DpiScaleY);
             if (_mouseAnimator != null)
             {
                 _mouseAnimator.DpiInfo = newDpiScaleInfo;
@@ -196,6 +202,34 @@ namespace AngryMouse
                 cursorVisual = CursorVisualLoader.BuiltIn();
             }
 
+            try
+            {
+                ApplyCursorVisual(cursorVisual);
+            }
+            catch (Exception ex) when (
+                ex is IOException ||
+                ex is UnauthorizedAccessException ||
+                ex is InvalidOperationException ||
+                ex is ArgumentException ||
+                ex is NotSupportedException)
+            {
+                DebugLog.WriteException("Overlay cursor visual failed", ex);
+                try
+                {
+                    ApplyCursorVisual(CursorVisualLoader.BuiltIn("Cursor visual failed. Using built-in cursor."));
+                }
+                catch (Exception fallbackException) when (
+                    fallbackException is InvalidOperationException ||
+                    fallbackException is ArgumentException ||
+                    fallbackException is NotSupportedException)
+                {
+                    DebugLog.WriteException("Overlay built-in cursor fallback failed", fallbackException);
+                }
+            }
+        }
+
+        private void ApplyCursorVisual(CursorVisualInfo cursorVisual)
+        {
             CursorImage.Source = cursorVisual.Bitmap;
             CursorImage.Width = cursorVisual.Width;
             CursorImage.Height = cursorVisual.Height;

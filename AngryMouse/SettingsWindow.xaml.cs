@@ -1,4 +1,5 @@
 using AngryMouse.Cursors;
+using AngryMouse.Util;
 using Microsoft.Win32;
 using System;
 using System.Collections.Generic;
@@ -81,6 +82,7 @@ namespace AngryMouse
 
             SelectCursorSourceMode(GetSavedCursorSourceMode());
             DarkModeCheckBox.IsChecked = AppTheme.IsDarkMode(Properties.Settings.Default.ThemeMode);
+            DebugEnabledCheckBox.IsChecked = Properties.Settings.Default.DebugEnabled;
             LoadCollectionsToControls();
             SizeSlider.Value = Properties.Settings.Default.CursorSize;
             AnimationLengthSlider.Value = Properties.Settings.Default.CursorAnimationLength;
@@ -286,12 +288,9 @@ namespace AngryMouse
                     MessageBoxButton.OK,
                     MessageBoxImage.Information);
             }
-            catch (Exception ex) when (
-                ex is IOException ||
-                ex is UnauthorizedAccessException ||
-                ex is InvalidOperationException)
+            catch (Exception ex) when (IsExpectedUserFileException(ex))
             {
-                MessageBox.Show(this, "Import failed: " + ex.Message, "Import cursor folder", MessageBoxButton.OK, MessageBoxImage.Warning);
+                ShowOperationError(this, "Import cursor folder", "Import cursor folder", ex);
             }
         }
 
@@ -329,14 +328,9 @@ namespace AngryMouse
                     MessageBoxButton.OK,
                     MessageBoxImage.Information);
             }
-            catch (Exception ex) when (
-                ex is IOException ||
-                ex is UnauthorizedAccessException ||
-                ex is InvalidDataException ||
-                ex is InvalidOperationException ||
-                ex is System.Xml.XmlException)
+            catch (Exception ex) when (IsExpectedUserFileException(ex))
             {
-                MessageBox.Show(this, "Import failed: " + ex.Message, "Import settings", MessageBoxButton.OK, MessageBoxImage.Warning);
+                ShowOperationError(this, "Import settings", "Import settings package", ex);
             }
         }
 
@@ -367,12 +361,9 @@ namespace AngryMouse
                 SaveSettings();
                 MessageBox.Show(this, "Exported settings package.", "Export settings", MessageBoxButton.OK, MessageBoxImage.Information);
             }
-            catch (Exception ex) when (
-                ex is IOException ||
-                ex is UnauthorizedAccessException ||
-                ex is InvalidOperationException)
+            catch (Exception ex) when (IsExpectedUserFileException(ex))
             {
-                MessageBox.Show(this, "Export failed: " + ex.Message, "Export settings", MessageBoxButton.OK, MessageBoxImage.Warning);
+                ShowOperationError(this, "Export settings", "Export settings package", ex);
             }
         }
 
@@ -399,7 +390,16 @@ namespace AngryMouse
                 collectionName,
                 Properties.Settings.Default.CursorCollectionName,
                 StringComparison.OrdinalIgnoreCase);
-            CursorCollectionManager.RemoveCollection(collectionName);
+            try
+            {
+                CursorCollectionManager.RemoveCollection(collectionName);
+            }
+            catch (Exception ex) when (IsExpectedUserFileException(ex))
+            {
+                ShowOperationError(this, "Remove cursor folder", "Remove cursor folder", ex);
+                return;
+            }
+
             LoadSettingsToControls();
             _loading = false;
             if (removedActiveCollection)
@@ -428,6 +428,27 @@ namespace AngryMouse
             CursorRoleDataGrid.Items.Refresh();
         }
 
+        private void DebugEnabledCheckBox_OnChanged(object sender, RoutedEventArgs e)
+        {
+            if (_loading) return;
+
+            Properties.Settings.Default.DebugEnabled = DebugEnabledCheckBox.IsChecked == true;
+            SaveSettings();
+            DebugLog.Write("Debug logging enabled from settings window.");
+        }
+
+        private void OpenDebugLogButton_OnClick(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                DebugLog.OpenInNotepad();
+            }
+            catch (Exception ex) when (IsExpectedUserFileException(ex))
+            {
+                ShowOperationError(this, "Open debug log", "Open debug log", ex);
+            }
+        }
+
         private void ChangeRoleButton_OnClick(object sender, RoutedEventArgs e)
         {
             var row = (sender as FrameworkElement)?.DataContext as CursorRoleRow;
@@ -450,10 +471,18 @@ namespace AngryMouse
                 return;
             }
 
-            var fileName = CursorCollectionManager.CopyFileIntoCollection(collectionName, dialog.FileName);
-            var assignments = CursorCollectionManager.LoadAssignments(collectionName);
-            assignments[row.RoleKey] = fileName;
-            CursorCollectionManager.SaveAssignments(collectionName, assignments);
+            try
+            {
+                var fileName = CursorCollectionManager.CopyFileIntoCollection(collectionName, dialog.FileName);
+                var assignments = CursorCollectionManager.LoadAssignments(collectionName);
+                assignments[row.RoleKey] = fileName;
+                CursorCollectionManager.SaveAssignments(collectionName, assignments);
+            }
+            catch (Exception ex) when (IsExpectedUserFileException(ex))
+            {
+                ShowOperationError(this, "Change cursor file", "Change cursor file", ex);
+                return;
+            }
 
             UpdateCursorEditor(loadPreviews: false);
             UpdateCursorStatus();
@@ -469,9 +498,17 @@ namespace AngryMouse
             }
 
             var collectionName = GetSelectedCollectionName();
-            var assignments = CursorCollectionManager.LoadAssignments(collectionName);
-            assignments.Remove(row.RoleKey);
-            CursorCollectionManager.SaveAssignments(collectionName, assignments);
+            try
+            {
+                var assignments = CursorCollectionManager.LoadAssignments(collectionName);
+                assignments.Remove(row.RoleKey);
+                CursorCollectionManager.SaveAssignments(collectionName, assignments);
+            }
+            catch (Exception ex) when (IsExpectedUserFileException(ex))
+            {
+                ShowOperationError(this, "Clear cursor file", "Clear cursor file assignment", ex);
+                return;
+            }
 
             UpdateCursorEditor(loadPreviews: false);
             UpdateCursorStatus();
@@ -719,6 +756,7 @@ namespace AngryMouse
 
             var source = new CancellationTokenSource();
             _prewarmCancellation = source;
+            DebugLog.Write("Settings prewarm started: " + collectionName);
 
             CursorRenderProgressBar.Visibility = Visibility.Visible;
             CursorRenderProgressBar.IsIndeterminate = true;
@@ -755,14 +793,24 @@ namespace AngryMouse
                         _prewarmCancellation = null;
                         CursorRenderProgressBar.Visibility = Visibility.Collapsed;
 
+                        if (task.IsCanceled)
+                        {
+                            DebugLog.Write("Settings prewarm canceled: " + collectionName);
+                            CursorRenderStatusTextBlock.Visibility = Visibility.Collapsed;
+                            CursorRenderStatusTextBlock.Text = "";
+                            return;
+                        }
+
                         if (task.IsFaulted)
                         {
+                            DebugLog.WriteException("Settings prewarm failed: " + collectionName, task.Exception?.GetBaseException());
                             var ignored = task.Exception;
                             CursorRenderStatusTextBlock.Visibility = Visibility.Visible;
                             CursorRenderStatusTextBlock.Text = "Cursor render failed.";
                             return;
                         }
 
+                        DebugLog.Write("Settings prewarm completed: " + collectionName);
                         CursorRenderStatusTextBlock.Visibility = Visibility.Collapsed;
                         CursorRenderStatusTextBlock.Text = "";
                         UpdateCursorEditor(loadPreviews: true);
@@ -831,8 +879,6 @@ namespace AngryMouse
             // Always enable import/export settings buttons, but we might want to adjust their tooltip or meaning
             ImportSettingsButton.IsEnabled = true;
             ExportSettingsButton.IsEnabled = true;
-            CollectionHelpTextBlock.Visibility = collectionMode ? Visibility.Visible : Visibility.Collapsed;
-            RemoveCollectionLabel.IsEnabled = collectionMode;
             RemoveCollectionComboBox.IsEnabled = collectionMode;
             CursorRenderPanel.Visibility = collectionMode ? Visibility.Visible : Visibility.Collapsed;
             CursorRoleDataGrid.Visibility = collectionMode ? Visibility.Visible : Visibility.Collapsed;
@@ -1253,6 +1299,80 @@ namespace AngryMouse
             }
 
             assignFolder(folder);
+        }
+
+        private static bool IsExpectedUserFileException(Exception ex)
+        {
+            return ex is IOException ||
+                   ex is UnauthorizedAccessException ||
+                   ex is InvalidDataException ||
+                   ex is InvalidOperationException ||
+                   ex is System.Xml.XmlException ||
+                   ex is ArgumentException ||
+                   ex is NotSupportedException ||
+                   ex is System.ComponentModel.Win32Exception ||
+                   ex is System.Security.SecurityException;
+        }
+
+        private static void ShowOperationError(Window owner, string title, string action, Exception ex)
+        {
+            DebugLog.WriteException(title + " failed", ex);
+            MessageBox.Show(
+                owner,
+                GetFriendlyOperationErrorMessage(action, ex),
+                title,
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+        }
+
+        private static string GetFriendlyOperationErrorMessage(string action, Exception ex)
+        {
+            if (ex is UnauthorizedAccessException || ex is System.Security.SecurityException)
+            {
+                return action + " failed. Permission denied. Try running as administrator or choose a different folder.";
+            }
+
+            if (ex is DirectoryNotFoundException)
+            {
+                return action + " failed. Folder not found. It may have been moved or deleted.";
+            }
+
+            if (ex is FileNotFoundException)
+            {
+                return action + " failed. File not found. It may have been moved or deleted.";
+            }
+
+            if (ex is PathTooLongException)
+            {
+                return action + " failed. Path is too long. Choose a shorter folder path.";
+            }
+
+            if (ex is InvalidDataException || ex is System.Xml.XmlException)
+            {
+                return action + " failed. ZIP package is invalid or corrupted. Export it again or choose a different file.";
+            }
+
+            if (ex is IOException)
+            {
+                return action + " failed. File is busy or storage failed. Close other apps using it and try again.";
+            }
+
+            if (ex is InvalidOperationException)
+            {
+                return action + " failed. Selected file or folder is not valid for this operation.";
+            }
+
+            if (ex is ArgumentException || ex is NotSupportedException)
+            {
+                return action + " failed. Path is not valid. Choose a different file or folder.";
+            }
+
+            if (ex is System.ComponentModel.Win32Exception)
+            {
+                return action + " failed. Windows could not open the requested app.";
+            }
+
+            return action + " failed.";
         }
 
         private static void SaveSettings()

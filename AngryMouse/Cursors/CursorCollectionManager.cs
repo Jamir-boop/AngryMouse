@@ -1,3 +1,4 @@
+using AngryMouse.Util;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -55,7 +56,7 @@ namespace AngryMouse.Cursors
             var changed = false;
 
             if (string.IsNullOrWhiteSpace(settings.CursorCollectionName) ||
-                !Directory.Exists(GetCollectionPath(settings.CursorCollectionName)))
+                !IsCollectionUsable(settings.CursorCollectionName))
             {
                 settings.CursorCollectionName = BundledAdwaitaName;
                 changed = true;
@@ -75,6 +76,34 @@ namespace AngryMouse.Cursors
             }
         }
 
+        public static bool TryFallbackMissingSelectedCollection(out string missingCollectionName)
+        {
+            EnsureBundledCollectionsInstalled();
+
+            missingCollectionName = null;
+            var settings = Properties.Settings.Default;
+            var selectedCollectionName = settings.CursorCollectionName;
+            if (IsCollectionUsable(selectedCollectionName))
+            {
+                return false;
+            }
+
+            if (string.Equals(selectedCollectionName, BundledAdwaitaName, StringComparison.OrdinalIgnoreCase))
+            {
+                DebugLog.Write("Bundled cursor collection is missing or empty: " + BundledAdwaitaName);
+                return false;
+            }
+
+            missingCollectionName = string.IsNullOrWhiteSpace(selectedCollectionName)
+                ? "(none)"
+                : selectedCollectionName;
+            settings.CursorCollectionName = BundledAdwaitaName;
+            settings.Save();
+            DebugLog.Write("Selected cursor collection missing or empty. Fallback to " + BundledAdwaitaName + ": " + missingCollectionName);
+            NotifyCollectionChanged();
+            return true;
+        }
+
         public static void EnsureBundledCollectionsInstalled()
         {
             var bundledRoot = GetBundledCollectionsRoot();
@@ -91,8 +120,17 @@ namespace AngryMouse.Cursors
                 var targetPath = GetCollectionPath(collectionName);
                 Directory.CreateDirectory(targetPath);
 
-                foreach (var sourceFile in Directory.GetFiles(bundledCollectionPath, "*.png", SearchOption.TopDirectoryOnly)
-                             .OrderBy(Path.GetFileName))
+                var sourceFiles = Directory.GetFiles(bundledCollectionPath, "*.png", SearchOption.TopDirectoryOnly);
+                if (sourceFiles.Length == 0)
+                {
+                    var renderedPath = Path.Combine(bundledCollectionPath, "Rendered");
+                    if (Directory.Exists(renderedPath))
+                    {
+                        sourceFiles = Directory.GetFiles(renderedPath, "*.png", SearchOption.TopDirectoryOnly);
+                    }
+                }
+
+                foreach (var sourceFile in sourceFiles.OrderBy(Path.GetFileName))
                 {
                     var targetFile = Path.Combine(targetPath, Path.GetFileName(sourceFile));
                     if (!File.Exists(targetFile))
@@ -101,7 +139,8 @@ namespace AngryMouse.Cursors
                     }
                 }
 
-                if (!File.Exists(GetAssignmentsPath(collectionName)))
+                var assignmentsPath = GetAssignmentsPath(collectionName);
+                if (!File.Exists(assignmentsPath) || LoadAssignments(collectionName).Count == 0)
                 {
                     SaveAssignments(collectionName, InferAssignments(collectionName));
                 }
@@ -140,10 +179,15 @@ namespace AngryMouse.Cursors
 
             var collectionName = GetAvailableCollectionName(baseName);
             var targetPath = GetCollectionPath(collectionName);
+            var sourceFiles = Directory.GetFiles(sourceFolder, "*.png", SearchOption.TopDirectoryOnly);
+            if (sourceFiles.Length == 0)
+            {
+                throw new InvalidOperationException("Cursor collection folder contains no PNG files.");
+            }
+
             Directory.CreateDirectory(targetPath);
 
-            foreach (var sourceFile in Directory.GetFiles(sourceFolder, "*.png", SearchOption.TopDirectoryOnly)
-                         .OrderBy(Path.GetFileName))
+            foreach (var sourceFile in sourceFiles.OrderBy(Path.GetFileName))
             {
                 var targetFile = Path.Combine(targetPath, Path.GetFileName(sourceFile));
                 File.Copy(sourceFile, targetFile);
@@ -978,6 +1022,30 @@ namespace AngryMouse.Cursors
 
             var path = Path.Combine(GetCollectionPath(collectionName), Path.GetFileName(fileName));
             return File.Exists(path) ? path : null;
+        }
+
+        private static bool IsCollectionUsable(string collectionName)
+        {
+            if (string.IsNullOrWhiteSpace(collectionName))
+            {
+                return false;
+            }
+
+            try
+            {
+                var path = GetCollectionPath(collectionName);
+                return Directory.Exists(path) &&
+                       Directory.EnumerateFiles(path, "*.png", SearchOption.TopDirectoryOnly).Any();
+            }
+            catch (Exception ex) when (
+                ex is IOException ||
+                ex is UnauthorizedAccessException ||
+                ex is ArgumentException ||
+                ex is NotSupportedException)
+            {
+                DebugLog.WriteException("Cursor collection availability check failed: " + collectionName, ex);
+                return false;
+            }
         }
 
         private static string GetAssignmentsPath(string collectionName)

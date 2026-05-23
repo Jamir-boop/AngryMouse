@@ -23,6 +23,9 @@
     <Setting Name="ThemeMode" Type="System.String" Scope="User">
       <Value Profile="(Default)">Dark</Value>
     </Setting>
+    <Setting Name="DebugEnabled" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">False</Value>
+    </Setting>
     <Setting Name="LastImportCollectionFolder" Type="System.String" Scope="User">
       <Value Profile="(Default)" />
     </Setting>

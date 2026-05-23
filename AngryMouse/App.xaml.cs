@@ -16,6 +16,7 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Forms;
 using System.Windows.Media;
+using System.Windows.Threading;
 
 namespace AngryMouse
 {
@@ -101,9 +102,14 @@ namespace AngryMouse
 
         protected override void OnStartup(StartupEventArgs e)
         {
+            var autostartLaunch = HasAutostartFlag(e.Args);
             if (!TryAcquireSingleInstance())
             {
-                SignalExistingInstance();
+                if (!autostartLaunch)
+                {
+                    SignalExistingInstance();
+                }
+
                 Shutdown(0);
                 return;
             }
@@ -117,7 +123,11 @@ namespace AngryMouse
 
             ParserResult<Options> parserResult = Parser.Default.ParseArguments<Options>(e.Args);
 
-            parserResult.WithParsed((options) => { _debug = options.Debug; });
+            parserResult.WithParsed((options) =>
+            {
+                _debug = options.Debug;
+                autostartLaunch = options.Autostart;
+            });
 
             CursorCollectionManager.InitializeDefaults();
 
@@ -159,7 +169,14 @@ namespace AngryMouse
             ApplyCurrentCursorVisual(force: true);
             StartActiveCollectionPrewarm();
             _singleInstanceReady = true;
-            OpenSettingsWindow();
+            if (autostartLaunch)
+            {
+                DebugLog.Write("Autostart launch. Settings window suppressed.");
+            }
+            else
+            {
+                OpenSettingsWindow();
+            }
         }
 
         protected override void OnExit(ExitEventArgs e)
@@ -169,6 +186,7 @@ namespace AngryMouse
             RestoreAllSystemCursors();
             _singleInstanceReady = false;
             StopSingleInstanceSignalListener();
+            UnregisterSystemCursorRestoreHandlers();
             AppTheme.Dispose();
             ReleaseSingleInstance();
             base.OnExit(e);
@@ -176,14 +194,57 @@ namespace AngryMouse
 
         private void RegisterSystemCursorRestoreHandlers()
         {
-            DispatcherUnhandledException += (sender, args) => RestoreAllSystemCursors();
-            AppDomain.CurrentDomain.UnhandledException += (sender, args) => RestoreAllSystemCursors();
+            DispatcherUnhandledException += AppOnDispatcherUnhandledException;
+            AppDomain.CurrentDomain.UnhandledException += CurrentDomainOnUnhandledException;
+            TaskScheduler.UnobservedTaskException += TaskSchedulerOnUnobservedTaskException;
+        }
+
+        private void UnregisterSystemCursorRestoreHandlers()
+        {
+            DispatcherUnhandledException -= AppOnDispatcherUnhandledException;
+            AppDomain.CurrentDomain.UnhandledException -= CurrentDomainOnUnhandledException;
+            TaskScheduler.UnobservedTaskException -= TaskSchedulerOnUnobservedTaskException;
+        }
+
+        private void AppOnDispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs args)
+        {
+            RestoreAllSystemCursors();
+            DebugLog.WriteCrashException("Unhandled dispatcher exception", args.Exception);
+        }
+
+        private static void CurrentDomainOnUnhandledException(object sender, UnhandledExceptionEventArgs args)
+        {
+            RestoreAllSystemCursors();
+            DebugLog.WriteCrashException("Unhandled application exception", args.ExceptionObject as Exception);
+        }
+
+        private static void TaskSchedulerOnUnobservedTaskException(object sender, UnobservedTaskExceptionEventArgs args)
+        {
+            DebugLog.WriteException("Unobserved task exception", args.Exception?.GetBaseException());
         }
 
         private static void RestoreAllSystemCursors()
         {
             SystemCursorOverride.Restore();
             SystemCursorHider.Restore();
+        }
+
+        private static bool HasAutostartFlag(IEnumerable<string> args)
+        {
+            if (args == null)
+            {
+                return false;
+            }
+
+            foreach (var arg in args)
+            {
+                if (string.Equals(arg, "--autostart", StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private void SetSystemCursorOverrideOnOverlays(bool active)
@@ -664,6 +725,17 @@ namespace AngryMouse
             }
 
             var mode = AngryMouse.Properties.Settings.Default.CursorSourceMode;
+            if (string.Equals(mode, CursorCollectionManager.CollectionMode, StringComparison.OrdinalIgnoreCase))
+            {
+                string fallbackCollectionName;
+                if (CursorCollectionManager.TryFallbackMissingSelectedCollection(out fallbackCollectionName))
+                {
+                    _lastCursorIdentity = null;
+                    mode = AngryMouse.Properties.Settings.Default.CursorSourceMode;
+                    ShowCollectionFallbackNotification(fallbackCollectionName);
+                }
+            }
+
             if (_rolePreviewActive)
             {
                 var previewRoleKey = string.IsNullOrWhiteSpace(_rolePreviewRoleKey) ? "arrow" : _rolePreviewRoleKey;
@@ -706,6 +778,23 @@ namespace AngryMouse
             _overlayWindows.ForEach(window => window.SetCursorVisual(cursorVisual));
         }
 
+        private void ShowCollectionFallbackNotification(string collectionName)
+        {
+            DebugLog.Write("Cursor collection fallback: " + collectionName + " -> " + CursorCollectionManager.BundledAdwaitaName);
+
+            try
+            {
+                _notifyIcon?.ShowBalloonTip(
+                    5000,
+                    "Cursor collection unavailable",
+                    "\"" + collectionName + "\" is missing or empty. Using " + CursorCollectionManager.BundledAdwaitaName + ".",
+                    ToolTipIcon.Warning);
+            }
+            catch
+            {
+            }
+        }
+
         private void StartActiveCollectionPrewarm()
         {
             CancelActiveCollectionPrewarm();
@@ -721,6 +810,7 @@ namespace AngryMouse
             var source = new CancellationTokenSource();
             _prewarmCancellation = source;
             var collectionName = AngryMouse.Properties.Settings.Default.CursorCollectionName;
+            DebugLog.Write("Active collection prewarm started: " + collectionName);
 
             CursorRenderPrewarmer.PrewarmCollectionAsync(collectionName, null, source.Token)
                 .ContinueWith(task =>
@@ -728,9 +818,18 @@ namespace AngryMouse
                     var isCurrent = ReferenceEquals(_prewarmCancellation, source);
                     source.Dispose();
 
-                    if (task.IsFaulted)
+                    if (task.IsCanceled)
                     {
+                        DebugLog.Write("Active collection prewarm canceled: " + collectionName);
+                    }
+                    else if (task.IsFaulted)
+                    {
+                        DebugLog.WriteException("Active collection prewarm failed: " + collectionName, task.Exception?.GetBaseException());
                         var ignored = task.Exception;
+                    }
+                    else
+                    {
+                        DebugLog.Write("Active collection prewarm completed: " + collectionName);
                     }
 
                     if (isCurrent)

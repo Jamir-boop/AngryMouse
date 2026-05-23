@@ -1,3 +1,4 @@
+using AngryMouse.Util;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -59,7 +60,15 @@ namespace AngryMouse.Cursors
                 return originalVisual;
             }
 
-            return LoadCursorHandle(cursorHandle, copyHandle: true, "Using active Windows cursor.");
+            try
+            {
+                return LoadCursorHandle(cursorHandle, copyHandle: true, "Using active Windows cursor.");
+            }
+            catch (Exception ex) when (IsCursorLoadException(ex))
+            {
+                DebugLog.WriteException("System cursor load failed", ex);
+                return BuiltIn("System cursor failed to load. Using built-in cursor.");
+            }
         }
 
         public static IntPtr GetCurrentSystemCursorHandle()
@@ -125,8 +134,9 @@ namespace AngryMouse.Cursors
 
                 return CursorVisualCache.GetPreview(path);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                DebugLog.WriteException("Cursor PNG preview load failed: " + path, ex);
                 return null;
             }
         }
@@ -167,6 +177,7 @@ namespace AngryMouse.Cursors
                 ex is ArgumentException ||
                 ex is COMException)
             {
+                DebugLog.WriteException("Custom cursor load failed: " + path, ex);
                 return BuiltIn("Custom cursor failed to load. Using built-in cursor.");
             }
         }
@@ -225,7 +236,25 @@ namespace AngryMouse.Cursors
                 return BuiltIn("System cursor unavailable. Using built-in cursor.");
             }
 
-            return LoadCursorHandle(cursorHandle, copyHandle: true, "Using saved Windows cursor.");
+            try
+            {
+                return LoadCursorHandle(cursorHandle, copyHandle: true, "Using saved Windows cursor.");
+            }
+            catch (Exception ex) when (IsCursorLoadException(ex))
+            {
+                DebugLog.WriteException("Saved Windows cursor load failed: " + windowsCursorId, ex);
+                return BuiltIn("System cursor failed to load. Using built-in cursor.");
+            }
+        }
+
+        private static bool IsCursorLoadException(Exception ex)
+        {
+            return ex is IOException ||
+                   ex is UnauthorizedAccessException ||
+                   ex is InvalidOperationException ||
+                   ex is ArgumentException ||
+                   ex is NotSupportedException ||
+                   ex is COMException;
         }
 
         private static CursorVisualInfo LoadCursorHandle(IntPtr cursorHandle, bool copyHandle, string status)

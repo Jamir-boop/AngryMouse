@@ -13,6 +13,7 @@ namespace AngryMouse.Startup
         private const string AppName = "AngryMouse";
         private const string RunKeyPath = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Run";
         private const string ClickOnceShortcutName = AppName + ".appref-ms";
+        private const string AutostartArgument = "--autostart";
 
         /// <summary>
         /// Returns whether app would be run on Windows startup.
@@ -32,13 +33,13 @@ namespace AngryMouse.Startup
                 var clickOnceShortcutPath = GetClickOnceShortcutPath();
                 if (clickOnceShortcutPath != null)
                 {
-                    Directory.CreateDirectory(GetStartupFolderPath());
-                    File.Copy(clickOnceShortcutPath, GetStartupShortcutPath(), true);
-                    DeleteRegistryRunValue();
+                    DeleteStartupShortcut();
+                    SetRegistryRunValue(clickOnceShortcutPath);
                     return;
                 }
 
-                SetRegistryRunValue();
+                DeleteStartupShortcut();
+                SetRegistryRunValue(System.Windows.Forms.Application.ExecutablePath);
             }
             else
             {
@@ -55,11 +56,11 @@ namespace AngryMouse.Startup
             }
         }
 
-        private static void SetRegistryRunValue()
+        private static void SetRegistryRunValue(string launchPath)
         {
             using (var registryKey = Registry.CurrentUser.CreateSubKey(RunKeyPath))
             {
-                registryKey?.SetValue(AppName, QuotePath(System.Windows.Forms.Application.ExecutablePath));
+                registryKey?.SetValue(AppName, QuotePath(launchPath) + " " + AutostartArgument);
             }
         }
 

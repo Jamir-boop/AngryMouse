@@ -58,7 +58,6 @@ Click="ResetCursorSettingsButton_OnClick" />
 <RowDefinition Height="Auto" />
 <RowDefinition Height="Auto" />
 <RowDefinition Height="Auto" />
-<RowDefinition Height="Auto" />
 <RowDefinition Height="*" />
 <RowDefinition Height="Auto" />
 <RowDefinition Height="Auto" />
@@ -108,18 +107,20 @@ MaxWidth="360" />
 </ComboBox>
 
 <Label Name="CollectionLabel" Grid.Column="0" Grid.Row="1" Content="Collection" Margin="2" />
-<ComboBox
-Name="CollectionComboBox"
+<WrapPanel
+Name="CollectionToolbarPanel"
 Grid.Column="1"
 Grid.Row="1"
-Width="260"
-HorizontalAlignment="Left"
-Margin="2"
+Grid.ColumnSpan="5"
+Margin="2,0,2,4"
+VerticalAlignment="Center">
+<ComboBox
+Name="CollectionComboBox"
+Width="220"
+Margin="0,2,4,2"
 SelectionChanged="CollectionComboBox_OnSelectionChanged" />
 <Button
 Name="ImportCollectionButton"
-Grid.Column="2"
-Grid.Row="1"
 Content="_Import folder"
 Margin="2"
 Padding="8,2"
@@ -139,8 +140,6 @@ MaxWidth="360" />
 </Button>
 <Button
 Name="ImportSettingsButton"
-Grid.Column="3"
-Grid.Row="1"
 Content="Import _zip"
 Margin="2"
 Padding="8,2"
@@ -160,8 +159,6 @@ MaxWidth="360" />
 </Button>
 <Button
 Name="ExportSettingsButton"
-Grid.Column="4"
-Grid.Row="1"
 Content="_Export zip"
 Margin="2"
 Padding="8,2"
@@ -179,20 +176,48 @@ MaxWidth="360" />
 </ToolTip>
 </Button.ToolTip>
 </Button>
+<Border Width="1" Height="22" Margin="8,2,8,2" Background="{DynamicResource Theme.BorderBrush}" />
+<ComboBox
+Name="RemoveCollectionComboBox"
+Width="180"
+Margin="0,2,4,2"
+SelectionChanged="RemoveCollectionComboBox_OnSelectionChanged">
+<ComboBox.ToolTip>
+<ToolTip
+Background="#FFFFFFFF"
+Foreground="#FF000000"
+BorderBrush="#FF767676">
+<TextBlock
+Text="Choose an imported cursor collection to remove."
+Foreground="#FF000000"
+TextWrapping="Wrap"
+MaxWidth="360" />
+</ToolTip>
+</ComboBox.ToolTip>
+</ComboBox>
+<Button
+Name="RemoveCollectionButton"
+Content="_Remove"
+Margin="2"
+Padding="8,2"
+Click="RemoveCollectionButton_OnClick" />
+</WrapPanel>
+
 <CheckBox
 Name="IncludeCollectionsCheckBox"
-Grid.Column="5"
-Grid.Row="1"
-Content="_Include cursor collections in package"
+Grid.Column="1"
+Grid.Row="2"
+Grid.ColumnSpan="5"
+Content="_Package cursor collections with settings zip"
 VerticalAlignment="Center"
-Margin="2">
+Margin="2,0,2,8">
 <CheckBox.ToolTip>
 <ToolTip
 Background="#FFFFFFFF"
 Foreground="#FF000000"
 BorderBrush="#FF767676">
 <TextBlock
-Text="When checked, exported/imported zip packages include cursor collections. When unchecked, only application settings (zoom size, colors, etc.) are saved/loaded."
+Text="When checked, imported/exported ZIP packages include cursor collections. When unchecked, only application settings are loaded or saved."
 Foreground="#FF000000"
 TextWrapping="Wrap"
 MaxWidth="360" />
@@ -201,37 +226,9 @@ MaxWidth="360" />
 </CheckBox>
 
 <TextBlock
-Name="CollectionHelpTextBlock"
-Grid.Column="1"
-Grid.Row="2"
-Grid.ColumnSpan="5"
-Margin="2,0,2,8"
-Foreground="{DynamicResource Theme.SecondaryForegroundBrush}"
-TextWrapping="Wrap"
-Text="Import a folder of PNG cursors or a ZIP package with settings and cursor collections. Export saves your current settings (and optionally collections) to a ZIP file. You can also import individual PNG files per cursor in the table below." />
-
-<Label Name="RemoveCollectionLabel" Grid.Column="0" Grid.Row="3" Content="Remove collection" Margin="2" />
-<ComboBox
-Name="RemoveCollectionComboBox"
-Grid.Column="1"
-Grid.Row="3"
-Width="260"
-HorizontalAlignment="Left"
-Margin="2"
-SelectionChanged="RemoveCollectionComboBox_OnSelectionChanged" />
-<Button
-Name="RemoveCollectionButton"
-Grid.Column="2"
-Grid.Row="3"
-Content="_Remove"
-Margin="2"
-Padding="8,2"
-Click="RemoveCollectionButton_OnClick" />
-
-<TextBlock
 Name="CursorStatusTextBlock"
 Grid.Column="0"
-Grid.Row="4"
+Grid.Row="3"
 Grid.ColumnSpan="6"
 Margin="2,4,2,8"
 TextWrapping="Wrap" />
@@ -239,7 +236,7 @@ TextWrapping="Wrap" />
 <StackPanel
 Name="CursorRenderPanel"
 Grid.Column="0"
-Grid.Row="5"
+Grid.Row="4"
 Grid.ColumnSpan="6"
 Margin="2,0,2,8">
 <ProgressBar
@@ -257,7 +254,7 @@ Visibility="Collapsed" />
 <DataGrid
 Name="CursorRoleDataGrid"
 Grid.Column="0"
-Grid.Row="6"
+Grid.Row="5"
 Grid.ColumnSpan="6"
 MinHeight="240"
 Margin="2,0,2,8"
@@ -338,7 +335,7 @@ MouseLeftButtonDown="CursorRolePreview_OnMouseLeftButtonDown">
 
 <Label
 Grid.Column="0"
-Grid.Row="7"
+Grid.Row="6"
 Content="Zoom size"
 Margin="2">
 <Label.ToolTip>
@@ -357,7 +354,7 @@ MaxWidth="360" />
 <Slider
 Name="SizeSlider"
 Grid.Column="1"
-Grid.Row="7"
+Grid.Row="6"
 Width="260"
 VerticalAlignment="Center"
 Minimum="2"
@@ -369,12 +366,12 @@ IsSnapToTickEnabled="True"
 TickPlacement="BottomRight"
 Margin="2"
 ValueChanged="SizeSlider_OnValueChanged" />
-<Label Name="SizeValueLabel" Grid.Column="2" Grid.Row="7"
+<Label Name="SizeValueLabel" Grid.Column="2" Grid.Row="6"
 Content="{Binding ElementName=SizeSlider, Path=Value, UpdateSourceTrigger=PropertyChanged, StringFormat={}{0:0}}" Margin="2" />
 <TextBlock
 Name="SizeDefaultIndicatorTextBlock"
 Grid.Column="3"
-Grid.Row="7"
+Grid.Row="6"
 Text=""
 Foreground="{DynamicResource Theme.AccentBlueBrush}"
 Visibility="Collapsed"
@@ -383,7 +380,7 @@ Margin="2" />
 
 <Label
 Grid.Column="0"
-Grid.Row="8"
+Grid.Row="7"
 Content="Grow/shrink speed"
 Margin="2">
 <Label.ToolTip>
@@ -402,7 +399,7 @@ MaxWidth="360" />
 <Slider
 Name="AnimationLengthSlider"
 Grid.Column="1"
-Grid.Row="8"
+Grid.Row="7"
 Width="260"
 VerticalAlignment="Center"
 Minimum="0"
@@ -414,13 +411,13 @@ IsSnapToTickEnabled="True"
 TickPlacement="BottomRight"
 Margin="2"
 ValueChanged="AnimationLengthSlider_OnValueChanged" />
-<Label Name="AnimationLengthValueLabel" Grid.Column="2" Grid.Row="8"
+<Label Name="AnimationLengthValueLabel" Grid.Column="2" Grid.Row="7"
 Content="{Binding ElementName=AnimationLengthSlider, Path=Value, UpdateSourceTrigger=PropertyChanged, StringFormat={}{0:0}}" Margin="2" />
-<Label Grid.Column="3" Grid.Row="8" Content="ms" Margin="2" />
+<Label Grid.Column="3" Grid.Row="7" Content="ms" Margin="2" />
 <TextBlock
 Name="AnimationLengthDefaultIndicatorTextBlock"
 Grid.Column="4"
-Grid.Row="8"
+Grid.Row="7"
 Text=""
 Foreground="{DynamicResource Theme.AccentBlueBrush}"
 Visibility="Collapsed"
@@ -429,7 +426,7 @@ Margin="2" />
 
 <Label
 Grid.Column="0"
-Grid.Row="9"
+Grid.Row="8"
 Content="Visible duration"
 Margin="2">
 <Label.ToolTip>
@@ -448,7 +445,7 @@ MaxWidth="360" />
 <Slider
 Name="VisibleDurationSlider"
 Grid.Column="1"
-Grid.Row="9"
+Grid.Row="8"
 Width="260"
 VerticalAlignment="Center"
 Minimum="100"
@@ -460,13 +457,13 @@ IsSnapToTickEnabled="True"
 TickPlacement="BottomRight"
 Margin="2"
 ValueChanged="VisibleDurationSlider_OnValueChanged" />
-<Label Name="VisibleDurationValueLabel" Grid.Column="2" Grid.Row="9"
+<Label Name="VisibleDurationValueLabel" Grid.Column="2" Grid.Row="8"
 Content="{Binding ElementName=VisibleDurationSlider, Path=Value, UpdateSourceTrigger=PropertyChanged, StringFormat={}{0:0}}" Margin="2" />
-<Label Grid.Column="3" Grid.Row="9" Content="ms" Margin="2" />
+<Label Grid.Column="3" Grid.Row="8" Content="ms" Margin="2" />
 <TextBlock
 Name="VisibleDurationDefaultIndicatorTextBlock"
 Grid.Column="4"
-Grid.Row="9"
+Grid.Row="8"
 Text=""
 Foreground="{DynamicResource Theme.AccentBlueBrush}"
 Visibility="Collapsed"
@@ -476,7 +473,7 @@ Margin="2" />
 <CheckBox
 Name="HideBuiltInCursorCheckBox"
 Grid.Column="1"
-Grid.Row="10"
+Grid.Row="9"
 Grid.ColumnSpan="5"
 Content="_Hide built-in cursor while zoom cursor is visible"
 Margin="2,8,2,2"
@@ -682,11 +679,27 @@ Margin="0,0,6,0"
 Padding="8,2"
 Click="ResetDefaultsButton_OnClick" />
 </StackPanel>
+<StackPanel DockPanel.Dock="Right" Orientation="Vertical" HorizontalAlignment="Right">
 <TextBlock
 Name="VersionTextBlock"
-DockPanel.Dock="Right"
+HorizontalAlignment="Right"
 VerticalAlignment="Center"
 Foreground="{DynamicResource Theme.SecondaryForegroundBrush}" />
+<StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,4,0,0">
+<CheckBox
+Name="DebugEnabledCheckBox"
+Content="Enable _debug logging"
+VerticalAlignment="Center"
+Margin="0,0,8,0"
+Checked="DebugEnabledCheckBox_OnChanged"
+Unchecked="DebugEnabledCheckBox_OnChanged" />
+<Button
+Name="OpenDebugLogButton"
+Content="_Open Debug Log"
+Padding="8,2"
+Click="OpenDebugLogButton_OnClick" />
+</StackPanel>
+</StackPanel>
 </DockPanel>
 </Grid>
 </Window>
