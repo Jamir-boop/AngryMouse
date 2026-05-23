@@ -155,6 +155,11 @@ namespace AngryMouse.Cursors
 
         public static void ExportSettingsPackage(string packagePath)
         {
+            ExportSettingsPackage(packagePath, includeCollections: true);
+        }
+
+        public static void ExportSettingsPackage(string packagePath, bool includeCollections)
+        {
             if (string.IsNullOrWhiteSpace(packagePath))
             {
                 throw new InvalidOperationException("Export path is empty.");
@@ -177,25 +182,31 @@ namespace AngryMouse.Cursors
             {
                 WriteSettingsPackageEntry(archive);
 
-                var root = GetUserCollectionsRoot();
-                if (!Directory.Exists(root))
+                if (includeCollections)
                 {
-                    return;
-                }
-
-                foreach (var collectionPath in Directory.GetDirectories(root).OrderBy(Path.GetFileName))
-                {
-                    var collectionName = Path.GetFileName(collectionPath);
-                    foreach (var filePath in GetPackageCollectionFiles(collectionPath))
+                    var root = GetUserCollectionsRoot();
+                    if (Directory.Exists(root))
                     {
-                        var entryName = PackageCollectionsRoot + "/" + collectionName + "/" + Path.GetFileName(filePath);
-                        AddPackageFile(archive, filePath, entryName);
+                        foreach (var collectionPath in Directory.GetDirectories(root).OrderBy(Path.GetFileName))
+                        {
+                            var collectionName = Path.GetFileName(collectionPath);
+                            foreach (var filePath in GetPackageCollectionFiles(collectionPath))
+                            {
+                                var entryName = PackageCollectionsRoot + "/" + collectionName + "/" + Path.GetFileName(filePath);
+                                AddPackageFile(archive, filePath, entryName);
+                            }
+                        }
                     }
                 }
             }
         }
 
         public static SettingsPackageImportResult ImportSettingsPackage(string packagePath)
+        {
+            return ImportSettingsPackage(packagePath, includeCollections: true);
+        }
+
+        public static SettingsPackageImportResult ImportSettingsPackage(string packagePath, bool includeCollections)
         {
             if (string.IsNullOrWhiteSpace(packagePath) || !File.Exists(packagePath))
             {
@@ -224,39 +235,42 @@ namespace AngryMouse.Cursors
                     .OrderBy(group => group.Key, StringComparer.OrdinalIgnoreCase)
                     .ToArray();
 
-                foreach (var group in collectionGroups)
+                if (includeCollections)
                 {
-                    var sourceCollectionName = SanitizeCollectionName(group.Key);
-                    if (string.IsNullOrWhiteSpace(sourceCollectionName))
+                    foreach (var group in collectionGroups)
                     {
-                        sourceCollectionName = "Imported";
-                    }
-
-                    var targetCollectionName = GetAvailableCollectionName(sourceCollectionName);
-                    var targetPath = GetCollectionPath(targetCollectionName);
-                    Directory.CreateDirectory(targetPath);
-
-                    foreach (var entry in group.OrderBy(item => item.FullName, StringComparer.OrdinalIgnoreCase))
-                    {
-                        var fileName = GetPackageCollectionFileName(entry.FullName);
-                        if (string.IsNullOrWhiteSpace(fileName))
+                        var sourceCollectionName = SanitizeCollectionName(group.Key);
+                        if (string.IsNullOrWhiteSpace(sourceCollectionName))
                         {
-                            continue;
+                            sourceCollectionName = "Imported";
                         }
 
-                        ExtractPackageEntry(entry, Path.Combine(targetPath, fileName));
-                    }
+                        var targetCollectionName = GetAvailableCollectionName(sourceCollectionName);
+                        var targetPath = GetCollectionPath(targetCollectionName);
+                        Directory.CreateDirectory(targetPath);
 
-                    if (!File.Exists(GetAssignmentsPath(targetCollectionName)))
-                    {
-                        SaveAssignments(targetCollectionName, InferAssignments(targetCollectionName));
-                    }
+                        foreach (var entry in group.OrderBy(item => item.FullName, StringComparer.OrdinalIgnoreCase))
+                        {
+                            var fileName = GetPackageCollectionFileName(entry.FullName);
+                            if (string.IsNullOrWhiteSpace(fileName))
+                            {
+                                continue;
+                            }
 
-                    result.CollectionNameMap[sourceCollectionName] = targetCollectionName;
-                    result.ImportedCollectionCount++;
-                    if (!string.Equals(sourceCollectionName, targetCollectionName, StringComparison.OrdinalIgnoreCase))
-                    {
-                        result.RenamedCollectionCount++;
+                            ExtractPackageEntry(entry, Path.Combine(targetPath, fileName));
+                        }
+
+                        if (!File.Exists(GetAssignmentsPath(targetCollectionName)))
+                        {
+                            SaveAssignments(targetCollectionName, InferAssignments(targetCollectionName));
+                        }
+
+                        result.CollectionNameMap[sourceCollectionName] = targetCollectionName;
+                        result.ImportedCollectionCount++;
+                        if (!string.Equals(sourceCollectionName, targetCollectionName, StringComparison.OrdinalIgnoreCase))
+                        {
+                            result.RenamedCollectionCount++;
+                        }
                     }
                 }
 

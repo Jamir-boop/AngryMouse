@@ -268,7 +268,5 @@ node_modules/
 dist/
 *.generated.py
 
-# only index src/, ignore everything else
-*
-!src/
-!src/**
+
+graphify-out/*

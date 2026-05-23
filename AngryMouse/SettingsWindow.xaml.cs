@@ -248,7 +248,7 @@ namespace AngryMouse
 
             try
             {
-                var result = CursorCollectionManager.ImportSettingsPackage(dialog.FileName);
+                var result = CursorCollectionManager.ImportSettingsPackage(dialog.FileName, IncludeCollectionsCheckBox.IsChecked == true);
                 LoadSettingsToControls();
                 _loading = false;
                 StartPrewarmSelectedCollection();
@@ -288,7 +288,7 @@ namespace AngryMouse
 
             try
             {
-                CursorCollectionManager.ExportSettingsPackage(dialog.FileName);
+                CursorCollectionManager.ExportSettingsPackage(dialog.FileName, IncludeCollectionsCheckBox.IsChecked == true);
                 MessageBox.Show(this, "Exported settings package.", "Export settings", MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex) when (
@@ -711,13 +711,16 @@ namespace AngryMouse
             CollectionLabel.IsEnabled = collectionMode;
             CollectionComboBox.IsEnabled = collectionMode;
             ImportCollectionButton.IsEnabled = collectionMode;
-            ImportSettingsButton.IsEnabled = collectionMode;
-            ExportSettingsButton.IsEnabled = collectionMode;
+            // Always enable import/export settings buttons, but we might want to adjust their tooltip or meaning
+            ImportSettingsButton.IsEnabled = true;
+            ExportSettingsButton.IsEnabled = true;
             CollectionHelpTextBlock.Visibility = collectionMode ? Visibility.Visible : Visibility.Collapsed;
             RemoveCollectionLabel.IsEnabled = collectionMode;
             RemoveCollectionComboBox.IsEnabled = collectionMode;
             CursorRenderPanel.Visibility = collectionMode ? Visibility.Visible : Visibility.Collapsed;
             CursorRoleDataGrid.Visibility = collectionMode ? Visibility.Visible : Visibility.Collapsed;
+            // Always enable the checkbox, but maybe adjust its text/tooltip based on mode?
+            IncludeCollectionsCheckBox.IsEnabled = true;
 
             if (!collectionMode)
             {

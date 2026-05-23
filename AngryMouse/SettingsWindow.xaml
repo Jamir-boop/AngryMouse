@@ -84,7 +84,20 @@
                                         </ToolTip>
                                     </ComboBoxItem.ToolTip>
                                 </ComboBoxItem>
-                                <ComboBoxItem Content="Active Windows cursor" Tag="System" />
+                                <ComboBoxItem Content="Active Windows cursor" Tag="System">
+                                    <ComboBoxItem.ToolTip>
+                                        <ToolTip
+                                            Background="#FFFFFFE1"
+                                            Foreground="#000000"
+                                            BorderBrush="#FF767676">
+                                            <TextBlock
+                                                Text="Zoom the current Windows cursor. Lower quality but always available without importing SVG files."
+                                                Foreground="#000000"
+                                                TextWrapping="Wrap"
+                                                MaxWidth="360" />
+                                        </ToolTip>
+                                    </ComboBoxItem.ToolTip>
+                                </ComboBoxItem>
                             </ComboBox>
 
                             <Label Name="CollectionLabel" Grid.Column="0" Grid.Row="1" Content="Collection" Margin="2" />
@@ -120,6 +133,26 @@
                                 Margin="2"
                                 Padding="8,2"
                                 Click="ExportSettingsButton_OnClick" />
+                            <CheckBox
+                                Name="IncludeCollectionsCheckBox"
+                                Grid.Column="5"
+                                Grid.Row="1"
+                                Content="Include cursor collections in package"
+                                VerticalAlignment="Center"
+                                Margin="2">
+                                <CheckBox.ToolTip>
+                                    <ToolTip
+                                        Background="#FFFFFFE1"
+                                        Foreground="#000000"
+                                        BorderBrush="#FF767676">
+                                        <TextBlock
+                                            Text="When checked, exported/imported zip packages include cursor collections. When unchecked, only application settings (zoom size, colors, etc.) are saved/loaded."
+                                            Foreground="#000000"
+                                            TextWrapping="Wrap"
+                                            MaxWidth="360" />
+                                    </ToolTip>
+                                </CheckBox.ToolTip>
+                            </CheckBox>
 
                             <TextBlock
                                 Name="CollectionHelpTextBlock"
@@ -129,7 +162,7 @@
                                 Margin="2,0,2,8"
                                 Foreground="{DynamicResource Theme.SecondaryForegroundBrush}"
                                 TextWrapping="Wrap"
-                                Text="Import folder copies SVG cursor files into AngryMouse. Use a folder that contains .svg files. Best results: name files after cursor roles, for example: arrow.svg, hand.svg, ibeam.svg, wait.svg, sizeall.svg." />
+                                Text="Import folder copies SVG cursor files into AngryMouse. You can use your own SVG files. Use a folder that contains .svg files. Best results: name files after cursor roles, e.g., arrow.svg, hand.svg, ibeam.svg, wait.svg, sizeall.svg." />
 
                             <Label Name="RemoveCollectionLabel" Grid.Column="0" Grid.Row="3" Content="Remove collection" Margin="2" />
                             <ComboBox
