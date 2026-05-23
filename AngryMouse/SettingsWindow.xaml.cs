@@ -210,28 +210,39 @@ namespace AngryMouse
 
         private void ImportCollectionButton_OnClick(object sender, RoutedEventArgs e)
         {
-            using (var dialog = new Forms.FolderBrowserDialog())
+            var dialog = new OpenFileDialog
             {
-                dialog.Description = "Import PNG cursor collection";
-                dialog.ShowNewFolderButton = false;
+                Filter = "AngryMouse settings package (*.zip)|*.zip",
+                CheckFileExists = true
+            };
 
-                if (dialog.ShowDialog() != Forms.DialogResult.OK)
-                {
-                    return;
-                }
+            if (dialog.ShowDialog(this) != true)
+            {
+                return;
+            }
 
-                var collectionName = CursorCollectionManager.ImportCollectionFolder(dialog.SelectedPath);
-                Properties.Settings.Default.CursorCollectionName = collectionName;
-                Properties.Settings.Default.CursorSourceMode = CursorCollectionManager.CollectionMode;
-                SaveSettings();
+            try
+            {
+                var result = CursorCollectionManager.ImportSettingsPackage(dialog.FileName, IncludeCollectionsCheckBox.IsChecked == true);
+                LoadSettingsToControls();
+                _loading = false;
+                StartPrewarmSelectedCollection();
 
-                _needsCursorEditorUpdate = true;
-                _needsCursorStatusUpdate = true;
-                _needsRemoveCollectionButtonUpdate = true;
-                _needsCollectionUiAvailabilityUpdate = true;
-                _needsPrewarmRestart = true;
-
-                ScheduleDebouncedUpdate();
+                MessageBox.Show(
+                    this,
+                    "Imported settings and " + result.ImportedCollectionCount + " collection(s).",
+                    "Import settings",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+            }
+            catch (Exception ex) when (
+                ex is IOException ||
+                ex is UnauthorizedAccessException ||
+                ex is InvalidDataException ||
+                ex is InvalidOperationException ||
+                ex is System.Xml.XmlException)
+            {
+                MessageBox.Show(this, "Import failed: " + ex.Message, "Import settings", MessageBoxButton.OK, MessageBoxImage.Warning);
             }
         }
 

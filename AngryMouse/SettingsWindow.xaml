@@ -159,7 +159,7 @@
                                 Margin="2,0,2,8"
                                 Foreground="{DynamicResource Theme.SecondaryForegroundBrush}"
                                 TextWrapping="Wrap"
-                                Text="Import folder copies PNG cursor files into AngryMouse. You can use your own PNG files. Use a folder that contains .png files. Best results: name files after cursor roles, e.g., arrow.png, hand.png, ibeam.png, wait.png, sizeall.png." />
+                                Text="Import settings loads a ZIP file containing application settings and optionally cursor collections. You can export settings from another AngryMouse installation. The ZIP file should contain settings.xml and optionally cursor collection folders." />
 
                             <Label Name="RemoveCollectionLabel" Grid.Column="0" Grid.Row="3" Content="Remove collection" Margin="2" />
                             <ComboBox
