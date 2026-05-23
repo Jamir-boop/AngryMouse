@@ -369,7 +369,6 @@ ValueChanged="SizeSlider_OnValueChanged" />
 <Label Name="SizeValueLabel" Grid.Column="2" Grid.Row="6"
 Content="{Binding ElementName=SizeSlider, Path=Value, UpdateSourceTrigger=PropertyChanged, StringFormat={}{0:0}}" Margin="2" />
 <TextBlock
-Name="SizeDefaultIndicatorTextBlock"
 Grid.Column="3"
 Grid.Row="6"
 Text=""
@@ -415,7 +414,6 @@ ValueChanged="AnimationLengthSlider_OnValueChanged" />
 Content="{Binding ElementName=AnimationLengthSlider, Path=Value, UpdateSourceTrigger=PropertyChanged, StringFormat={}{0:0}}" Margin="2" />
 <Label Grid.Column="3" Grid.Row="7" Content="ms" Margin="2" />
 <TextBlock
-Name="AnimationLengthDefaultIndicatorTextBlock"
 Grid.Column="4"
 Grid.Row="7"
 Text=""
@@ -461,7 +459,6 @@ ValueChanged="VisibleDurationSlider_OnValueChanged" />
 Content="{Binding ElementName=VisibleDurationSlider, Path=Value, UpdateSourceTrigger=PropertyChanged, StringFormat={}{0:0}}" Margin="2" />
 <Label Grid.Column="3" Grid.Row="8" Content="ms" Margin="2" />
 <TextBlock
-Name="VisibleDurationDefaultIndicatorTextBlock"
 Grid.Column="4"
 Grid.Row="8"
 Text=""
@@ -548,7 +545,6 @@ Grid.Column="4"
 Grid.Row="0"
 Margin="8,4,2,2">
 <TextBlock
-Name="ShakeTrackingIntervalDefaultIndicatorTextBlock"
 Text=""
 Foreground="{DynamicResource Theme.AccentBlueBrush}"
 Visibility="Collapsed"
@@ -602,7 +598,6 @@ Grid.Column="4"
 Grid.Row="1"
 Margin="8,4,2,2">
 <TextBlock
-Name="ShakeMinimumSpeedDefaultIndicatorTextBlock"
 Text=""
 Foreground="{DynamicResource Theme.AccentBlueBrush}"
 Visibility="Collapsed"
@@ -656,7 +651,6 @@ Grid.Column="4"
 Grid.Row="2"
 Margin="8,4,2,2">
 <TextBlock
-Name="ShakeMinimumTurnsDefaultIndicatorTextBlock"
 Text=""
 Foreground="{DynamicResource Theme.AccentBlueBrush}"
 Visibility="Collapsed"

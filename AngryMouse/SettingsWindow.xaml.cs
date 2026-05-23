@@ -97,7 +97,6 @@ namespace AngryMouse
             UpdateCursorStatus();
             UpdateRemoveCollectionButton();
             UpdateCollectionUiAvailability();
-            UpdateSliderDefaultIndicators();
         }
 
         private void LoadCollectionsToControls()
@@ -424,7 +423,6 @@ namespace AngryMouse
                 : AppTheme.LightMode;
             SaveSettings();
             AppTheme.ApplySavedTheme();
-            UpdateSliderDefaultIndicators();
             CursorRoleDataGrid.Items.Refresh();
         }
 
@@ -544,7 +542,6 @@ namespace AngryMouse
 
             Properties.Settings.Default.CursorSize = e.NewValue;
             SaveSettings();
-            UpdateSliderDefaultIndicators();
         }
 
         private void AnimationLengthSlider_OnValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
@@ -553,7 +550,6 @@ namespace AngryMouse
 
             Properties.Settings.Default.CursorAnimationLength = (int)e.NewValue;
             SaveSettings();
-            UpdateSliderDefaultIndicators();
         }
 
         private void VisibleDurationSlider_OnValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
@@ -562,7 +558,6 @@ namespace AngryMouse
 
             Properties.Settings.Default.CursorVisibleDuration = (int)e.NewValue;
             SaveSettings();
-            UpdateSliderDefaultIndicators();
         }
 
         private void HideBuiltInCursorCheckBox_OnChanged(object sender, RoutedEventArgs e)
@@ -584,7 +579,6 @@ namespace AngryMouse
 
             Properties.Settings.Default.ShakeTrackingInterval = (int)e.NewValue;
             SaveSettings();
-            UpdateSliderDefaultIndicators();
         }
 
         private void ShakeMinimumSpeedSlider_OnValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
@@ -593,7 +587,6 @@ namespace AngryMouse
 
             Properties.Settings.Default.ShakeMinimumSpeed = Math.Round(e.NewValue, 1);
             SaveSettings();
-            UpdateSliderDefaultIndicators();
         }
 
         private void ShakeMinimumTurnsSlider_OnValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
@@ -602,7 +595,6 @@ namespace AngryMouse
 
             Properties.Settings.Default.ShakeMinimumTurns = (int)e.NewValue;
             SaveSettings();
-            UpdateSliderDefaultIndicators();
         }
 
         private void ResetDefaultsButton_OnClick(object sender, RoutedEventArgs e)
@@ -992,56 +984,6 @@ namespace AngryMouse
             }
 
             SaveSettings();
-        }
-
-        private void UpdateSliderDefaultIndicators()
-        {
-            UpdateDefaultIndicator(
-                SizeValueLabel,
-                SizeDefaultIndicatorTextBlock,
-                SizeSlider.Value,
-                GetSettingDefaultValue<double>("CursorSize"),
-                "0");
-            UpdateDefaultIndicator(
-                AnimationLengthValueLabel,
-                AnimationLengthDefaultIndicatorTextBlock,
-                AnimationLengthSlider.Value,
-                GetSettingDefaultValue<int>("CursorAnimationLength"),
-                "0");
-            UpdateDefaultIndicator(
-                VisibleDurationValueLabel,
-                VisibleDurationDefaultIndicatorTextBlock,
-                VisibleDurationSlider.Value,
-                GetSettingDefaultValue<int>("CursorVisibleDuration"),
-                "0");
-            UpdateDefaultIndicator(
-                ShakeTrackingIntervalValueLabel,
-                ShakeTrackingIntervalDefaultIndicatorTextBlock,
-                ShakeTrackingIntervalSlider.Value,
-                GetSettingDefaultValue<int>("ShakeTrackingInterval"),
-                "0");
-            UpdateDefaultIndicator(
-                ShakeMinimumSpeedValueLabel,
-                ShakeMinimumSpeedDefaultIndicatorTextBlock,
-                ShakeMinimumSpeedSlider.Value,
-                GetSettingDefaultValue<double>("ShakeMinimumSpeed"),
-                "0.0");
-            UpdateDefaultIndicator(
-                ShakeMinimumTurnsValueLabel,
-                ShakeMinimumTurnsDefaultIndicatorTextBlock,
-                ShakeMinimumTurnsSlider.Value,
-                GetSettingDefaultValue<int>("ShakeMinimumTurns"),
-                "0");
-        }
-
-        private static void UpdateDefaultIndicator(Label valueLabel, TextBlock indicator, double value, double defaultValue, string defaultFormat)
-        {
-            var isDefault = Math.Abs(value - defaultValue) < 0.0001;
-            valueLabel.Foreground = GetThemeBrush(isDefault ? "Theme.SecondaryForegroundBrush" : "Theme.AccentBlueBrush");
-            indicator.Text = isDefault
-                ? string.Empty
-                : "(default: " + defaultValue.ToString(defaultFormat, CultureInfo.InvariantCulture) + ")";
-            indicator.Visibility = isDefault ? Visibility.Collapsed : Visibility.Visible;
         }
 
         private void ConfigureSliderValueToolTips()
