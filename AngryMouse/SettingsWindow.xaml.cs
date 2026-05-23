@@ -210,7 +210,7 @@ namespace AngryMouse
         {
             using (var dialog = new Forms.FolderBrowserDialog())
             {
-                dialog.Description = "Import SVG cursor collection";
+                dialog.Description = "Import PNG cursor collection";
                 dialog.ShowNewFolderButton = false;
 
                 if (dialog.ShowDialog() != Forms.DialogResult.OK)
@@ -383,7 +383,7 @@ namespace AngryMouse
             var collectionPath = CursorCollectionManager.GetCollectionPath(collectionName);
             var dialog = new OpenFileDialog
             {
-                Filter = "SVG files (*.svg)|*.svg",
+                Filter = "PNG files (*.png)|*.png",
                 CheckFileExists = true,
                 InitialDirectory = Directory.Exists(collectionPath) ? collectionPath : null
             };
@@ -564,7 +564,7 @@ namespace AngryMouse
 
             if (Directory.Exists(collectionPath))
             {
-                foreach (var file in Directory.GetFiles(collectionPath, "*.svg", SearchOption.TopDirectoryOnly)
+                foreach (var file in Directory.GetFiles(collectionPath, "*.png", SearchOption.TopDirectoryOnly)
                              .OrderBy(Path.GetFileName))
                 {
                     var fileName = Path.GetFileName(file);
@@ -575,7 +575,7 @@ namespace AngryMouse
                             Role = "Unassigned",
                             AssignedFile = fileName,
                             Status = "Unassigned",
-                            Preview = loadPreviews ? CursorVisualLoader.LoadSvgPreview(file) : null
+                            Preview = loadPreviews ? CursorVisualLoader.LoadPngPreview(file) : null
                         });
                     }
                 }

@@ -23,20 +23,20 @@ namespace AngryMouse.Cursors
 
         public static readonly CursorRoleDefinition[] Roles =
         {
-            new CursorRoleDefinition("arrow", "Arrow", "arrow.svg", 32512, new System.Windows.Point(0, 0)),
-            new CursorRoleDefinition("ibeam", "I-beam", "ibeam.svg", 32513, new System.Windows.Point(12, 12)),
-            new CursorRoleDefinition("wait", "Wait", "wait.svg", 32514, new System.Windows.Point(12, 12)),
-            new CursorRoleDefinition("appstarting", "App starting", "appstarting.svg", 32650, new System.Windows.Point(0, 0)),
-            new CursorRoleDefinition("crosshair", "Crosshair", "crosshair.svg", 32515, new System.Windows.Point(12, 12)),
-            new CursorRoleDefinition("uparrow", "Up arrow", "uparrow.svg", 32516, new System.Windows.Point(12, 0)),
-            new CursorRoleDefinition("sizens", "Size NS", "sizens.svg", 32645, new System.Windows.Point(12, 12)),
-            new CursorRoleDefinition("sizewe", "Size WE", "sizewe.svg", 32644, new System.Windows.Point(12, 12)),
-            new CursorRoleDefinition("sizenwse", "Size NWSE", "sizenwse.svg", 32642, new System.Windows.Point(12, 12)),
-            new CursorRoleDefinition("sizenesw", "Size NESW", "sizenesw.svg", 32643, new System.Windows.Point(12, 12)),
-            new CursorRoleDefinition("sizeall", "Size all", "sizeall.svg", 32646, new System.Windows.Point(12, 12)),
-            new CursorRoleDefinition("no", "No", "no.svg", 32648, new System.Windows.Point(12, 12)),
-            new CursorRoleDefinition("hand", "Hand", "hand.svg", 32649, new System.Windows.Point(6, 1)),
-            new CursorRoleDefinition("help", "Help", "help.svg", 32651, new System.Windows.Point(0, 0))
+            new CursorRoleDefinition("arrow", "Arrow", "arrow.png", 32512, new System.Windows.Point(0, 0)),
+            new CursorRoleDefinition("ibeam", "I-beam", "ibeam.png", 32513, new System.Windows.Point(12, 12)),
+            new CursorRoleDefinition("wait", "Wait", "wait.png", 32514, new System.Windows.Point(12, 12)),
+            new CursorRoleDefinition("appstarting", "App starting", "appstarting.png", 32650, new System.Windows.Point(0, 0)),
+            new CursorRoleDefinition("crosshair", "Crosshair", "crosshair.png", 32515, new System.Windows.Point(12, 12)),
+            new CursorRoleDefinition("uparrow", "Up arrow", "uparrow.png", 32516, new System.Windows.Point(12, 0)),
+            new CursorRoleDefinition("sizens", "Size NS", "sizens.png", 32645, new System.Windows.Point(12, 12)),
+            new CursorRoleDefinition("sizewe", "Size WE", "sizewe.png", 32644, new System.Windows.Point(12, 12)),
+            new CursorRoleDefinition("sizenwse", "Size NWSE", "sizenwse.png", 32642, new System.Windows.Point(12, 12)),
+            new CursorRoleDefinition("sizenesw", "Size NESW", "sizenesw.png", 32643, new System.Windows.Point(12, 12)),
+            new CursorRoleDefinition("sizeall", "Size all", "sizeall.png", 32646, new System.Windows.Point(12, 12)),
+            new CursorRoleDefinition("no", "No", "no.png", 32648, new System.Windows.Point(12, 12)),
+            new CursorRoleDefinition("hand", "Hand", "hand.png", 32649, new System.Windows.Point(6, 1)),
+            new CursorRoleDefinition("help", "Help", "help.png", 32651, new System.Windows.Point(0, 0))
         };
 
         private static readonly Dictionary<string, CursorRoleDefinition> RolesByKey =
@@ -91,7 +91,7 @@ namespace AngryMouse.Cursors
                 var targetPath = GetCollectionPath(collectionName);
                 Directory.CreateDirectory(targetPath);
 
-                foreach (var sourceFile in Directory.GetFiles(bundledCollectionPath, "*.svg", SearchOption.TopDirectoryOnly)
+                foreach (var sourceFile in Directory.GetFiles(bundledCollectionPath, "*.png", SearchOption.TopDirectoryOnly)
                              .OrderBy(Path.GetFileName))
                 {
                     var targetFile = Path.Combine(targetPath, Path.GetFileName(sourceFile));
@@ -142,7 +142,7 @@ namespace AngryMouse.Cursors
             var targetPath = GetCollectionPath(collectionName);
             Directory.CreateDirectory(targetPath);
 
-            foreach (var sourceFile in Directory.GetFiles(sourceFolder, "*.svg", SearchOption.TopDirectoryOnly)
+            foreach (var sourceFile in Directory.GetFiles(sourceFolder, "*.png", SearchOption.TopDirectoryOnly)
                          .OrderBy(Path.GetFileName))
             {
                 var targetFile = Path.Combine(targetPath, Path.GetFileName(sourceFile));
@@ -485,7 +485,7 @@ namespace AngryMouse.Cursors
         {
             if (string.IsNullOrWhiteSpace(sourcePath) || !File.Exists(sourcePath))
             {
-                throw new FileNotFoundException("SVG file not found.", sourcePath);
+                throw new FileNotFoundException("PNG file not found.", sourcePath);
             }
 
             var collectionPath = GetCollectionPath(collectionName);
@@ -520,7 +520,7 @@ namespace AngryMouse.Cursors
                 return arrowPath;
             }
 
-            var selectedArrowPath = Path.Combine(GetCollectionPath(collectionName), "arrow.svg");
+            var selectedArrowPath = Path.Combine(GetCollectionPath(collectionName), "arrow.png");
             if (File.Exists(selectedArrowPath))
             {
                 return selectedArrowPath;
@@ -546,7 +546,7 @@ namespace AngryMouse.Cursors
 
         public static string GetBundledAdwaitaArrowPath()
         {
-            return Path.Combine(GetBundledCollectionsRoot(), BundledAdwaitaName, "arrow.svg");
+            return Path.Combine(GetBundledCollectionsRoot(), BundledAdwaitaName, "arrow.png");
         }
 
         public static string GetBundledCollectionFilePath(string collectionName, string fileName)
@@ -554,9 +554,8 @@ namespace AngryMouse.Cursors
             return Path.Combine(GetBundledCollectionsRoot(), SanitizeCollectionName(collectionName), Path.GetFileName(fileName));
         }
 
-        public static string GetBundledRenderedPngPath(string svgFileName)
+        public static string GetBundledRenderedPngPath(string pngFileName)
         {
-            var pngFileName = Path.GetFileNameWithoutExtension(svgFileName) + ".png";
             return Path.Combine(GetBundledCollectionsRoot(), BundledAdwaitaName, "Rendered", pngFileName);
         }
 
@@ -609,7 +608,7 @@ namespace AngryMouse.Cursors
 
         private static IEnumerable<string> GetPackageCollectionFiles(string collectionPath)
         {
-            foreach (var filePath in Directory.GetFiles(collectionPath, "*.svg", SearchOption.TopDirectoryOnly)
+            foreach (var filePath in Directory.GetFiles(collectionPath, "*.png", SearchOption.TopDirectoryOnly)
                          .OrderBy(Path.GetFileName))
             {
                 yield return filePath;
@@ -681,7 +680,7 @@ namespace AngryMouse.Cursors
 
             if (string.Equals(fileName, AssignmentFileName, StringComparison.OrdinalIgnoreCase) ||
                 string.Equals(fileName, RoleSettingsFileName, StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(Path.GetExtension(fileName), ".svg", StringComparison.OrdinalIgnoreCase))
+                string.Equals(Path.GetExtension(fileName), ".png", StringComparison.OrdinalIgnoreCase))
             {
                 return fileName;
             }
@@ -827,7 +826,7 @@ namespace AngryMouse.Cursors
                 return assignments;
             }
 
-            foreach (var file in Directory.GetFiles(collectionPath, "*.svg", SearchOption.TopDirectoryOnly)
+            foreach (var file in Directory.GetFiles(collectionPath, "*.png", SearchOption.TopDirectoryOnly)
                          .OrderBy(Path.GetFileName))
             {
                 string roleKey;
@@ -942,20 +941,20 @@ namespace AngryMouse.Cursors
                 map[role.DefaultFileName] = role.Key;
             }
 
-            map["left_ptr.svg"] = "arrow";
-            map["xterm.svg"] = "ibeam";
-            map["watch_0001.svg"] = "wait";
-            map["left_ptr_watch_0001.svg"] = "appstarting";
-            map["crosshair.svg"] = "crosshair";
-            map["sb_up_arrow.svg"] = "uparrow";
-            map["sb_v_double_arrow.svg"] = "sizens";
-            map["sb_h_double_arrow.svg"] = "sizewe";
-            map["bd_double_arrow.svg"] = "sizenwse";
-            map["fd_double_arrow.svg"] = "sizenesw";
-            map["all-scroll.svg"] = "sizeall";
-            map["crossed_circle.svg"] = "no";
-            map["hand2.svg"] = "hand";
-            map["question_arrow.svg"] = "help";
+            map["left_ptr.png"] = "arrow";
+            map["xterm.png"] = "ibeam";
+            map["watch_0001.png"] = "wait";
+            map["left_ptr_watch_0001.png"] = "appstarting";
+            map["crosshair.png"] = "crosshair";
+            map["sb_up_arrow.png"] = "uparrow";
+            map["sb_v_double_arrow.png"] = "sizens";
+            map["sb_h_double_arrow.png"] = "sizewe";
+            map["bd_double_arrow.png"] = "sizenwse";
+            map["fd_double_arrow.png"] = "sizenesw";
+            map["all-scroll.png"] = "sizeall";
+            map["crossed_circle.png"] = "no";
+            map["hand2.png"] = "hand";
+            map["question_arrow.png"] = "help";
 
             return map;
         }

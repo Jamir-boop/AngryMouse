@@ -193,7 +193,7 @@ namespace AngryMouse
                 FormatSignedNumber(settings.HotspotOffsetX) +
                 ", " +
                 FormatSignedNumber(settings.HotspotOffsetY) +
-                " SVG units. Bitmap: " +
+                " pixels. Bitmap: " +
                 _previewBitmap.Bitmap.PixelWidth.ToString(CultureInfo.InvariantCulture) +
                 "x" +
                 _previewBitmap.Bitmap.PixelHeight.ToString(CultureInfo.InvariantCulture) +

@@ -99,7 +99,7 @@ namespace AngryMouse.Cursors
 
             if (Directory.Exists(collectionPath))
             {
-                foreach (var file in Directory.GetFiles(collectionPath, "*.svg", SearchOption.TopDirectoryOnly)
+                foreach (var file in Directory.GetFiles(collectionPath, "*.png", SearchOption.TopDirectoryOnly)
                              .OrderBy(Path.GetFileName))
                 {
                     var fullPath = Path.GetFullPath(file);

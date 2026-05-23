@@ -8,9 +8,6 @@ using System.Windows;
 using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
-using System.Xml.Linq;
-using SharpVectors.Converters;
-using SharpVectors.Renderers.Wpf;
 
 namespace AngryMouse.Cursors
 {
@@ -117,7 +114,7 @@ namespace AngryMouse.Cursors
             return CursorVisualCache.GetRuntimeVisual(roleKey);
         }
 
-        public static BitmapSource LoadSvgPreview(string path)
+        public static BitmapSource LoadPngPreview(string path)
         {
             try
             {
@@ -325,201 +322,42 @@ namespace AngryMouse.Cursors
             return value == 0 ? 256 : value;
         }
 
-        public static BitmapSource LoadSvgBitmap(string path, int targetHeight)
+        public static BitmapSource LoadPngBitmap(string path, int targetHeight)
         {
-            return RenderSvgBitmap(path, targetHeight, false).Bitmap;
-        }
-
-        public static CursorSvgRenderResult RenderSvgBitmap(string path, int targetHeight, bool trimTransparentPadding)
-        {
-            var settings = new WpfDrawingSettings
-            {
-                IncludeRuntime = false,
-                TextAsGeometry = true,
-                EnsureViewboxSize = true,
-                EnsureViewboxPosition = false
-            };
-
-            DrawingGroup drawing;
-            using (var reader = new FileSvgReader(settings))
-            {
-                drawing = reader.Read(path);
-            }
-
-            if (drawing == null)
-            {
-                throw new InvalidOperationException("SVG drawing is empty.");
-            }
-
-            var viewport = ReadSvgViewport(path);
-            var bounds = viewport ?? drawing.Bounds;
-            if (bounds.Width <= 0 || bounds.Height <= 0)
-            {
-                throw new InvalidOperationException("SVG bounds are empty.");
-            }
-
-            var scale = targetHeight > 0 ? targetHeight / bounds.Height : 1;
-            var width = Math.Max(1, (int)Math.Ceiling(bounds.Width * scale));
-            var height = Math.Max(1, (int)Math.Ceiling(bounds.Height * scale));
-
-            var visual = new DrawingVisual();
-            using (var context = visual.RenderOpen())
-            {
-                var transform = new TransformGroup();
-                if (!viewport.HasValue)
-                {
-                    transform.Children.Add(new TranslateTransform(-bounds.Left, -bounds.Top));
-                }
-
-                transform.Children.Add(new ScaleTransform(scale, scale));
-
-                context.PushClip(new RectangleGeometry(new Rect(0, 0, width, height)));
-                context.PushTransform(transform);
-                context.DrawDrawing(drawing);
-                context.Pop();
-                context.Pop();
-            }
-
-            var bitmap = new RenderTargetBitmap(width, height, 96, 96, PixelFormats.Pbgra32);
-            bitmap.Render(visual);
-            bitmap.Freeze();
-
-            if (!trimTransparentPadding)
-            {
-                return new CursorSvgRenderResult(bitmap, 0, 0, width, height);
-            }
-
-            return TrimTransparentPadding(bitmap);
-        }
-
-        private static CursorSvgRenderResult TrimTransparentPadding(BitmapSource bitmap)
-        {
-            if (bitmap == null || bitmap.PixelWidth <= 0 || bitmap.PixelHeight <= 0)
-            {
-                return new CursorSvgRenderResult(bitmap, 0, 0, bitmap?.PixelWidth ?? 0, bitmap?.PixelHeight ?? 0);
-            }
-
-            var source = bitmap.Format == PixelFormats.Pbgra32
-                ? bitmap
-                : new FormatConvertedBitmap(bitmap, PixelFormats.Pbgra32, null, 0);
-            var width = source.PixelWidth;
-            var height = source.PixelHeight;
-            var stride = width * 4;
-            var pixels = new byte[stride * height];
-            source.CopyPixels(pixels, stride, 0);
-
-            var minX = width;
-            var minY = height;
-            var maxX = -1;
-            var maxY = -1;
-
-            for (var y = 0; y < height; y++)
-            {
-                var row = y * stride;
-                for (var x = 0; x < width; x++)
-                {
-                    var alpha = pixels[row + x * 4 + 3];
-                    if (alpha == 0)
-                    {
-                        continue;
-                    }
-
-                    if (x < minX) minX = x;
-                    if (y < minY) minY = y;
-                    if (x > maxX) maxX = x;
-                    if (y > maxY) maxY = y;
-                }
-            }
-
-            if (maxX < minX || maxY < minY)
-            {
-                return new CursorSvgRenderResult(bitmap, 0, 0, width, height);
-            }
-
-            if (minX == 0 && minY == 0 && maxX == width - 1 && maxY == height - 1)
-            {
-                return new CursorSvgRenderResult(bitmap, 0, 0, width, height);
-            }
-
-            var crop = new CroppedBitmap(source, new Int32Rect(minX, minY, maxX - minX + 1, maxY - minY + 1));
-            crop.Freeze();
-
-            return new CursorSvgRenderResult(crop, minX, minY, width, height);
-        }
-
-        internal static Rect? ReadSvgViewport(string path)
-        {
-            var document = XDocument.Load(path);
-            var root = document.Root;
-            if (root == null)
+            if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
             {
                 return null;
             }
 
-            var viewBox = root.Attribute("viewBox")?.Value;
-            if (!string.IsNullOrWhiteSpace(viewBox))
+            using (var stream = File.OpenRead(path))
             {
-                var parts = viewBox
-                    .Split(new[] { ' ', '\t', '\r', '\n', ',' }, StringSplitOptions.RemoveEmptyEntries)
-                    .ToArray();
+                var decoder = BitmapDecoder.Create(
+                    stream,
+                    BitmapCreateOptions.PreservePixelFormat,
+                    BitmapCacheOption.OnLoad);
 
-                double left;
-                double top;
-                double width;
-                double height;
-                if (parts.Length == 4 &&
-                    TryParseSvgNumber(parts[0], out left) &&
-                    TryParseSvgNumber(parts[1], out top) &&
-                    TryParseSvgNumber(parts[2], out width) &&
-                    TryParseSvgNumber(parts[3], out height) &&
-                    width > 0 &&
-                    height > 0)
+                var frame = decoder.Frames.FirstOrDefault();
+                if (frame == null)
                 {
-                    return new Rect(left, top, width, height);
-                }
-            }
-
-            double viewportWidth;
-            double viewportHeight;
-            if (TryParseSvgLength(root.Attribute("width")?.Value, out viewportWidth) &&
-                TryParseSvgLength(root.Attribute("height")?.Value, out viewportHeight) &&
-                viewportWidth > 0 &&
-                viewportHeight > 0)
-            {
-                return new Rect(0, 0, viewportWidth, viewportHeight);
-            }
-
-            return null;
-        }
-
-        private static bool TryParseSvgLength(string value, out double result)
-        {
-            result = 0;
-            if (string.IsNullOrWhiteSpace(value))
-            {
-                return false;
-            }
-
-            var trimmed = value.Trim();
-            var length = 0;
-            while (length < trimmed.Length)
-            {
-                var ch = trimmed[length];
-                if ((ch >= '0' && ch <= '9') || ch == '-' || ch == '+' || ch == '.' || ch == 'e' || ch == 'E')
-                {
-                    length++;
-                    continue;
+                    return null;
                 }
 
-                break;
+                if (targetHeight <= 0)
+                {
+                    frame.Freeze();
+                    return frame;
+                }
+
+                var scale = targetHeight / (double)frame.PixelHeight;
+                var width = Math.Max(1, (int)Math.Round(frame.PixelWidth * scale));
+                var height = Math.Max(1, (int)Math.Round(frame.PixelHeight * scale));
+
+                var bitmap = new TransformedBitmap(
+                    frame,
+                    new ScaleTransform(scale, scale));
+                bitmap.Freeze();
+                return bitmap;
             }
-
-            return length > 0 && TryParseSvgNumber(trimmed.Substring(0, length), out result);
-        }
-
-        private static bool TryParseSvgNumber(string value, out double result)
-        {
-            return double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out result);
         }
 
         private static Dictionary<IntPtr, string> CreateCursorRolesByHandle()
@@ -602,7 +440,6 @@ namespace AngryMouse.Cursors
             }
 
             public int Width { get; }
-
             public int Height { get; }
         }
     }

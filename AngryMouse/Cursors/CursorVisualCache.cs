@@ -7,6 +7,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using System.Windows;
+using System.Windows.Media;
 using System.Windows.Media.Imaging;
 
 namespace AngryMouse.Cursors
@@ -136,7 +137,7 @@ namespace AngryMouse.Cursors
             }
             catch (Exception)
             {
-                return CursorVisualLoader.BuiltIn("Cursor SVG failed to load. Using built-in cursor.");
+                return CursorVisualLoader.BuiltIn("Cursor PNG failed to load. Using built-in cursor.");
             }
         }
 
@@ -276,7 +277,58 @@ namespace AngryMouse.Cursors
                 }
             }
 
-            var result = CursorVisualLoader.RenderSvgBitmap(path, targetHeight, roleSettings.TrimTransparentPadding);
+            BitmapSource bitmap = null;
+            int cropLeft = 0;
+            int cropTop = 0;
+            int uncroppedWidth = 0;
+            int uncroppedHeight = 0;
+
+            try
+            {
+                using (var stream = File.OpenRead(path))
+                {
+                    var decoder = BitmapDecoder.Create(
+                        stream,
+                        BitmapCreateOptions.PreservePixelFormat,
+                        BitmapCacheOption.OnLoad);
+
+                    var frame = decoder.Frames.FirstOrDefault();
+                    if (frame == null)
+                    {
+                        return null;
+                    }
+
+                    if (targetHeight <= 0)
+                    {
+                        bitmap = frame;
+                        uncroppedWidth = frame.PixelWidth;
+                        uncroppedHeight = frame.PixelHeight;
+                    }
+                    else
+                    {
+                        var scale = targetHeight / (double)frame.PixelHeight;
+                        var width = Math.Max(1, (int)Math.Round(frame.PixelWidth * scale));
+                        var height = Math.Max(1, (int)Math.Round(frame.PixelHeight * scale));
+
+                        bitmap = new TransformedBitmap(
+                            frame,
+                            new ScaleTransform(scale, scale));
+                        uncroppedWidth = width;
+                        uncroppedHeight = height;
+                    }
+
+                    bitmap.Freeze();
+                }
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+
+            if (bitmap == null)
+            {
+                return null;
+            }
 
             lock (LockObject)
             {
@@ -285,16 +337,16 @@ namespace AngryMouse.Cursors
                     return LoadCachedPng(cachePath, metadataPath);
                 }
 
-                SavePng(cachePath, result.Bitmap);
-                SaveMetadata(metadataPath, result.CropLeft, result.CropTop, result.UncroppedWidth, result.UncroppedHeight);
+                SavePng(cachePath, bitmap);
+                SaveMetadata(metadataPath, cropLeft, cropTop, uncroppedWidth, uncroppedHeight);
             }
 
             return new CursorCachedBitmap(
-                result.Bitmap,
-                result.CropLeft,
-                result.CropTop,
-                result.UncroppedWidth,
-                result.UncroppedHeight);
+                bitmap,
+                cropLeft,
+                cropTop,
+                uncroppedWidth,
+                uncroppedHeight);
         }
 
         private static Point ScaleHotspot(
@@ -303,9 +355,9 @@ namespace AngryMouse.Cursors
             CursorRoleRenderSettings roleSettings,
             CursorCachedBitmap cachedBitmap)
         {
-            var viewport = CursorVisualLoader.ReadSvgViewport(path);
-            var sourceWidth = viewport?.Width ?? 24;
-            var sourceHeight = viewport?.Height ?? 24;
+            // For PNG files, use the image dimensions as source width/height
+            var sourceWidth = cachedBitmap?.UncroppedWidth ?? 24;
+            var sourceHeight = cachedBitmap?.UncroppedHeight ?? 24;
 
             if (sourceWidth <= 0 || sourceHeight <= 0 || cachedBitmap == null)
             {
