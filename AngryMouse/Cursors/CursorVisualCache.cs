@@ -88,15 +88,27 @@ namespace AngryMouse.Cursors
         {
             var role = CursorCollectionManager.GetRole(roleKey);
             var path = CursorCollectionManager.ResolveRoleFilePath(collectionName, role.Key);
+            var roleSettings = CursorCollectionManager.GetRoleSettings(collectionName, role.Key);
+
+            return GetRuntimeVisual(collectionName, roleKey, path, roleSettings);
+        }
+
+        public static CursorVisualInfo GetRuntimeVisual(
+            string collectionName,
+            string roleKey,
+            string path,
+            CursorRoleRenderSettings roleSettings)
+        {
+            var role = CursorCollectionManager.GetRole(roleKey);
 
             if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
             {
                 return CursorVisualLoader.BuiltIn("Cursor collection file unavailable. Using built-in cursor.");
             }
 
-            var roleSettings = CursorCollectionManager.GetRoleSettings(collectionName, role.Key);
+            var settings = roleSettings ?? new CursorRoleRenderSettings();
             var key = "runtime|" + collectionName + "|" + role.Key + "|" +
-                      CreateVisualCacheKey(path, RuntimeTargetHeight, role.Key, roleSettings);
+                      CreateVisualCacheKey(path, RuntimeTargetHeight, role.Key, settings);
 
             lock (RuntimeLock)
             {
@@ -112,8 +124,13 @@ namespace AngryMouse.Cursors
 
             try
             {
-                var cachedBitmap = LoadRuntimeBitmap(path, collectionName, role, roleSettings);
-                var hotspot = ScaleHotspot(path, role.Hotspot, roleSettings, cachedBitmap);
+                var cachedBitmap = LoadRuntimeBitmap(path, collectionName, role, settings);
+                if (cachedBitmap == null || cachedBitmap.Bitmap == null)
+                {
+                    return CursorVisualLoader.BuiltIn("Cursor PNG failed to load. Using built-in cursor.");
+                }
+
+                var hotspot = ScaleHotspot(path, role.Hotspot, settings, cachedBitmap);
                 var visual = new CursorVisualInfo(
                     cachedBitmap.Bitmap,
                     hotspot,

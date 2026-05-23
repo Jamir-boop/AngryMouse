@@ -32,6 +32,8 @@ namespace AngryMouse
         public SettingsWindow()
         {
             InitializeComponent();
+            Title = App.DisplayNameWithVersion;
+            VersionTextBlock.Text = App.DisplayNameWithVersion;
             _debounceTimer = new DispatcherTimer
             {
                 Interval = TimeSpan.FromMilliseconds(100)
@@ -564,7 +566,6 @@ namespace AngryMouse
                     FilePath = exists ? filePath : null,
                     AssignedFile = string.IsNullOrWhiteSpace(assignedFile) ? "" : Path.GetFileName(assignedFile),
                     Status = GetRoleStatus(assignedFile, exists),
-                    SystemPreview = LoadSystemPreview(role),
                     ZoomPreview = loadPreviews && exists ? CursorVisualCache.GetPreview(collectionName, role.Key, filePath) : null,
                     RoleCursor = GetRoleCursor(role.Key),
                     CanAdjust = exists,
@@ -788,11 +789,6 @@ namespace AngryMouse
             return exists ? "Valid" : "Missing";
         }
 
-        private static BitmapSource LoadSystemPreview(CursorRoleDefinition role)
-        {
-            return CursorVisualLoader.LoadSystemCursorRole(role.WindowsCursorId).Bitmap;
-        }
-
         private static Input.Cursor GetRoleCursor(string roleKey)
         {
             switch (roleKey)
@@ -889,8 +885,6 @@ namespace AngryMouse
             public string AssignedFile { get; set; }
 
             public string Status { get; set; }
-
-            public BitmapSource SystemPreview { get; set; }
 
             public BitmapSource ZoomPreview { get; set; }
 

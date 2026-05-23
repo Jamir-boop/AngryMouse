@@ -4,10 +4,10 @@
         xmlns:local="clr-namespace:AngryMouse"
         Title="Adjust Cursor"
         Icon="{x:Static local:AppIcon.ImageSource}"
-        Width="640"
-        Height="560"
-        MinWidth="560"
-        MinHeight="500"
+        Width="920"
+        Height="720"
+        MinWidth="760"
+        MinHeight="620"
         ResizeMode="CanResizeWithGrip"
         WindowStartupLocation="CenterOwner"
         Loaded="Window_Loaded">
@@ -54,51 +54,68 @@
 
         <Border
             Grid.Row="1"
-            MinHeight="300"
+            MinHeight="460"
             BorderBrush="{DynamicResource Theme.BorderBrush}"
             BorderThickness="1"
             Background="{StaticResource PreviewCheckerBrush}"
             Margin="0,0,0,8"
             ClipToBounds="True">
-            <Viewbox Stretch="Uniform">
-                <Canvas
-                    Name="PreviewCanvas"
-                    Width="560"
-                    Height="320"
-                    ClipToBounds="True">
-                    <Image
-                        Name="SystemCursorImage"
-                        Stretch="None"
-                        Opacity="0.82"
-                        RenderOptions.BitmapScalingMode="NearestNeighbor" />
-                    <Image
-                        Name="PreviewImage"
-                        Cursor="SizeAll"
-                        Stretch="None"
-                        RenderOptions.BitmapScalingMode="NearestNeighbor"
-                        MouseLeftButtonDown="PreviewImage_OnMouseLeftButtonDown"
-                        MouseLeftButtonUp="PreviewImage_OnMouseLeftButtonUp"
-                        MouseMove="PreviewImage_OnMouseMove"
-                        LostMouseCapture="PreviewImage_OnLostMouseCapture" />
+            <Canvas
+                Name="PreviewCanvas"
+                Background="Transparent"
+                ClipToBounds="True"
+                SizeChanged="PreviewCanvas_OnSizeChanged">
+                <Image
+                    Name="SystemCursorImage"
+                    Panel.ZIndex="1"
+                    Stretch="None"
+                    Opacity="0.45"
+                    IsHitTestVisible="False"
+                    RenderOptions.BitmapScalingMode="NearestNeighbor" />
+                <Image
+                    Name="PreviewImage"
+                    Panel.ZIndex="2"
+                    Cursor="SizeAll"
+                    Stretch="None"
+                    RenderOptions.BitmapScalingMode="NearestNeighbor"
+                    MouseLeftButtonDown="PreviewImage_OnMouseLeftButtonDown"
+                    MouseLeftButtonUp="PreviewImage_OnMouseLeftButtonUp"
+                    MouseMove="PreviewImage_OnMouseMove"
+                    LostMouseCapture="PreviewImage_OnLostMouseCapture" />
 
-                    <Line Name="DefaultHotspotHorizontal" Stroke="{DynamicResource Theme.AccentBlueBrush}" StrokeThickness="1.5" StrokeDashArray="4 3" />
-                    <Line Name="DefaultHotspotVertical" Stroke="{DynamicResource Theme.AccentBlueBrush}" StrokeThickness="1.5" StrokeDashArray="4 3" />
-                    <Ellipse Name="DefaultHotspotDot" Width="10" Height="10" Fill="{DynamicResource Theme.AccentBlueBrush}" Stroke="{DynamicResource Theme.WindowBackgroundBrush}" StrokeThickness="1" />
-
-                    <Line Name="AdjustedHotspotHorizontal" Stroke="{DynamicResource Theme.AccentRedBrush}" StrokeThickness="1.8" />
-                    <Line Name="AdjustedHotspotVertical" Stroke="{DynamicResource Theme.AccentRedBrush}" StrokeThickness="1.8" />
-                    <Ellipse Name="AdjustedHotspotDot" Width="12" Height="12" Fill="{DynamicResource Theme.AccentRedBrush}" Stroke="{DynamicResource Theme.WindowBackgroundBrush}" StrokeThickness="1" />
-                </Canvas>
-            </Viewbox>
+                <Line
+                    Name="TargetHorizontal"
+                    Panel.ZIndex="3"
+                    Stroke="{DynamicResource Theme.AccentRedBrush}"
+                    StrokeThickness="1.5"
+                    StrokeDashArray="4 3"
+                    IsHitTestVisible="False" />
+                <Line
+                    Name="TargetVertical"
+                    Panel.ZIndex="3"
+                    Stroke="{DynamicResource Theme.AccentRedBrush}"
+                    StrokeThickness="1.5"
+                    StrokeDashArray="4 3"
+                    IsHitTestVisible="False" />
+                <Ellipse
+                    Name="TargetDot"
+                    Panel.ZIndex="3"
+                    Width="12"
+                    Height="12"
+                    Fill="{DynamicResource Theme.AccentRedBrush}"
+                    Stroke="{DynamicResource Theme.WindowBackgroundBrush}"
+                    StrokeThickness="1"
+                    IsHitTestVisible="False" />
+            </Canvas>
         </Border>
 
         <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,0,0,8">
-            <Rectangle Width="16" Height="3" Fill="{DynamicResource Theme.SecondaryForegroundBrush}" Margin="0,8,6,0" />
-            <TextBlock Text="System cursor" Foreground="{DynamicResource Theme.SecondaryForegroundBrush}" Margin="0,0,18,0" />
-            <Rectangle Width="16" Height="3" Fill="{DynamicResource Theme.AccentBlueBrush}" Margin="0,8,6,0" />
-            <TextBlock Text="Normal hotspot" Foreground="{DynamicResource Theme.SecondaryForegroundBrush}" Margin="0,0,18,0" />
-            <Rectangle Width="16" Height="3" Fill="{DynamicResource Theme.AccentRedBrush}" Margin="0,8,6,0" />
-            <TextBlock Text="Adjusted hotspot" Foreground="{DynamicResource Theme.SecondaryForegroundBrush}" />
+            <Rectangle Width="16" Height="3" Fill="{DynamicResource Theme.SecondaryForegroundBrush}" Opacity="0.45" Margin="0,8,6,0" />
+            <TextBlock Text="Windows cursor" Foreground="{DynamicResource Theme.SecondaryForegroundBrush}" Margin="0,0,18,0" />
+            <Rectangle Width="16" Height="3" Fill="{DynamicResource Theme.ControlForegroundBrush}" Margin="0,8,6,0" />
+            <TextBlock Text="PNG cursor" Foreground="{DynamicResource Theme.SecondaryForegroundBrush}" Margin="0,0,18,0" />
+            <Ellipse Width="10" Height="10" Fill="{DynamicResource Theme.AccentRedBrush}" Stroke="{DynamicResource Theme.WindowBackgroundBrush}" StrokeThickness="1" Margin="0,4,6,0" />
+            <TextBlock Text="Mouse point" Foreground="{DynamicResource Theme.SecondaryForegroundBrush}" />
         </StackPanel>
 
         <Grid Grid.Row="3" Margin="0,0,0,8">

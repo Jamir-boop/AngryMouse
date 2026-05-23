@@ -87,11 +87,21 @@ namespace AngryMouse.Animation
             _cursorScale.BeginAnimation(ScaleTransform.ScaleYProperty, _scaleAnimation);
         }
 
+        internal static double GetTargetScale(double cursorVisualHeight, DpiScale dpiInfo)
+        {
+            return GetTargetScale(cursorVisualHeight, dpiInfo.PixelsPerDip);
+        }
+
+        internal static double GetTargetScale(double cursorVisualHeight, double pixelsPerDip)
+        {
+            return MaxScale / Math.Max(1, cursorVisualHeight) *
+                   (Properties.Settings.Default.CursorSize / 10.0) *
+                   Math.Max(0.01, pixelsPerDip);
+        }
+
         private double GetTargetScale()
         {
-            return MaxScale / CursorVisualHeight *
-                   (Properties.Settings.Default.CursorSize / 10.0) *
-                   DpiInfo.PixelsPerDip;
+            return GetTargetScale(CursorVisualHeight, DpiInfo);
         }
 
         private void RefreshVisibleScale()

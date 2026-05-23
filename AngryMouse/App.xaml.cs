@@ -10,6 +10,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Globalization;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
@@ -25,6 +26,17 @@ namespace AngryMouse
     {
         private const string SingleInstanceMutexName = @"Global\JamirBoop.AngryMouse.SingleInstance";
         private const string SingleInstanceOpenSettingsEventName = @"Global\JamirBoop.AngryMouse.OpenSettings";
+
+        internal static string DisplayVersion
+        {
+            get
+            {
+                return typeof(App).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion
+                       ?? typeof(App).Assembly.GetName().Version.ToString(3);
+            }
+        }
+
+        internal static string DisplayNameWithVersion => "AngryMouse " + DisplayVersion;
 
         private Mutex _singleInstanceMutex;
 
@@ -113,7 +125,7 @@ namespace AngryMouse
             {
                 Visible = true,
                 Icon = AngryMouse.Properties.Resources.icon,
-                Text = "AngryMouse"
+                Text = DisplayNameWithVersion
             };
 
             CreateContextMenu();

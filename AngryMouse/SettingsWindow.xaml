@@ -14,10 +14,7 @@
         ResizeMode="CanResizeWithGrip"
         Loaded="Window_Loaded"
         Closed="Window_Closed">
-    <Grid Margin="10" Background="{DynamicResource Theme.WindowBackgroundBrush}">
-        <TabControl Name="MainTabControl">
-            <TabItem Header="Settings">
-                <Grid Margin="8" Background="{DynamicResource Theme.WindowBackgroundBrush}">
+    <Grid Margin="18" Background="{DynamicResource Theme.WindowBackgroundBrush}">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="*" />
@@ -259,7 +256,7 @@
                                             </DataTemplate>
                                         </DataGridTemplateColumn.CellTemplate>
                                     </DataGridTemplateColumn>
-                                    <DataGridTemplateColumn Header="Zoom preview" Width="150">
+                                    <DataGridTemplateColumn Header="Zoom preview" Width="95">
                                         <DataGridTemplateColumn.CellTemplate>
                                             <DataTemplate>
                                                 <Border
@@ -271,14 +268,9 @@
                                                     MouseEnter="CursorRolePreview_OnMouseEnter"
                                                     MouseLeave="CursorRolePreview_OnMouseLeave"
                                                     MouseLeftButtonDown="CursorRolePreview_OnMouseLeftButtonDown">
-                                                    <StackPanel Orientation="Horizontal">
-                                                        <Border Width="36" Height="36" Margin="0,0,6,0">
-                                                            <Image Source="{Binding SystemPreview}" Stretch="Uniform" />
-                                                        </Border>
-                                                        <Border Width="36" Height="36">
-                                                            <Image Source="{Binding ZoomPreview}" Stretch="Uniform" />
-                                                        </Border>
-                                                    </StackPanel>
+                                                    <Border Width="36" Height="36">
+                                                        <Image Source="{Binding ZoomPreview}" Stretch="Uniform" />
+                                                    </Border>
                                                 </Border>
                                             </DataTemplate>
                                         </DataGridTemplateColumn.CellTemplate>
@@ -446,15 +438,19 @@
                         </Grid>
                     </GroupBox>
 
-                    <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,2,0,0">
-                        <Button
-                            Content="Reset Defaults"
-                            Margin="0,0,6,0"
-                            Padding="8,2"
-                            Click="ResetDefaultsButton_OnClick" />
-                    </StackPanel>
-                </Grid>
-            </TabItem>
-        </TabControl>
+                    <DockPanel Grid.Row="3" LastChildFill="False" Margin="0,2,0,0">
+                        <StackPanel DockPanel.Dock="Left" Orientation="Horizontal">
+                            <Button
+                                Content="Reset Defaults"
+                                Margin="0,0,6,0"
+                                Padding="8,2"
+                                Click="ResetDefaultsButton_OnClick" />
+                        </StackPanel>
+                        <TextBlock
+                            Name="VersionTextBlock"
+                            DockPanel.Dock="Right"
+                            VerticalAlignment="Center"
+                            Foreground="{DynamicResource Theme.SecondaryForegroundBrush}" />
+                    </DockPanel>
     </Grid>
 </Window>

@@ -19,7 +19,7 @@ namespace AngryMouse.Cursors
         private const string CursorCollectionsFolderName = "CursorCollections";
         private const string PackageSettingsFileName = "settings.xml";
         private const string PackageCollectionsRoot = "CursorCollections";
-        private const string PackageVersion = "2.5.2";
+        private const string PackageVersion = "2.5.3";
 
         public static readonly CursorRoleDefinition[] Roles =
         {
@@ -190,6 +190,11 @@ namespace AngryMouse.Cursors
                         foreach (var collectionPath in Directory.GetDirectories(root).OrderBy(Path.GetFileName))
                         {
                             var collectionName = Path.GetFileName(collectionPath);
+                            if (string.Equals(collectionName, BundledAdwaitaName, StringComparison.OrdinalIgnoreCase))
+                            {
+                                continue;
+                            }
+
                             foreach (var filePath in GetPackageCollectionFiles(collectionPath))
                             {
                                 var entryName = PackageCollectionsRoot + "/" + collectionName + "/" + Path.GetFileName(filePath);
@@ -598,12 +603,59 @@ namespace AngryMouse.Cursors
                     CreateSettingElement("ShakeMinimumSpeed", settings.ShakeMinimumSpeed.ToString(CultureInfo.InvariantCulture)),
                     CreateSettingElement("ShakeMinimumTurns", settings.ShakeMinimumTurns.ToString(CultureInfo.InvariantCulture))));
 
+            var roleSettingsElement = CreateRoleSettingsElement();
+            if (roleSettingsElement != null)
+            {
+                root.Add(roleSettingsElement);
+            }
+
             return new XDocument(root);
         }
 
         private static XElement CreateSettingElement(string name, string value)
         {
             return new XElement("Setting", new XAttribute("name", name), new XAttribute("value", value ?? string.Empty));
+        }
+
+        private static XElement CreateRoleSettingsElement()
+        {
+            var root = new XElement("CursorRoleSettings");
+            var collectionsRoot = GetUserCollectionsRoot();
+            if (!Directory.Exists(collectionsRoot))
+            {
+                return null;
+            }
+
+            foreach (var collectionPath in Directory.GetDirectories(collectionsRoot).OrderBy(Path.GetFileName))
+            {
+                var collectionName = Path.GetFileName(collectionPath);
+                if (!File.Exists(GetRoleSettingsPath(collectionName)))
+                {
+                    continue;
+                }
+
+                var roleSettings = LoadRoleSettings(collectionName);
+                var collectionElement = new XElement("Collection", new XAttribute("name", collectionName));
+                foreach (var role in Roles)
+                {
+                    CursorRoleRenderSettings settings;
+                    if (!roleSettings.TryGetValue(role.Key, out settings) || settings == null)
+                    {
+                        settings = new CursorRoleRenderSettings();
+                    }
+
+                    collectionElement.Add(new XElement(
+                        "Role",
+                        new XAttribute("key", role.Key),
+                        new XAttribute("hotspotOffsetX", settings.HotspotOffsetX.ToString(CultureInfo.InvariantCulture)),
+                        new XAttribute("hotspotOffsetY", settings.HotspotOffsetY.ToString(CultureInfo.InvariantCulture)),
+                        new XAttribute("trimTransparentPadding", settings.TrimTransparentPadding.ToString().ToLowerInvariant())));
+                }
+
+                root.Add(collectionElement);
+            }
+
+            return root.HasElements ? root : null;
         }
 
         private static IEnumerable<string> GetPackageCollectionFiles(string collectionPath)
@@ -786,7 +838,80 @@ namespace AngryMouse.Cursors
                 settings.ShakeMinimumTurns = intValue;
             }
 
+            ApplyImportedRoleSettings(document, collectionNameMap);
             settings.Save();
+        }
+
+        private static void ApplyImportedRoleSettings(XDocument document, IDictionary<string, string> collectionNameMap)
+        {
+            var roleSettingsRoot = document.Root?.Element("CursorRoleSettings");
+            if (roleSettingsRoot == null)
+            {
+                return;
+            }
+
+            foreach (var collectionElement in roleSettingsRoot.Elements("Collection"))
+            {
+                var sourceCollectionName = SanitizeCollectionName(collectionElement.Attribute("name")?.Value);
+                if (string.IsNullOrWhiteSpace(sourceCollectionName))
+                {
+                    continue;
+                }
+
+                string targetCollectionName;
+                if (!collectionNameMap.TryGetValue(sourceCollectionName, out targetCollectionName))
+                {
+                    targetCollectionName = sourceCollectionName;
+                }
+
+                if (!Directory.Exists(GetCollectionPath(targetCollectionName)))
+                {
+                    continue;
+                }
+
+                var settings = CreateDefaultRoleSettings();
+                var hasRoleSettings = false;
+                foreach (var roleElement in collectionElement.Elements("Role"))
+                {
+                    var roleKey = roleElement.Attribute("key")?.Value;
+                    if (string.IsNullOrWhiteSpace(roleKey) || !RolesByKey.ContainsKey(roleKey))
+                    {
+                        continue;
+                    }
+
+                    CursorRoleRenderSettings roleSettings;
+                    if (!settings.TryGetValue(roleKey, out roleSettings) || roleSettings == null)
+                    {
+                        roleSettings = new CursorRoleRenderSettings();
+                        settings[roleKey] = roleSettings;
+                    }
+
+                    ApplyRoleSettingAttribute(roleElement, "hotspotOffsetX", value => roleSettings.HotspotOffsetX = value);
+                    ApplyRoleSettingAttribute(roleElement, "hotspotOffsetY", value => roleSettings.HotspotOffsetY = value);
+
+                    bool trimTransparentPadding;
+                    if (bool.TryParse(roleElement.Attribute("trimTransparentPadding")?.Value, out trimTransparentPadding))
+                    {
+                        roleSettings.TrimTransparentPadding = trimTransparentPadding;
+                    }
+
+                    hasRoleSettings = true;
+                }
+
+                if (hasRoleSettings)
+                {
+                    SaveRoleSettings(targetCollectionName, settings);
+                }
+            }
+        }
+
+        private static void ApplyRoleSettingAttribute(XElement element, string name, Action<double> apply)
+        {
+            double value;
+            if (double.TryParse(element.Attribute(name)?.Value, NumberStyles.Float, CultureInfo.InvariantCulture, out value))
+            {
+                apply(value);
+            }
         }
 
         private static Dictionary<string, string> ReadSettingsDocument(XDocument document)
