@@ -6,6 +6,9 @@
         xmlns:local="clr-namespace:AngryMouse"
         mc:Ignorable="d"
         Title="DebugInfoWindow" Height="450" Width="800"
+        MinWidth="800"
+        MinHeight="450"
+        ResizeMode="NoResize"
         Icon="{x:Static local:AppIcon.ImageSource}"
         Closed="Window_Closed">
     <Grid Name="Root">

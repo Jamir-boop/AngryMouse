@@ -21,6 +21,7 @@
         <SolidColorBrush x:Key="Theme.GridAltBrush" Color="#FF151820" />
         <SolidColorBrush x:Key="Theme.AccentBlueBrush" Color="#FF60A5FA" />
         <SolidColorBrush x:Key="Theme.AccentRedBrush" Color="#FFF87171" />
+        <SolidColorBrush x:Key="Theme.SuccessBrush" Color="#FF4ADE80" />
         <SolidColorBrush x:Key="Theme.PreviewCheckerBaseBrush" Color="#FF181A1F" />
         <SolidColorBrush x:Key="Theme.PreviewCheckerAltBrush" Color="#FF252830" />
 
@@ -38,12 +39,14 @@
         </Style>
 
         <Style TargetType="{x:Type ToolTip}">
-            <Setter Property="Foreground" Value="#000000" />
-            <Setter Property="Background" Value="#FFFFFFE1" />
+            <Setter Property="OverridesDefaultStyle" Value="True" />
+            <Setter Property="Foreground" Value="#FF000000" />
+            <Setter Property="Background" Value="#FFFFFFFF" />
             <Setter Property="BorderBrush" Value="#FF767676" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="Padding" Value="8,5" />
             <Setter Property="MaxWidth" Value="360" />
+            <Setter Property="TextElement.Foreground" Value="#FF000000" />
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="{x:Type ToolTip}">
@@ -52,10 +55,11 @@
                             BorderBrush="{TemplateBinding BorderBrush}"
                             BorderThickness="{TemplateBinding BorderThickness}"
                             Padding="{TemplateBinding Padding}"
+                            TextElement.Foreground="#FF000000"
                             SnapsToDevicePixels="True">
                             <Border.Resources>
                                 <Style TargetType="{x:Type TextBlock}">
-                                    <Setter Property="Foreground" Value="#000000" />
+                                    <Setter Property="Foreground" Value="#FF000000" />
                                 </Style>
                             </Border.Resources>
                             <ContentPresenter
@@ -63,7 +67,7 @@
                                 ContentTemplate="{TemplateBinding ContentTemplate}"
                                 ContentStringFormat="{TemplateBinding ContentStringFormat}"
                                 RecognizesAccessKey="True"
-                                TextElement.Foreground="#000000" />
+                                TextElement.Foreground="#FF000000" />
                         </Border>
                     </ControlTemplate>
                 </Setter.Value>

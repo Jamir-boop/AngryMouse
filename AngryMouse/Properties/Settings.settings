@@ -23,6 +23,15 @@
     <Setting Name="ThemeMode" Type="System.String" Scope="User">
       <Value Profile="(Default)">Dark</Value>
     </Setting>
+    <Setting Name="LastImportCollectionFolder" Type="System.String" Scope="User">
+      <Value Profile="(Default)" />
+    </Setting>
+    <Setting Name="LastImportSettingsFolder" Type="System.String" Scope="User">
+      <Value Profile="(Default)" />
+    </Setting>
+    <Setting Name="LastExportSettingsFolder" Type="System.String" Scope="User">
+      <Value Profile="(Default)" />
+    </Setting>
     <Setting Name="CustomCursorPath" Type="System.String" Scope="User">
       <Value Profile="(Default)" />
     </Setting>

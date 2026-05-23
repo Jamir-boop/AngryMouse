@@ -1,456 +1,692 @@
 <Window x:Class="AngryMouse.SettingsWindow"
-        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:AngryMouse"
-        mc:Ignorable="d"
-        Title="Settings"
-        Icon="{x:Static local:AppIcon.ImageSource}"
-        Width="980"
-        Height="720"
-        MinWidth="860"
-        MinHeight="600"
-        ResizeMode="CanResizeWithGrip"
-        Loaded="Window_Loaded"
-        Closed="Window_Closed">
-    <Grid Margin="18" Background="{DynamicResource Theme.WindowBackgroundBrush}">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="*" />
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                    </Grid.RowDefinitions>
+xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+xmlns:local="clr-namespace:AngryMouse"
+mc:Ignorable="d"
+Title="Settings"
+Icon="{x:Static local:AppIcon.ImageSource}"
+Width="980"
+Height="720"
+MinWidth="860"
+MinHeight="600"
+ResizeMode="CanResizeWithGrip"
+Loaded="Window_Loaded"
+Closed="Window_Closed">
+<Grid Margin="18" Background="{DynamicResource Theme.WindowBackgroundBrush}">
+<Grid.RowDefinitions>
+<RowDefinition Height="Auto" />
+<RowDefinition Height="*" />
+<RowDefinition Height="Auto" />
+<RowDefinition Height="Auto" />
+</Grid.RowDefinitions>
 
-                    <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,0,0,8">
-                        <TextBlock Text="Theme" VerticalAlignment="Center" Margin="0,0,8,0" />
-                        <CheckBox
-                            Name="DarkModeCheckBox"
-                            Content="Dark mode"
-                            VerticalAlignment="Center"
-                            Checked="DarkModeCheckBox_OnChanged"
-                            Unchecked="DarkModeCheckBox_OnChanged" />
-                    </StackPanel>
+<StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,0,0,8">
+<TextBlock Text="Theme" VerticalAlignment="Center" Margin="0,0,8,0" />
+<CheckBox
+Name="DarkModeCheckBox"
+Content="_Dark mode"
+VerticalAlignment="Center"
+Checked="DarkModeCheckBox_OnChanged"
+Unchecked="DarkModeCheckBox_OnChanged" />
+</StackPanel>
 
-                    <GroupBox Grid.Row="1" Header="Cursor" Margin="0,0,0,8">
-                        <Grid Margin="8">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="130" />
-                                <ColumnDefinition Width="270" />
-                                <ColumnDefinition Width="110" />
-                                <ColumnDefinition Width="110" />
-                                <ColumnDefinition Width="110" />
-                                <ColumnDefinition Width="*" />
-                            </Grid.ColumnDefinitions>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="*" />
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="Auto" />
-                            </Grid.RowDefinitions>
+<GroupBox Grid.Row="1" Margin="0,0,0,8">
+<GroupBox.Header>
+<DockPanel LastChildFill="False">
+<TextBlock Text="Cursor" VerticalAlignment="Center" />
+<Button
+Content="_Reset"
+Margin="12,0,0,0"
+Padding="6,1"
+Click="ResetCursorSettingsButton_OnClick" />
+</DockPanel>
+</GroupBox.Header>
+<Grid Margin="8">
+<Grid.ColumnDefinitions>
+<ColumnDefinition Width="130" />
+<ColumnDefinition Width="270" />
+<ColumnDefinition Width="110" />
+<ColumnDefinition Width="110" />
+<ColumnDefinition Width="110" />
+<ColumnDefinition Width="*" />
+</Grid.ColumnDefinitions>
+<Grid.RowDefinitions>
+<RowDefinition Height="Auto" />
+<RowDefinition Height="Auto" />
+<RowDefinition Height="Auto" />
+<RowDefinition Height="Auto" />
+<RowDefinition Height="Auto" />
+<RowDefinition Height="Auto" />
+<RowDefinition Height="*" />
+<RowDefinition Height="Auto" />
+<RowDefinition Height="Auto" />
+<RowDefinition Height="Auto" />
+<RowDefinition Height="Auto" />
+</Grid.RowDefinitions>
 
-                            <Label Grid.Column="0" Grid.Row="0" Content="Zoom cursor" Margin="2" />
-                            <ComboBox
-                                Name="CursorSourceComboBox"
-                                Grid.Column="1"
-                                Grid.Row="0"
-                                Width="260"
-                                HorizontalAlignment="Left"
-                                Margin="2"
-                                SelectionChanged="CursorSourceComboBox_OnSelectionChanged">
-                                <ComboBoxItem
-                                    Content="Cursor collection"
-                                    Tag="Collection">
-                                    <ComboBoxItem.ToolTip>
-                                        <ToolTip
-                                            Background="#FFFFFFE1"
-                                            Foreground="#000000"
-                                            BorderBrush="#FF767676">
-                                            <TextBlock
-                                                Text="Use high-resolution PNG cursor collections instead of zooming the current low-pixel Windows cursor."
-                                                Foreground="#000000"
-                                                TextWrapping="Wrap"
-                                                MaxWidth="360" />
-                                        </ToolTip>
-                                    </ComboBoxItem.ToolTip>
-                                </ComboBoxItem>
-                                <ComboBoxItem Content="Active Windows cursor" Tag="System">
-                                    <ComboBoxItem.ToolTip>
-                                        <ToolTip
-                                            Background="#FFFFFFE1"
-                                            Foreground="#000000"
-                                            BorderBrush="#FF767676">
-                                            <TextBlock
-                                                Text="Zoom the current Windows cursor. Lower quality but always available without importing PNG files."
-                                                Foreground="#000000"
-                                                TextWrapping="Wrap"
-                                                MaxWidth="360" />
-                                        </ToolTip>
-                                    </ComboBoxItem.ToolTip>
-                                </ComboBoxItem>
-                            </ComboBox>
+<Label Grid.Column="0" Grid.Row="0" Content="Zoom cursor" Margin="2" />
+<ComboBox
+Name="CursorSourceComboBox"
+Grid.Column="1"
+Grid.Row="0"
+Width="260"
+HorizontalAlignment="Left"
+Margin="2"
+SelectionChanged="CursorSourceComboBox_OnSelectionChanged">
+<ComboBoxItem
+Content="Cursor collection"
+Tag="Collection">
+<ComboBoxItem.ToolTip>
+<ToolTip
+Background="#FFFFFFFF"
+Foreground="#FF000000"
+BorderBrush="#FF767676">
+<TextBlock
+Text="Use high-resolution PNG cursor collections instead of zooming the current low-pixel Windows cursor."
+Foreground="#FF000000"
+TextWrapping="Wrap"
+MaxWidth="360" />
+</ToolTip>
+</ComboBoxItem.ToolTip>
+</ComboBoxItem>
+<ComboBoxItem Content="Active Windows cursor" Tag="System">
+<ComboBoxItem.ToolTip>
+<ToolTip
+Background="#FFFFFFFF"
+Foreground="#FF000000"
+BorderBrush="#FF767676">
+<TextBlock
+Text="Zoom the current Windows cursor. Lower quality but always available without importing PNG files."
+Foreground="#FF000000"
+TextWrapping="Wrap"
+MaxWidth="360" />
+</ToolTip>
+</ComboBoxItem.ToolTip>
+</ComboBoxItem>
+</ComboBox>
 
-                            <Label Name="CollectionLabel" Grid.Column="0" Grid.Row="1" Content="Collection" Margin="2" />
-                            <ComboBox
-                                Name="CollectionComboBox"
-                                Grid.Column="1"
-                                Grid.Row="1"
-                                Width="260"
-                                HorizontalAlignment="Left"
-                                Margin="2"
-                                SelectionChanged="CollectionComboBox_OnSelectionChanged" />
-                            <Button
-                                Name="ImportCollectionButton"
-                                Grid.Column="2"
-                                Grid.Row="1"
-                                Content="Import folder"
-                                Margin="2"
-                                Padding="8,2"
-                                Click="ImportCollectionButton_OnClick" />
-                            <Button
-                                Name="ImportSettingsButton"
-                                Grid.Column="3"
-                                Grid.Row="1"
-                                Content="Import zip"
-                                Margin="2"
-                                Padding="8,2"
-                                Click="ImportSettingsButton_OnClick" />
-                            <Button
-                                Name="ExportSettingsButton"
-                                Grid.Column="4"
-                                Grid.Row="1"
-                                Content="Export zip"
-                                Margin="2"
-                                Padding="8,2"
-                                Click="ExportSettingsButton_OnClick" />
-                            <CheckBox
-                                Name="IncludeCollectionsCheckBox"
-                                Grid.Column="5"
-                                Grid.Row="1"
-                                Content="Include cursor collections in package"
-                                VerticalAlignment="Center"
-                                Margin="2">
-                                <CheckBox.ToolTip>
-                                    <ToolTip
-                                        Background="#FFFFFFE1"
-                                        Foreground="#000000"
-                                        BorderBrush="#FF767676">
-                                        <TextBlock
-                                            Text="When checked, exported/imported zip packages include cursor collections. When unchecked, only application settings (zoom size, colors, etc.) are saved/loaded."
-                                            Foreground="#000000"
-                                            TextWrapping="Wrap"
-                                            MaxWidth="360" />
-                                    </ToolTip>
-                                </CheckBox.ToolTip>
-                            </CheckBox>
+<Label Name="CollectionLabel" Grid.Column="0" Grid.Row="1" Content="Collection" Margin="2" />
+<ComboBox
+Name="CollectionComboBox"
+Grid.Column="1"
+Grid.Row="1"
+Width="260"
+HorizontalAlignment="Left"
+Margin="2"
+SelectionChanged="CollectionComboBox_OnSelectionChanged" />
+<Button
+Name="ImportCollectionButton"
+Grid.Column="2"
+Grid.Row="1"
+Content="_Import folder"
+Margin="2"
+Padding="8,2"
+Click="ImportCollectionButton_OnClick">
+<Button.ToolTip>
+<ToolTip
+Background="#FFFFFFFF"
+Foreground="#FF000000"
+BorderBrush="#FF767676">
+<TextBlock
+Text="Import a folder containing PNG cursor files as a new cursor collection."
+Foreground="#FF000000"
+TextWrapping="Wrap"
+MaxWidth="360" />
+</ToolTip>
+</Button.ToolTip>
+</Button>
+<Button
+Name="ImportSettingsButton"
+Grid.Column="3"
+Grid.Row="1"
+Content="Import _zip"
+Margin="2"
+Padding="8,2"
+Click="ImportSettingsButton_OnClick">
+<Button.ToolTip>
+<ToolTip
+Background="#FFFFFFFF"
+Foreground="#FF000000"
+BorderBrush="#FF767676">
+<TextBlock
+Text="Import a ZIP package exported from another AngryMouse installation. Contains settings.xml and optionally cursor collection folders."
+Foreground="#FF000000"
+TextWrapping="Wrap"
+MaxWidth="360" />
+</ToolTip>
+</Button.ToolTip>
+</Button>
+<Button
+Name="ExportSettingsButton"
+Grid.Column="4"
+Grid.Row="1"
+Content="_Export zip"
+Margin="2"
+Padding="8,2"
+Click="ExportSettingsButton_OnClick">
+<Button.ToolTip>
+<ToolTip
+Background="#FFFFFFFF"
+Foreground="#FF000000"
+BorderBrush="#FF767676">
+<TextBlock
+Text="Export current application settings and optionally cursor collections to a ZIP file. Can be imported on another AngryMouse installation."
+Foreground="#FF000000"
+TextWrapping="Wrap"
+MaxWidth="360" />
+</ToolTip>
+</Button.ToolTip>
+</Button>
+<CheckBox
+Name="IncludeCollectionsCheckBox"
+Grid.Column="5"
+Grid.Row="1"
+Content="_Include cursor collections in package"
+VerticalAlignment="Center"
+Margin="2">
+<CheckBox.ToolTip>
+<ToolTip
+Background="#FFFFFFFF"
+Foreground="#FF000000"
+BorderBrush="#FF767676">
+<TextBlock
+Text="When checked, exported/imported zip packages include cursor collections. When unchecked, only application settings (zoom size, colors, etc.) are saved/loaded."
+Foreground="#FF000000"
+TextWrapping="Wrap"
+MaxWidth="360" />
+</ToolTip>
+</CheckBox.ToolTip>
+</CheckBox>
 
-                            <TextBlock
-                                Name="CollectionHelpTextBlock"
-                                Grid.Column="1"
-                                Grid.Row="2"
-                                Grid.ColumnSpan="5"
-                                Margin="2,0,2,8"
-                                Foreground="{DynamicResource Theme.SecondaryForegroundBrush}"
-                                TextWrapping="Wrap"
-                                Text="Import settings loads a ZIP file containing application settings and optionally cursor collections. You can export settings from another AngryMouse installation. The ZIP file should contain settings.xml and optionally cursor collection folders." />
+<TextBlock
+Name="CollectionHelpTextBlock"
+Grid.Column="1"
+Grid.Row="2"
+Grid.ColumnSpan="5"
+Margin="2,0,2,8"
+Foreground="{DynamicResource Theme.SecondaryForegroundBrush}"
+TextWrapping="Wrap"
+Text="Import a folder of PNG cursors or a ZIP package with settings and cursor collections. Export saves your current settings (and optionally collections) to a ZIP file. You can also import individual PNG files per cursor in the table below." />
 
-                            <Label Name="RemoveCollectionLabel" Grid.Column="0" Grid.Row="3" Content="Remove collection" Margin="2" />
-                            <ComboBox
-                                Name="RemoveCollectionComboBox"
-                                Grid.Column="1"
-                                Grid.Row="3"
-                                Width="260"
-                                HorizontalAlignment="Left"
-                                Margin="2"
-                                SelectionChanged="RemoveCollectionComboBox_OnSelectionChanged" />
-                            <Button
-                                Name="RemoveCollectionButton"
-                                Grid.Column="2"
-                                Grid.Row="3"
-                                Content="Remove"
-                                Margin="2"
-                                Padding="8,2"
-                                Click="RemoveCollectionButton_OnClick" />
+<Label Name="RemoveCollectionLabel" Grid.Column="0" Grid.Row="3" Content="Remove collection" Margin="2" />
+<ComboBox
+Name="RemoveCollectionComboBox"
+Grid.Column="1"
+Grid.Row="3"
+Width="260"
+HorizontalAlignment="Left"
+Margin="2"
+SelectionChanged="RemoveCollectionComboBox_OnSelectionChanged" />
+<Button
+Name="RemoveCollectionButton"
+Grid.Column="2"
+Grid.Row="3"
+Content="_Remove"
+Margin="2"
+Padding="8,2"
+Click="RemoveCollectionButton_OnClick" />
 
-                            <TextBlock
-                                Name="CursorStatusTextBlock"
-                                Grid.Column="0"
-                                Grid.Row="4"
-                                Grid.ColumnSpan="6"
-                                Margin="2,4,2,8"
-                                TextWrapping="Wrap" />
+<TextBlock
+Name="CursorStatusTextBlock"
+Grid.Column="0"
+Grid.Row="4"
+Grid.ColumnSpan="6"
+Margin="2,4,2,8"
+TextWrapping="Wrap" />
 
-                            <StackPanel
-                                Name="CursorRenderPanel"
-                                Grid.Column="0"
-                                Grid.Row="5"
-                                Grid.ColumnSpan="6"
-                                Margin="2,0,2,8">
-                                <ProgressBar
-                                    Name="CursorRenderProgressBar"
-                                    Height="14"
-                                    Visibility="Collapsed" />
-                                <TextBlock
-                                    Name="CursorRenderStatusTextBlock"
-                                    Margin="0,2,0,0"
-                                    FontSize="11"
-                                    Foreground="{DynamicResource Theme.SecondaryForegroundBrush}"
-                                    Visibility="Collapsed" />
-                            </StackPanel>
+<StackPanel
+Name="CursorRenderPanel"
+Grid.Column="0"
+Grid.Row="5"
+Grid.ColumnSpan="6"
+Margin="2,0,2,8">
+<ProgressBar
+Name="CursorRenderProgressBar"
+Height="14"
+Visibility="Collapsed" />
+<TextBlock
+Name="CursorRenderStatusTextBlock"
+Margin="0,2,0,0"
+FontSize="11"
+Foreground="{DynamicResource Theme.SecondaryForegroundBrush}"
+Visibility="Collapsed" />
+</StackPanel>
 
-                            <DataGrid
-                                Name="CursorRoleDataGrid"
-                                Grid.Column="0"
-                                Grid.Row="6"
-                                Grid.ColumnSpan="6"
-                                MinHeight="240"
-                                Margin="2,0,2,8"
-                                AutoGenerateColumns="False"
-                                CanUserAddRows="False"
-                                CanUserDeleteRows="False"
-                                CanUserResizeRows="False"
-                                HeadersVisibility="Column"
-                                IsReadOnly="True"
-                                SelectionMode="Single">
-                                <DataGrid.Columns>
-                                    <DataGridTextColumn Header="Role" Binding="{Binding Role}" Width="130" />
-                                    <DataGridTextColumn Header="Assigned file" Binding="{Binding AssignedFile}" Width="*" MinWidth="240" />
-                                    <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="90" />
-                                    <DataGridTemplateColumn Header="Adjust" Width="85">
-                                        <DataGridTemplateColumn.CellTemplate>
-                                            <DataTemplate>
-                                                <Button
-                                                    Content="Adjust"
-                                                    Padding="6,1"
-                                                    IsEnabled="{Binding CanAdjust}"
-                                                    Click="AdjustRoleButton_OnClick" />
-                                            </DataTemplate>
-                                        </DataGridTemplateColumn.CellTemplate>
-                                    </DataGridTemplateColumn>
-                                    <DataGridTemplateColumn Header="Change" Width="85">
-                                        <DataGridTemplateColumn.CellTemplate>
-                                            <DataTemplate>
-                                                <Button
-                                                    Content="Change"
-                                                    Padding="6,1"
-                                                    IsEnabled="{Binding CanEditRole}"
-                                                    Click="ChangeRoleButton_OnClick" />
-                                            </DataTemplate>
-                                        </DataGridTemplateColumn.CellTemplate>
-                                    </DataGridTemplateColumn>
-                                    <DataGridTemplateColumn Header="Clear" Width="75">
-                                        <DataGridTemplateColumn.CellTemplate>
-                                            <DataTemplate>
-                                                <Button
-                                                    Content="Clear"
-                                                    Padding="6,1"
-                                                    IsEnabled="{Binding CanClear}"
-                                                    Click="ClearRoleButton_OnClick" />
-                                            </DataTemplate>
-                                        </DataGridTemplateColumn.CellTemplate>
-                                    </DataGridTemplateColumn>
-                                    <DataGridTemplateColumn Header="Zoom preview" Width="95">
-                                        <DataGridTemplateColumn.CellTemplate>
-                                            <DataTemplate>
-                                                <Border
-                                                    BorderBrush="{DynamicResource Theme.BorderBrush}"
-                                                    BorderThickness="1"
-                                                    Padding="3"
-                                                    Cursor="{Binding RoleCursor}"
-                                                    IsEnabled="{Binding CanPreview}"
-                                                    MouseEnter="CursorRolePreview_OnMouseEnter"
-                                                    MouseLeave="CursorRolePreview_OnMouseLeave"
-                                                    MouseLeftButtonDown="CursorRolePreview_OnMouseLeftButtonDown">
-                                                    <Border Width="36" Height="36">
-                                                        <Image Source="{Binding ZoomPreview}" Stretch="Uniform" />
-                                                    </Border>
-                                                </Border>
-                                            </DataTemplate>
-                                        </DataGridTemplateColumn.CellTemplate>
-                                    </DataGridTemplateColumn>
-                                </DataGrid.Columns>
-                            </DataGrid>
+<DataGrid
+Name="CursorRoleDataGrid"
+Grid.Column="0"
+Grid.Row="6"
+Grid.ColumnSpan="6"
+MinHeight="240"
+Margin="2,0,2,8"
+AutoGenerateColumns="False"
+CanUserAddRows="False"
+CanUserDeleteRows="False"
+CanUserResizeRows="False"
+HeadersVisibility="Column"
+IsReadOnly="True"
+SelectionMode="Single">
+<DataGrid.Columns>
+<DataGridTextColumn Header="Role" Binding="{Binding Role}" Width="130" />
+<DataGridTextColumn Header="Assigned file" Binding="{Binding AssignedFile}" Width="*" MinWidth="240" />
+<DataGridTemplateColumn Header="Status" Width="90">
+<DataGridTemplateColumn.CellTemplate>
+<DataTemplate>
+<TextBlock
+Text="{Binding Status}"
+Foreground="{Binding StatusForeground}"
+VerticalAlignment="Center" />
+</DataTemplate>
+</DataGridTemplateColumn.CellTemplate>
+</DataGridTemplateColumn>
+<DataGridTemplateColumn Header="Adjust" Width="85">
+<DataGridTemplateColumn.CellTemplate>
+<DataTemplate>
+<Button
+Content="_Adjust"
+Padding="6,1"
+IsEnabled="{Binding CanAdjust}"
+Click="AdjustRoleButton_OnClick" />
+</DataTemplate>
+</DataGridTemplateColumn.CellTemplate>
+</DataGridTemplateColumn>
+<DataGridTemplateColumn Header="Change" Width="85">
+<DataGridTemplateColumn.CellTemplate>
+<DataTemplate>
+<Button
+Content="_Change"
+Padding="6,1"
+IsEnabled="{Binding CanEditRole}"
+Click="ChangeRoleButton_OnClick" />
+</DataTemplate>
+</DataGridTemplateColumn.CellTemplate>
+</DataGridTemplateColumn>
+<DataGridTemplateColumn Header="Clear" Width="75">
+<DataGridTemplateColumn.CellTemplate>
+<DataTemplate>
+<Button
+Content="_Clear"
+Padding="6,1"
+IsEnabled="{Binding CanClear}"
+Click="ClearRoleButton_OnClick" />
+</DataTemplate>
+</DataGridTemplateColumn.CellTemplate>
+</DataGridTemplateColumn>
+<DataGridTemplateColumn Header="Zoom preview" Width="95">
+<DataGridTemplateColumn.CellTemplate>
+<DataTemplate>
+<Border
+BorderBrush="{DynamicResource Theme.BorderBrush}"
+BorderThickness="1"
+Padding="3"
+Cursor="{Binding RoleCursor}"
+IsEnabled="{Binding CanPreview}"
+MouseEnter="CursorRolePreview_OnMouseEnter"
+MouseLeave="CursorRolePreview_OnMouseLeave"
+MouseLeftButtonDown="CursorRolePreview_OnMouseLeftButtonDown">
+<Border Width="36" Height="36">
+<Image Source="{Binding ZoomPreview}" Stretch="Uniform" />
+</Border>
+</Border>
+</DataTemplate>
+</DataGridTemplateColumn.CellTemplate>
+</DataGridTemplateColumn>
+</DataGrid.Columns>
+</DataGrid>
 
-                            <Label Grid.Column="0" Grid.Row="7" Content="Zoom size" Margin="2" />
-                            <Slider
-                                Name="SizeSlider"
-                                Grid.Column="1"
-                                Grid.Row="7"
-                                Width="260"
-                                VerticalAlignment="Center"
-                                Minimum="2"
-                                Maximum="10"
-                                TickFrequency="1"
-                                IsSnapToTickEnabled="True"
-                                TickPlacement="BottomRight"
-                                Margin="2"
-                                ValueChanged="SizeSlider_OnValueChanged" />
-                            <Label Grid.Column="2" Grid.Row="7"
-                                   Content="{Binding ElementName=SizeSlider, Path=Value, UpdateSourceTrigger=PropertyChanged, StringFormat={}{0:0}}" Margin="2" />
+<Label
+Grid.Column="0"
+Grid.Row="7"
+Content="Zoom size"
+Margin="2">
+<Label.ToolTip>
+<ToolTip
+Background="#FFFFFFFF"
+Foreground="#FF000000"
+BorderBrush="#FF767676">
+<TextBlock
+Text="Controls how large the zoom cursor appears."
+Foreground="#FF000000"
+TextWrapping="Wrap"
+MaxWidth="360" />
+</ToolTip>
+</Label.ToolTip>
+</Label>
+<Slider
+Name="SizeSlider"
+Grid.Column="1"
+Grid.Row="7"
+Width="260"
+VerticalAlignment="Center"
+Minimum="2"
+Maximum="10"
+AutoToolTipPlacement="None"
+AutoToolTipPrecision="0"
+TickFrequency="1"
+IsSnapToTickEnabled="True"
+TickPlacement="BottomRight"
+Margin="2"
+ValueChanged="SizeSlider_OnValueChanged" />
+<Label Name="SizeValueLabel" Grid.Column="2" Grid.Row="7"
+Content="{Binding ElementName=SizeSlider, Path=Value, UpdateSourceTrigger=PropertyChanged, StringFormat={}{0:0}}" Margin="2" />
+<TextBlock
+Name="SizeDefaultIndicatorTextBlock"
+Grid.Column="3"
+Grid.Row="7"
+Text=""
+Foreground="{DynamicResource Theme.AccentBlueBrush}"
+Visibility="Collapsed"
+VerticalAlignment="Center"
+Margin="2" />
 
-                            <Label Grid.Column="0" Grid.Row="8" Content="Grow/shrink speed" Margin="2" />
-                            <Slider
-                                Name="AnimationLengthSlider"
-                                Grid.Column="1"
-                                Grid.Row="8"
-                                Width="260"
-                                VerticalAlignment="Center"
-                                Minimum="0"
-                                Maximum="1000"
-                                TickFrequency="50"
-                                IsSnapToTickEnabled="True"
-                                TickPlacement="BottomRight"
-                                Margin="2"
-                                ValueChanged="AnimationLengthSlider_OnValueChanged" />
-                            <Label Grid.Column="2" Grid.Row="8"
-                                   Content="{Binding ElementName=AnimationLengthSlider, Path=Value, UpdateSourceTrigger=PropertyChanged, StringFormat={}{0:0}}" Margin="2" />
-                            <Label Grid.Column="3" Grid.Row="8" Content="ms" Margin="2" />
+<Label
+Grid.Column="0"
+Grid.Row="8"
+Content="Grow/shrink speed"
+Margin="2">
+<Label.ToolTip>
+<ToolTip
+Background="#FFFFFFFF"
+Foreground="#FF000000"
+BorderBrush="#FF767676">
+<TextBlock
+Text="Controls the grow and shrink animation duration in milliseconds."
+Foreground="#FF000000"
+TextWrapping="Wrap"
+MaxWidth="360" />
+</ToolTip>
+</Label.ToolTip>
+</Label>
+<Slider
+Name="AnimationLengthSlider"
+Grid.Column="1"
+Grid.Row="8"
+Width="260"
+VerticalAlignment="Center"
+Minimum="0"
+Maximum="1000"
+AutoToolTipPlacement="None"
+AutoToolTipPrecision="0"
+TickFrequency="50"
+IsSnapToTickEnabled="True"
+TickPlacement="BottomRight"
+Margin="2"
+ValueChanged="AnimationLengthSlider_OnValueChanged" />
+<Label Name="AnimationLengthValueLabel" Grid.Column="2" Grid.Row="8"
+Content="{Binding ElementName=AnimationLengthSlider, Path=Value, UpdateSourceTrigger=PropertyChanged, StringFormat={}{0:0}}" Margin="2" />
+<Label Grid.Column="3" Grid.Row="8" Content="ms" Margin="2" />
+<TextBlock
+Name="AnimationLengthDefaultIndicatorTextBlock"
+Grid.Column="4"
+Grid.Row="8"
+Text=""
+Foreground="{DynamicResource Theme.AccentBlueBrush}"
+Visibility="Collapsed"
+VerticalAlignment="Center"
+Margin="2" />
 
-                            <Label Grid.Column="0" Grid.Row="9" Content="Visible duration" Margin="2" />
-                            <Slider
-                                Name="VisibleDurationSlider"
-                                Grid.Column="1"
-                                Grid.Row="9"
-                                Width="260"
-                                VerticalAlignment="Center"
-                                Minimum="100"
-                                Maximum="3000"
-                                TickFrequency="100"
-                                IsSnapToTickEnabled="True"
-                                TickPlacement="BottomRight"
-                                Margin="2"
-                                ValueChanged="VisibleDurationSlider_OnValueChanged" />
-                            <Label Grid.Column="2" Grid.Row="9"
-                                   Content="{Binding ElementName=VisibleDurationSlider, Path=Value, UpdateSourceTrigger=PropertyChanged, StringFormat={}{0:0}}" Margin="2" />
-                            <Label Grid.Column="3" Grid.Row="9" Content="ms" Margin="2" />
+<Label
+Grid.Column="0"
+Grid.Row="9"
+Content="Visible duration"
+Margin="2">
+<Label.ToolTip>
+<ToolTip
+Background="#FFFFFFFF"
+Foreground="#FF000000"
+BorderBrush="#FF767676">
+<TextBlock
+Text="Controls how long the zoom cursor stays visible after a shake."
+Foreground="#FF000000"
+TextWrapping="Wrap"
+MaxWidth="360" />
+</ToolTip>
+</Label.ToolTip>
+</Label>
+<Slider
+Name="VisibleDurationSlider"
+Grid.Column="1"
+Grid.Row="9"
+Width="260"
+VerticalAlignment="Center"
+Minimum="100"
+Maximum="3000"
+AutoToolTipPlacement="None"
+AutoToolTipPrecision="0"
+TickFrequency="100"
+IsSnapToTickEnabled="True"
+TickPlacement="BottomRight"
+Margin="2"
+ValueChanged="VisibleDurationSlider_OnValueChanged" />
+<Label Name="VisibleDurationValueLabel" Grid.Column="2" Grid.Row="9"
+Content="{Binding ElementName=VisibleDurationSlider, Path=Value, UpdateSourceTrigger=PropertyChanged, StringFormat={}{0:0}}" Margin="2" />
+<Label Grid.Column="3" Grid.Row="9" Content="ms" Margin="2" />
+<TextBlock
+Name="VisibleDurationDefaultIndicatorTextBlock"
+Grid.Column="4"
+Grid.Row="9"
+Text=""
+Foreground="{DynamicResource Theme.AccentBlueBrush}"
+Visibility="Collapsed"
+VerticalAlignment="Center"
+Margin="2" />
 
-                            <CheckBox
-                                Name="HideBuiltInCursorCheckBox"
-                                Grid.Column="1"
-                                Grid.Row="10"
-                                Grid.ColumnSpan="5"
-                                Content="Hide built-in cursor while zoom cursor is visible"
-                                Margin="2,8,2,2"
-                                Checked="HideBuiltInCursorCheckBox_OnChanged"
-                                Unchecked="HideBuiltInCursorCheckBox_OnChanged" />
-                        </Grid>
-                    </GroupBox>
+<CheckBox
+Name="HideBuiltInCursorCheckBox"
+Grid.Column="1"
+Grid.Row="10"
+Grid.ColumnSpan="5"
+Content="_Hide built-in cursor while zoom cursor is visible"
+Margin="2,8,2,2"
+Checked="HideBuiltInCursorCheckBox_OnChanged"
+Unchecked="HideBuiltInCursorCheckBox_OnChanged" />
+</Grid>
+</GroupBox>
 
-                    <GroupBox Grid.Row="2" Header="Shake detection" Margin="0,0,0,8">
-                        <Grid Margin="8">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="130" />
-                                <ColumnDefinition Width="260" />
-                                <ColumnDefinition Width="50" />
-                                <ColumnDefinition Width="Auto" />
-                                <ColumnDefinition Width="*" />
-                            </Grid.ColumnDefinitions>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="Auto" />
-                            </Grid.RowDefinitions>
+<GroupBox Grid.Row="2" Margin="0,0,0,8">
+<GroupBox.Header>
+<DockPanel LastChildFill="False">
+<TextBlock Text="Shake detection" VerticalAlignment="Center" />
+<Button
+Content="_Reset"
+Margin="12,0,0,0"
+Padding="6,1"
+Click="ResetShakeSettingsButton_OnClick" />
+</DockPanel>
+</GroupBox.Header>
+<Grid Margin="8">
+<Grid.ColumnDefinitions>
+<ColumnDefinition Width="130" />
+<ColumnDefinition Width="260" />
+<ColumnDefinition Width="50" />
+<ColumnDefinition Width="Auto" />
+<ColumnDefinition Width="*" />
+</Grid.ColumnDefinitions>
+<Grid.RowDefinitions>
+<RowDefinition Height="Auto" />
+<RowDefinition Height="Auto" />
+<RowDefinition Height="Auto" />
+</Grid.RowDefinitions>
 
-                            <Label Grid.Column="0" Grid.Row="0" Content="Shake window" Margin="2" />
-                            <Slider
-                                Name="ShakeTrackingIntervalSlider"
-                                Grid.Column="1"
-                                Grid.Row="0"
-                                Width="260"
-                                VerticalAlignment="Center"
-                                Minimum="100"
-                                Maximum="2000"
-                                TickFrequency="50"
-                                IsSnapToTickEnabled="True"
-                                TickPlacement="BottomRight"
-                                Margin="2"
-                                ValueChanged="ShakeTrackingIntervalSlider_OnValueChanged" />
-                            <Label Grid.Column="2" Grid.Row="0"
-                                   Content="{Binding ElementName=ShakeTrackingIntervalSlider, Path=Value, UpdateSourceTrigger=PropertyChanged, StringFormat={}{0:0}}" Margin="2" />
-                            <Label Grid.Column="3" Grid.Row="0" Content="ms" Margin="2" />
-                            <TextBlock
-                                Grid.Column="4"
-                                Grid.Row="0"
-                                Text="Lower reacts to shorter shakes. Higher needs a longer shake."
-                                TextWrapping="Wrap"
-                                FontSize="11"
-                                Foreground="{DynamicResource Theme.SecondaryForegroundBrush}"
-                                Margin="8,4,2,2" />
+<Label
+Grid.Column="0"
+Grid.Row="0"
+Content="Shake window"
+Margin="2">
+<Label.ToolTip>
+<ToolTip
+Background="#FFFFFFFF"
+Foreground="#FF000000"
+BorderBrush="#FF767676">
+<TextBlock
+Text="Lower reacts to shorter shakes. Higher needs a longer shake."
+Foreground="#FF000000"
+TextWrapping="Wrap"
+MaxWidth="360" />
+</ToolTip>
+</Label.ToolTip>
+</Label>
+<Slider
+Name="ShakeTrackingIntervalSlider"
+Grid.Column="1"
+Grid.Row="0"
+Width="260"
+VerticalAlignment="Center"
+Minimum="100"
+Maximum="2000"
+AutoToolTipPlacement="None"
+AutoToolTipPrecision="0"
+TickFrequency="50"
+IsSnapToTickEnabled="True"
+TickPlacement="BottomRight"
+Margin="2"
+ValueChanged="ShakeTrackingIntervalSlider_OnValueChanged" />
+<Label Name="ShakeTrackingIntervalValueLabel" Grid.Column="2" Grid.Row="0"
+Content="{Binding ElementName=ShakeTrackingIntervalSlider, Path=Value, UpdateSourceTrigger=PropertyChanged, StringFormat={}{0:0}}" Margin="2" />
+<Label Grid.Column="3" Grid.Row="0" Content="ms" Margin="2" />
+<DockPanel
+Grid.Column="4"
+Grid.Row="0"
+Margin="8,4,2,2">
+<TextBlock
+Name="ShakeTrackingIntervalDefaultIndicatorTextBlock"
+Text=""
+Foreground="{DynamicResource Theme.AccentBlueBrush}"
+Visibility="Collapsed"
+VerticalAlignment="Top"
+Margin="0,0,6,0" />
+<TextBlock
+Text="Lower reacts to shorter shakes. Higher needs a longer shake."
+TextWrapping="Wrap"
+FontSize="11"
+Foreground="{DynamicResource Theme.SecondaryForegroundBrush}" />
+</DockPanel>
 
-                            <Label Grid.Column="0" Grid.Row="1" Content="Shake speed" Margin="2" />
-                            <Slider
-                                Name="ShakeMinimumSpeedSlider"
-                                Grid.Column="1"
-                                Grid.Row="1"
-                                Width="260"
-                                VerticalAlignment="Center"
-                                Minimum="0.2"
-                                Maximum="5"
-                                TickFrequency="0.1"
-                                IsSnapToTickEnabled="True"
-                                TickPlacement="BottomRight"
-                                Margin="2"
-                                ValueChanged="ShakeMinimumSpeedSlider_OnValueChanged" />
-                            <Label Grid.Column="2" Grid.Row="1"
-                                   Content="{Binding ElementName=ShakeMinimumSpeedSlider, Path=Value, UpdateSourceTrigger=PropertyChanged, StringFormat={}{0:0.0}}" Margin="2" />
-                            <Label Grid.Column="3" Grid.Row="1" Content="px/ms" Margin="2" />
-                            <TextBlock
-                                Grid.Column="4"
-                                Grid.Row="1"
-                                Text="Lower is easier to trigger. Higher requires faster movement."
-                                TextWrapping="Wrap"
-                                FontSize="11"
-                                Foreground="{DynamicResource Theme.SecondaryForegroundBrush}"
-                                Margin="8,4,2,2" />
+<Label
+Grid.Column="0"
+Grid.Row="1"
+Content="Shake speed"
+Margin="2">
+<Label.ToolTip>
+<ToolTip
+Background="#FFFFFFFF"
+Foreground="#FF000000"
+BorderBrush="#FF767676">
+<TextBlock
+Text="Lower is easier to trigger. Higher requires faster movement."
+Foreground="#FF000000"
+TextWrapping="Wrap"
+MaxWidth="360" />
+</ToolTip>
+</Label.ToolTip>
+</Label>
+<Slider
+Name="ShakeMinimumSpeedSlider"
+Grid.Column="1"
+Grid.Row="1"
+Width="260"
+VerticalAlignment="Center"
+Minimum="0.2"
+Maximum="5"
+AutoToolTipPlacement="None"
+AutoToolTipPrecision="1"
+TickFrequency="0.1"
+IsSnapToTickEnabled="True"
+TickPlacement="BottomRight"
+Margin="2"
+ValueChanged="ShakeMinimumSpeedSlider_OnValueChanged" />
+<Label Name="ShakeMinimumSpeedValueLabel" Grid.Column="2" Grid.Row="1"
+Content="{Binding ElementName=ShakeMinimumSpeedSlider, Path=Value, UpdateSourceTrigger=PropertyChanged, StringFormat={}{0:0.0}}" Margin="2" />
+<Label Grid.Column="3" Grid.Row="1" Content="px/ms" Margin="2" />
+<DockPanel
+Grid.Column="4"
+Grid.Row="1"
+Margin="8,4,2,2">
+<TextBlock
+Name="ShakeMinimumSpeedDefaultIndicatorTextBlock"
+Text=""
+Foreground="{DynamicResource Theme.AccentBlueBrush}"
+Visibility="Collapsed"
+VerticalAlignment="Top"
+Margin="0,0,6,0" />
+<TextBlock
+Text="Lower is easier to trigger. Higher requires faster movement."
+TextWrapping="Wrap"
+FontSize="11"
+Foreground="{DynamicResource Theme.SecondaryForegroundBrush}" />
+</DockPanel>
 
-                            <Label Grid.Column="0" Grid.Row="2" Content="Direction changes" Margin="2" />
-                            <Slider
-                                Name="ShakeMinimumTurnsSlider"
-                                Grid.Column="1"
-                                Grid.Row="2"
-                                Width="260"
-                                VerticalAlignment="Center"
-                                Minimum="1"
-                                Maximum="12"
-                                TickFrequency="1"
-                                IsSnapToTickEnabled="True"
-                                TickPlacement="BottomRight"
-                                Margin="2"
-                                ValueChanged="ShakeMinimumTurnsSlider_OnValueChanged" />
-                            <Label Grid.Column="2" Grid.Row="2"
-                                   Content="{Binding ElementName=ShakeMinimumTurnsSlider, Path=Value, UpdateSourceTrigger=PropertyChanged, StringFormat={}{0:0}}" Margin="2" />
-                            <Label Grid.Column="3" Grid.Row="2" Content="turns" Margin="2" />
-                            <TextBlock
-                                Grid.Column="4"
-                                Grid.Row="2"
-                                Text="Lower is easier to trigger. Higher requires more back-and-forth movement."
-                                TextWrapping="Wrap"
-                                FontSize="11"
-                                Foreground="{DynamicResource Theme.SecondaryForegroundBrush}"
-                                Margin="8,4,2,2" />
-                        </Grid>
-                    </GroupBox>
+<Label
+Grid.Column="0"
+Grid.Row="2"
+Content="Direction changes"
+Margin="2">
+<Label.ToolTip>
+<ToolTip
+Background="#FFFFFFFF"
+Foreground="#FF000000"
+BorderBrush="#FF767676">
+<TextBlock
+Text="Lower is easier to trigger. Higher requires more back-and-forth movement."
+Foreground="#FF000000"
+TextWrapping="Wrap"
+MaxWidth="360" />
+</ToolTip>
+</Label.ToolTip>
+</Label>
+<Slider
+Name="ShakeMinimumTurnsSlider"
+Grid.Column="1"
+Grid.Row="2"
+Width="260"
+VerticalAlignment="Center"
+Minimum="1"
+Maximum="12"
+AutoToolTipPlacement="None"
+AutoToolTipPrecision="0"
+TickFrequency="1"
+IsSnapToTickEnabled="True"
+TickPlacement="BottomRight"
+Margin="2"
+ValueChanged="ShakeMinimumTurnsSlider_OnValueChanged" />
+<Label Name="ShakeMinimumTurnsValueLabel" Grid.Column="2" Grid.Row="2"
+Content="{Binding ElementName=ShakeMinimumTurnsSlider, Path=Value, UpdateSourceTrigger=PropertyChanged, StringFormat={}{0:0}}" Margin="2" />
+<Label Grid.Column="3" Grid.Row="2" Content="turns" Margin="2" />
+<DockPanel
+Grid.Column="4"
+Grid.Row="2"
+Margin="8,4,2,2">
+<TextBlock
+Name="ShakeMinimumTurnsDefaultIndicatorTextBlock"
+Text=""
+Foreground="{DynamicResource Theme.AccentBlueBrush}"
+Visibility="Collapsed"
+VerticalAlignment="Top"
+Margin="0,0,6,0" />
+<TextBlock
+Text="Lower is easier to trigger. Higher requires more back-and-forth movement."
+TextWrapping="Wrap"
+FontSize="11"
+Foreground="{DynamicResource Theme.SecondaryForegroundBrush}" />
+</DockPanel>
+</Grid>
+</GroupBox>
 
-                    <DockPanel Grid.Row="3" LastChildFill="False" Margin="0,2,0,0">
-                        <StackPanel DockPanel.Dock="Left" Orientation="Horizontal">
-                            <Button
-                                Content="Reset Defaults"
-                                Margin="0,0,6,0"
-                                Padding="8,2"
-                                Click="ResetDefaultsButton_OnClick" />
-                        </StackPanel>
-                        <TextBlock
-                            Name="VersionTextBlock"
-                            DockPanel.Dock="Right"
-                            VerticalAlignment="Center"
-                            Foreground="{DynamicResource Theme.SecondaryForegroundBrush}" />
-                    </DockPanel>
-    </Grid>
+<DockPanel Grid.Row="3" LastChildFill="False" Margin="0,2,0,0">
+<StackPanel DockPanel.Dock="Left" Orientation="Horizontal">
+<Button
+Content="_Reset Defaults"
+Margin="0,0,6,0"
+Padding="8,2"
+Click="ResetDefaultsButton_OnClick" />
+</StackPanel>
+<TextBlock
+Name="VersionTextBlock"
+DockPanel.Dock="Right"
+VerticalAlignment="Center"
+Foreground="{DynamicResource Theme.SecondaryForegroundBrush}" />
+</DockPanel>
+</Grid>
 </Window>

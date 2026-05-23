@@ -18,6 +18,7 @@
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="Auto"/>
@@ -26,7 +27,41 @@
         <Label Grid.Column="1" Grid.Row="0" Name="AppName" FontSize="24" HorizontalAlignment="Center" />
         <Label Grid.Column="1" Grid.Row="1" Name="AppVersion" HorizontalAlignment="Center" />
         <Label Grid.Column="1" Grid.Row="2" Name="AppCopyright" HorizontalAlignment="Center" />
-        <Button Grid.Column="1" Grid.Row="3" Content="Github" Click="Github_OnClick"/>
-        <Image Grid.Column="0" Grid.Row="0" Grid.RowSpan="4" Name="Logo" Width="100" Height="100" />
+        <Button
+            Grid.Column="1"
+            Grid.Row="3"
+            Background="Transparent"
+            BorderThickness="0"
+            Cursor="Hand"
+            Foreground="{DynamicResource Theme.AccentBlueBrush}"
+            Click="Github_OnClick">
+            <AccessText
+                Text="_Github"
+                TextDecorations="Underline"
+                Foreground="{DynamicResource Theme.AccentBlueBrush}" />
+        </Button>
+        <GroupBox Grid.Column="1" Grid.Row="4" Header="System info" Margin="0,12,0,0">
+            <Grid Margin="8">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="120" />
+                    <ColumnDefinition Width="180" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Grid.Row="0" Text="DPI scale" Margin="0,0,8,4" Foreground="{DynamicResource Theme.SecondaryForegroundBrush}" />
+                <TextBlock Grid.Column="1" Grid.Row="0" Name="DpiScaleTextBlock" Margin="0,0,0,4" />
+                <TextBlock Grid.Column="0" Grid.Row="1" Text="Screens" Margin="0,0,8,4" Foreground="{DynamicResource Theme.SecondaryForegroundBrush}" />
+                <TextBlock Grid.Column="1" Grid.Row="1" Name="ScreenCountTextBlock" Margin="0,0,0,4" />
+                <TextBlock Grid.Column="0" Grid.Row="2" Text="Cursor source" Margin="0,0,8,4" Foreground="{DynamicResource Theme.SecondaryForegroundBrush}" />
+                <TextBlock Grid.Column="1" Grid.Row="2" Name="CursorSourceModeTextBlock" Margin="0,0,0,4" />
+                <TextBlock Grid.Column="0" Grid.Row="3" Text="Collection" Margin="0,0,8,0" Foreground="{DynamicResource Theme.SecondaryForegroundBrush}" />
+                <TextBlock Grid.Column="1" Grid.Row="3" Name="CollectionNameTextBlock" />
+            </Grid>
+        </GroupBox>
+        <Image Grid.Column="0" Grid.Row="0" Grid.RowSpan="5" Name="Logo" Width="100" Height="100" />
     </Grid>
 </Window>

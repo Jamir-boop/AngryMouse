@@ -872,6 +872,7 @@ namespace AngryMouse
             SetBrush(resources, "Theme.GridAltBrush", light ? "#FFF8FAFC" : "#FF202228");
             SetBrush(resources, "Theme.AccentBlueBrush", light ? "#FF2563EB" : "#FF60A5FA");
             SetBrush(resources, "Theme.AccentRedBrush", light ? "#FFDC2626" : "#FFF87171");
+            SetBrush(resources, "Theme.SuccessBrush", light ? "#FF16A34A" : "#FF4ADE80");
             SetBrush(resources, "Theme.PreviewCheckerBaseBrush", light ? "#FFE5E7EB" : "#FF181A1F");
             SetBrush(resources, "Theme.PreviewCheckerAltBrush", light ? "#FFFFFFFF" : "#FF252830");
 
@@ -884,8 +885,8 @@ namespace AngryMouse
             SetBrush(resources, SystemColors.GrayTextBrushKey, light ? "#FF8B95A3" : "#FF737A86");
             SetBrush(resources, SystemColors.MenuBrushKey, light ? "#FFFFFFFF" : "#FF15171B");
             SetBrush(resources, SystemColors.MenuTextBrushKey, light ? "#FF111827" : "#FFE5E7EB");
-            SetBrush(resources, SystemColors.InfoBrushKey, light ? "#FFFFFFE1" : "#FF25272D");
-            SetBrush(resources, SystemColors.InfoTextBrushKey, light ? "#FF111827" : "#FFE5E7EB");
+            SetBrush(resources, SystemColors.InfoBrushKey, "#FFFFFFFF");
+            SetBrush(resources, SystemColors.InfoTextBrushKey, "#FF000000");
         }
 
         private static void SetBrush(ResourceDictionary resources, object key, string color)

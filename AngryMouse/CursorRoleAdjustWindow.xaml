@@ -167,20 +167,20 @@
 
         <StackPanel Grid.Row="5" Orientation="Horizontal" HorizontalAlignment="Right">
             <Button
-                Content="Reset"
+                Content="_Reset"
                 Width="70"
                 Margin="0,0,6,0"
                 Click="ResetButton_OnClick" />
             <Button
-                Content="Save"
+                Content="_Cancel"
                 Width="70"
                 Margin="0,0,6,0"
+                IsCancel="True" />
+            <Button
+                Content="_Save"
+                Width="70"
                 IsDefault="True"
                 Click="SaveButton_OnClick" />
-            <Button
-                Content="Cancel"
-                Width="70"
-                IsCancel="True" />
         </StackPanel>
     </Grid>
 </Window>

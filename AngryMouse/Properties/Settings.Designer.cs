@@ -110,6 +110,42 @@ namespace AngryMouse.Properties {
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string LastImportCollectionFolder {
+            get {
+                return ((string)(this["LastImportCollectionFolder"]));
+            }
+            set {
+                this["LastImportCollectionFolder"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string LastImportSettingsFolder {
+            get {
+                return ((string)(this["LastImportSettingsFolder"]));
+            }
+            set {
+                this["LastImportSettingsFolder"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string LastExportSettingsFolder {
+            get {
+                return ((string)(this["LastExportSettingsFolder"]));
+            }
+            set {
+                this["LastExportSettingsFolder"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
         public string CustomCursorPath {
             get {
                 return ((string)(this["CustomCursorPath"]));
