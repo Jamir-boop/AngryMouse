@@ -1092,6 +1092,12 @@ namespace AngryMouse.Cursors
 
         private static void NormalizeActivationSettings(Properties.Settings settings)
         {
+            var originalShakeEnabled = settings.ShakeActivationEnabled;
+            var originalHotkeyEnabled = settings.HotkeyActivationEnabled;
+            var originalMode = settings.HotkeyActivationMode;
+            var originalModifiers = settings.HotkeyModifiers;
+            var originalKey = settings.HotkeyKey;
+
             if (!settings.ShakeActivationEnabled && !settings.HotkeyActivationEnabled)
             {
                 settings.ShakeActivationEnabled = true;
@@ -1106,6 +1112,46 @@ namespace AngryMouse.Cursors
             {
                 settings.HotkeyModifiers = "Control";
             }
+
+            if (originalShakeEnabled != settings.ShakeActivationEnabled ||
+                originalHotkeyEnabled != settings.HotkeyActivationEnabled ||
+                !string.Equals(originalMode, settings.HotkeyActivationMode, StringComparison.Ordinal) ||
+                !string.Equals(originalModifiers, settings.HotkeyModifiers, StringComparison.Ordinal) ||
+                !string.Equals(originalKey, settings.HotkeyKey, StringComparison.Ordinal))
+            {
+                DebugLog.Write(
+                    "Imported activation settings normalized: Shake=" +
+                    (settings.ShakeActivationEnabled ? "On" : "Off") +
+                    ", Hotkey=" +
+                    (settings.HotkeyActivationEnabled ? "On" : "Off") +
+                    ", Mode=" +
+                    settings.HotkeyActivationMode +
+                    ", Shortcut=" +
+                    FormatHotkeyForLog(settings.HotkeyModifiers, settings.HotkeyKey));
+            }
+        }
+
+        private static string FormatHotkeyForLog(string modifiers, string key)
+        {
+            var parts = new List<string>();
+            var normalizedModifiers = NormalizeHotkeyModifiers(modifiers);
+            if (!string.Equals(normalizedModifiers, "None", StringComparison.OrdinalIgnoreCase))
+            {
+                foreach (var modifier in normalizedModifiers.Split(new[] { '+' }, StringSplitOptions.RemoveEmptyEntries))
+                {
+                    parts.Add(string.Equals(modifier, "Control", StringComparison.OrdinalIgnoreCase) ? "Ctrl" : modifier);
+                }
+            }
+
+            var normalizedKey = NormalizeHotkeyKey(key);
+            if (!string.Equals(normalizedKey, "None", StringComparison.OrdinalIgnoreCase))
+            {
+                parts.Add(normalizedKey.Length == 2 && normalizedKey[0] == 'D' && char.IsDigit(normalizedKey[1])
+                    ? normalizedKey[1].ToString()
+                    : normalizedKey);
+            }
+
+            return parts.Count == 0 ? "Ctrl" : string.Join("+", parts);
         }
 
         private static string NormalizeHotkeyActivationMode(string value)

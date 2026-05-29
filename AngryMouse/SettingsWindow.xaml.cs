@@ -34,6 +34,9 @@ namespace AngryMouse
         private readonly Dictionary<Slider, ToolTip> _sliderValueToolTips = new Dictionary<Slider, ToolTip>();
         private readonly Dictionary<Slider, string> _sliderValueToolTipFormats = new Dictionary<Slider, string>();
         private readonly HashSet<Slider> _activeSliderValueToolTips = new HashSet<Slider>();
+        private readonly HashSet<string> _recordingHotkeyModifiers = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        private bool _recordingHotkey;
+        private string _recordingHotkeyKey = "None";
         private static readonly string[] CursorSettingNames =
         {
             "CursorSize",
@@ -99,9 +102,8 @@ namespace AngryMouse
             HotkeyActivationEnabledCheckBox.IsChecked = Properties.Settings.Default.HotkeyActivationEnabled;
             EnsureActivationSourceSelected();
             SelectComboBoxItemByTag(HotkeyActivationModeComboBox, NormalizeHotkeyActivationMode(Properties.Settings.Default.HotkeyActivationMode));
-            SelectComboBoxItemByTag(HotkeyModifiersComboBox, NormalizeHotkeyModifiers(Properties.Settings.Default.HotkeyModifiers));
-            SelectComboBoxItemByTag(HotkeyKeyComboBox, NormalizeHotkeyKey(Properties.Settings.Default.HotkeyKey));
-            EnsureValidHotkeySelection();
+            NormalizeHotkeySettingValues();
+            UpdateHotkeyDisplay();
             UpdateActivationUiAvailability();
             ShakeTrackingIntervalSlider.Value = Properties.Settings.Default.ShakeTrackingInterval;
             ShakeMinimumSpeedSlider.Value = Properties.Settings.Default.ShakeMinimumSpeed;
@@ -159,37 +161,6 @@ namespace AngryMouse
             HotkeyActivationModeComboBox.Items.Clear();
             AddComboBoxItem(HotkeyActivationModeComboBox, "Hold", "Hold");
             AddComboBoxItem(HotkeyActivationModeComboBox, "Toggle", "Toggle");
-
-            HotkeyModifiersComboBox.Items.Clear();
-            AddComboBoxItem(HotkeyModifiersComboBox, "None", "None");
-            AddComboBoxItem(HotkeyModifiersComboBox, "Control", "Control");
-            AddComboBoxItem(HotkeyModifiersComboBox, "Alt", "Alt");
-            AddComboBoxItem(HotkeyModifiersComboBox, "Shift", "Shift");
-            AddComboBoxItem(HotkeyModifiersComboBox, "Control+Shift", "Control+Shift");
-            AddComboBoxItem(HotkeyModifiersComboBox, "Control+Alt", "Control+Alt");
-            AddComboBoxItem(HotkeyModifiersComboBox, "Alt+Shift", "Alt+Shift");
-            AddComboBoxItem(HotkeyModifiersComboBox, "Control+Alt+Shift", "Control+Alt+Shift");
-
-            HotkeyKeyComboBox.Items.Clear();
-            AddComboBoxItem(HotkeyKeyComboBox, "None", "None");
-            for (var key = 'A'; key <= 'Z'; key++)
-            {
-                AddComboBoxItem(HotkeyKeyComboBox, key.ToString(), key.ToString());
-            }
-
-            for (var key = 0; key <= 9; key++)
-            {
-                AddComboBoxItem(HotkeyKeyComboBox, key.ToString(), "D" + key.ToString(CultureInfo.InvariantCulture));
-            }
-
-            for (var key = 1; key <= 12; key++)
-            {
-                var name = "F" + key.ToString(CultureInfo.InvariantCulture);
-                AddComboBoxItem(HotkeyKeyComboBox, name, name);
-            }
-
-            AddComboBoxItem(HotkeyKeyComboBox, "Space", "Space");
-            AddComboBoxItem(HotkeyKeyComboBox, "Escape", "Escape");
         }
 
         private static void AddComboBoxItem(ComboBox comboBox, string content, string tag)
@@ -358,37 +329,56 @@ namespace AngryMouse
             return string.Equals(normalized, "Escape", StringComparison.OrdinalIgnoreCase) ? "Escape" : "None";
         }
 
-        private void EnsureActivationSourceSelected()
+        private void EnsureActivationSourceSelected(object changedSource = null)
         {
             if (ShakeActivationEnabledCheckBox.IsChecked != true && HotkeyActivationEnabledCheckBox.IsChecked != true)
             {
-                ShakeActivationEnabledCheckBox.IsChecked = true;
+                if (ReferenceEquals(changedSource, ShakeActivationEnabledCheckBox))
+                {
+                    HotkeyActivationEnabledCheckBox.IsChecked = true;
+                }
+                else
+                {
+                    ShakeActivationEnabledCheckBox.IsChecked = true;
+                }
+
+                DebugLog.Write("Activation source fallback: at least one source must stay enabled.");
             }
         }
 
-        private void EnsureValidHotkeySelection()
+        private void NormalizeHotkeySettingValues()
         {
-            var modifiers = GetSelectedComboBoxTag(HotkeyModifiersComboBox, "Control");
-            var key = GetSelectedComboBoxTag(HotkeyKeyComboBox, "None");
-            if (string.Equals(modifiers, "None", StringComparison.OrdinalIgnoreCase) &&
-                string.Equals(key, "None", StringComparison.OrdinalIgnoreCase))
+            Properties.Settings.Default.HotkeyActivationMode =
+                NormalizeHotkeyActivationMode(Properties.Settings.Default.HotkeyActivationMode);
+            Properties.Settings.Default.HotkeyModifiers = NormalizeHotkeyModifiers(Properties.Settings.Default.HotkeyModifiers);
+            Properties.Settings.Default.HotkeyKey = NormalizeHotkeyKey(Properties.Settings.Default.HotkeyKey);
+
+            if (IsEmptyHotkey(Properties.Settings.Default.HotkeyModifiers, Properties.Settings.Default.HotkeyKey))
             {
-                SelectComboBoxItemByTag(HotkeyModifiersComboBox, "Control");
+                Properties.Settings.Default.HotkeyModifiers = "Control";
+                Properties.Settings.Default.HotkeyKey = "None";
             }
         }
 
-        private void SaveActivationSettings()
+        private void SaveActivationSettings(object changedSource = null)
         {
-            EnsureActivationSourceSelected();
-            EnsureValidHotkeySelection();
+            EnsureActivationSourceSelected(changedSource);
+            NormalizeHotkeySettingValues();
 
+            var oldConfig = GetActivationLogSummary();
             Properties.Settings.Default.ShakeActivationEnabled = ShakeActivationEnabledCheckBox.IsChecked == true;
             Properties.Settings.Default.HotkeyActivationEnabled = HotkeyActivationEnabledCheckBox.IsChecked == true;
             Properties.Settings.Default.HotkeyActivationMode = GetSelectedComboBoxTag(HotkeyActivationModeComboBox, "Hold");
-            Properties.Settings.Default.HotkeyModifiers = GetSelectedComboBoxTag(HotkeyModifiersComboBox, "Control");
-            Properties.Settings.Default.HotkeyKey = GetSelectedComboBoxTag(HotkeyKeyComboBox, "None");
+            NormalizeHotkeySettingValues();
             SaveSettings();
             UpdateActivationUiAvailability();
+            UpdateHotkeyDisplay();
+
+            var newConfig = GetActivationLogSummary();
+            if (!string.Equals(oldConfig, newConfig, StringComparison.Ordinal))
+            {
+                DebugLog.Write("Activation settings saved: " + newConfig);
+            }
         }
 
         private void UpdateActivationUiAvailability()
@@ -396,11 +386,304 @@ namespace AngryMouse
             var shakeEnabled = ShakeActivationEnabledCheckBox.IsChecked == true;
             var hotkeyEnabled = HotkeyActivationEnabledCheckBox.IsChecked == true;
 
-            HotkeyActivationModeComboBox.IsEnabled = hotkeyEnabled;
-            HotkeyPanel.IsEnabled = hotkeyEnabled;
-            ShakeTrackingIntervalSlider.IsEnabled = shakeEnabled;
-            ShakeMinimumSpeedSlider.IsEnabled = shakeEnabled;
-            ShakeMinimumTurnsSlider.IsEnabled = shakeEnabled;
+            HotkeyActivationControlsGrid.IsEnabled = hotkeyEnabled;
+            ShakeActivationControlsGrid.IsEnabled = shakeEnabled;
+        }
+
+        private void UpdateHotkeyDisplay()
+        {
+            if (_recordingHotkey)
+            {
+                return;
+            }
+
+            HotkeyDisplayTextBox.Text = FormatHotkeyDisplay(
+                Properties.Settings.Default.HotkeyModifiers,
+                Properties.Settings.Default.HotkeyKey);
+            HotkeyRecordButton.Content = "_Record";
+        }
+
+        private static bool IsEmptyHotkey(string modifiers, string key)
+        {
+            return string.Equals(NormalizeHotkeyModifiers(modifiers), "None", StringComparison.OrdinalIgnoreCase) &&
+                   string.Equals(NormalizeHotkeyKey(key), "None", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private string GetActivationLogSummary()
+        {
+            return "Shake=" + (Properties.Settings.Default.ShakeActivationEnabled ? "On" : "Off") +
+                   ", Hotkey=" + (Properties.Settings.Default.HotkeyActivationEnabled ? "On" : "Off") +
+                   ", Mode=" + NormalizeHotkeyActivationMode(Properties.Settings.Default.HotkeyActivationMode) +
+                   ", Shortcut=" + FormatHotkeyDisplay(
+                       Properties.Settings.Default.HotkeyModifiers,
+                       Properties.Settings.Default.HotkeyKey);
+        }
+
+        private static string FormatHotkeyDisplay(string modifiers, string key)
+        {
+            var parts = new List<string>();
+            var normalizedModifiers = NormalizeHotkeyModifiers(modifiers);
+            if (!string.Equals(normalizedModifiers, "None", StringComparison.OrdinalIgnoreCase))
+            {
+                foreach (var modifier in normalizedModifiers.Split(new[] { '+' }, StringSplitOptions.RemoveEmptyEntries))
+                {
+                    parts.Add(string.Equals(modifier, "Control", StringComparison.OrdinalIgnoreCase) ? "Ctrl" : modifier);
+                }
+            }
+
+            var normalizedKey = NormalizeHotkeyKey(key);
+            if (!string.Equals(normalizedKey, "None", StringComparison.OrdinalIgnoreCase))
+            {
+                parts.Add(FormatHotkeyKeyDisplay(normalizedKey));
+            }
+
+            return parts.Count == 0 ? "Ctrl" : string.Join("+", parts);
+        }
+
+        private static string FormatHotkeyKeyDisplay(string key)
+        {
+            if (key != null && key.Length == 2 && key[0] == 'D' && char.IsDigit(key[1]))
+            {
+                return key[1].ToString();
+            }
+
+            return key ?? string.Empty;
+        }
+
+        private void HotkeyRecordButton_OnClick(object sender, RoutedEventArgs e)
+        {
+            if (_loading) return;
+
+            StartHotkeyRecording();
+        }
+
+        private void HotkeyResetButton_OnClick(object sender, RoutedEventArgs e)
+        {
+            if (_loading) return;
+
+            if (_recordingHotkey)
+            {
+                StopHotkeyRecording();
+            }
+
+            SaveHotkeyShortcut("Control", "None", "Hotkey shortcut reset");
+        }
+
+        private void StartHotkeyRecording()
+        {
+            _recordingHotkey = true;
+            _recordingHotkeyModifiers.Clear();
+            _recordingHotkeyKey = "None";
+            HotkeyDisplayTextBox.Text = "Press shortcut...";
+            HotkeyRecordButton.Content = "Recording";
+            HotkeyDisplayTextBox.Focus();
+            Input.Keyboard.Focus(HotkeyDisplayTextBox);
+        }
+
+        private void StopHotkeyRecording()
+        {
+            _recordingHotkey = false;
+            _recordingHotkeyModifiers.Clear();
+            _recordingHotkeyKey = "None";
+            HotkeyRecordButton.Content = "_Record";
+        }
+
+        private void CancelHotkeyRecording()
+        {
+            StopHotkeyRecording();
+            UpdateHotkeyDisplay();
+            DebugLog.Write("Hotkey shortcut recording canceled.");
+        }
+
+        private void HotkeyDisplayTextBox_OnPreviewKeyDown(object sender, Input.KeyEventArgs e)
+        {
+            if (!_recordingHotkey)
+            {
+                return;
+            }
+
+            e.Handled = true;
+            var key = GetEffectiveKey(e);
+            if (key == Input.Key.Escape)
+            {
+                CancelHotkeyRecording();
+                return;
+            }
+
+            if (key == Input.Key.Back || key == Input.Key.Delete)
+            {
+                StopHotkeyRecording();
+                SaveHotkeyShortcut("Control", "None", "Hotkey shortcut reset");
+                return;
+            }
+
+            CaptureCurrentModifiers();
+            var modifier = GetModifierFromInputKey(key);
+            if (modifier != null)
+            {
+                _recordingHotkeyModifiers.Add(modifier);
+                UpdateRecordingHotkeyDisplay();
+                return;
+            }
+
+            var settingKey = GetSettingKeyFromInputKey(key);
+            if (settingKey != null)
+            {
+                _recordingHotkeyKey = settingKey;
+                UpdateRecordingHotkeyDisplay();
+            }
+        }
+
+        private void HotkeyDisplayTextBox_OnPreviewKeyUp(object sender, Input.KeyEventArgs e)
+        {
+            if (!_recordingHotkey)
+            {
+                return;
+            }
+
+            e.Handled = true;
+            var key = GetEffectiveKey(e);
+            CaptureCurrentModifiers();
+            var modifier = GetModifierFromInputKey(key);
+            if (modifier != null)
+            {
+                _recordingHotkeyModifiers.Add(modifier);
+            }
+
+            if (!string.Equals(_recordingHotkeyKey, "None", StringComparison.OrdinalIgnoreCase) ||
+                _recordingHotkeyModifiers.Count > 0)
+            {
+                FinalizeHotkeyRecording();
+            }
+        }
+
+        private void UpdateRecordingHotkeyDisplay()
+        {
+            HotkeyDisplayTextBox.Text = FormatHotkeyDisplay(GetRecordingModifiers(), _recordingHotkeyKey);
+        }
+
+        private void FinalizeHotkeyRecording()
+        {
+            var modifiers = GetRecordingModifiers();
+            var key = _recordingHotkeyKey;
+            StopHotkeyRecording();
+            SaveHotkeyShortcut(modifiers, key, "Hotkey shortcut recorded");
+        }
+
+        private void SaveHotkeyShortcut(string modifiers, string key, string logMessage)
+        {
+            var normalizedModifiers = NormalizeHotkeyModifiers(modifiers);
+            var normalizedKey = NormalizeHotkeyKey(key);
+            if (IsEmptyHotkey(normalizedModifiers, normalizedKey))
+            {
+                normalizedModifiers = "Control";
+                normalizedKey = "None";
+            }
+
+            var oldConfig = GetActivationLogSummary();
+            Properties.Settings.Default.HotkeyModifiers = normalizedModifiers;
+            Properties.Settings.Default.HotkeyKey = normalizedKey;
+            SaveSettings();
+            UpdateHotkeyDisplay();
+            UpdateActivationUiAvailability();
+
+            var newConfig = GetActivationLogSummary();
+            if (!string.Equals(oldConfig, newConfig, StringComparison.Ordinal))
+            {
+                DebugLog.Write("Activation settings saved: " + newConfig);
+            }
+
+            DebugLog.Write(logMessage + ": " + FormatHotkeyDisplay(normalizedModifiers, normalizedKey));
+        }
+
+        private void CaptureCurrentModifiers()
+        {
+            var modifiers = Input.Keyboard.Modifiers;
+            if ((modifiers & Input.ModifierKeys.Control) == Input.ModifierKeys.Control)
+            {
+                _recordingHotkeyModifiers.Add("Control");
+            }
+
+            if ((modifiers & Input.ModifierKeys.Alt) == Input.ModifierKeys.Alt)
+            {
+                _recordingHotkeyModifiers.Add("Alt");
+            }
+
+            if ((modifiers & Input.ModifierKeys.Shift) == Input.ModifierKeys.Shift)
+            {
+                _recordingHotkeyModifiers.Add("Shift");
+            }
+        }
+
+        private string GetRecordingModifiers()
+        {
+            var parts = new List<string>();
+            if (_recordingHotkeyModifiers.Contains("Control"))
+            {
+                parts.Add("Control");
+            }
+
+            if (_recordingHotkeyModifiers.Contains("Alt"))
+            {
+                parts.Add("Alt");
+            }
+
+            if (_recordingHotkeyModifiers.Contains("Shift"))
+            {
+                parts.Add("Shift");
+            }
+
+            return parts.Count == 0 ? "None" : string.Join("+", parts);
+        }
+
+        private static Input.Key GetEffectiveKey(Input.KeyEventArgs e)
+        {
+            if (e.Key == Input.Key.System && e.SystemKey != Input.Key.None)
+            {
+                return e.SystemKey;
+            }
+
+            return e.Key == Input.Key.ImeProcessed && e.ImeProcessedKey != Input.Key.None
+                ? e.ImeProcessedKey
+                : e.Key;
+        }
+
+        private static string GetModifierFromInputKey(Input.Key key)
+        {
+            switch (key)
+            {
+                case Input.Key.LeftCtrl:
+                case Input.Key.RightCtrl:
+                    return "Control";
+                case Input.Key.LeftAlt:
+                case Input.Key.RightAlt:
+                    return "Alt";
+                case Input.Key.LeftShift:
+                case Input.Key.RightShift:
+                    return "Shift";
+                default:
+                    return null;
+            }
+        }
+
+        private static string GetSettingKeyFromInputKey(Input.Key key)
+        {
+            if (key >= Input.Key.A && key <= Input.Key.Z)
+            {
+                return key.ToString();
+            }
+
+            if (key >= Input.Key.D0 && key <= Input.Key.D9)
+            {
+                return key.ToString();
+            }
+
+            if (key >= Input.Key.F1 && key <= Input.Key.F12)
+            {
+                return key.ToString();
+            }
+
+            return key == Input.Key.Space ? "Space" : null;
         }
 
         private void CursorSourceComboBox_OnSelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -781,17 +1064,10 @@ namespace AngryMouse
         {
             if (_loading) return;
 
-            SaveActivationSettings();
+            SaveActivationSettings(sender);
         }
 
         private void HotkeyActivationModeComboBox_OnSelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            if (_loading) return;
-
-            SaveActivationSettings();
-        }
-
-        private void HotkeyComboBox_OnSelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (_loading) return;
 

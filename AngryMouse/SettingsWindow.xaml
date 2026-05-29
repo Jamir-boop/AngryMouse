@@ -490,6 +490,8 @@ Padding="6,1"
 Click="ResetShakeSettingsButton_OnClick" />
 </DockPanel>
 </GroupBox.Header>
+<TabControl Margin="8">
+<TabItem Header="Shake">
 <Grid Margin="8">
 <Grid.ColumnDefinitions>
 <ColumnDefinition Width="130" />
@@ -503,76 +505,37 @@ Click="ResetShakeSettingsButton_OnClick" />
 <RowDefinition Height="Auto" />
 <RowDefinition Height="Auto" />
 <RowDefinition Height="Auto" />
+</Grid.RowDefinitions>
+<CheckBox
+Name="ShakeActivationEnabledCheckBox"
+Grid.Column="1"
+Grid.Row="0"
+Grid.ColumnSpan="4"
+Content="_Enable shake activation"
+VerticalAlignment="Center"
+Margin="2,2,2,8"
+Checked="ActivationSourceCheckBox_OnChanged"
+Unchecked="ActivationSourceCheckBox_OnChanged" />
+<Grid
+Name="ShakeActivationControlsGrid"
+Grid.Column="0"
+Grid.Row="1"
+Grid.ColumnSpan="5">
+<Grid.ColumnDefinitions>
+<ColumnDefinition Width="130" />
+<ColumnDefinition Width="260" />
+<ColumnDefinition Width="50" />
+<ColumnDefinition Width="Auto" />
+<ColumnDefinition Width="*" />
+</Grid.ColumnDefinitions>
+<Grid.RowDefinitions>
+<RowDefinition Height="Auto" />
 <RowDefinition Height="Auto" />
 <RowDefinition Height="Auto" />
 </Grid.RowDefinitions>
-
 <Label
 Grid.Column="0"
 Grid.Row="0"
-Content="Sources"
-Margin="2" />
-<StackPanel
-Grid.Column="1"
-Grid.Row="0"
-Grid.ColumnSpan="4"
-Orientation="Horizontal"
-Margin="2">
-<CheckBox
-Name="ShakeActivationEnabledCheckBox"
-Content="_Shake"
-VerticalAlignment="Center"
-Margin="0,0,12,0"
-Checked="ActivationSourceCheckBox_OnChanged"
-Unchecked="ActivationSourceCheckBox_OnChanged" />
-<CheckBox
-Name="HotkeyActivationEnabledCheckBox"
-Content="_Hotkey"
-VerticalAlignment="Center"
-Checked="ActivationSourceCheckBox_OnChanged"
-Unchecked="ActivationSourceCheckBox_OnChanged" />
-</StackPanel>
-
-<Label
-Grid.Column="0"
-Grid.Row="1"
-Content="Mode"
-Margin="2" />
-<ComboBox
-Name="HotkeyActivationModeComboBox"
-Grid.Column="1"
-Grid.Row="1"
-Width="120"
-HorizontalAlignment="Left"
-Margin="2"
-SelectionChanged="HotkeyActivationModeComboBox_OnSelectionChanged" />
-
-<Label
-Grid.Column="0"
-Grid.Row="2"
-Content="Hotkey"
-Margin="2" />
-<StackPanel
-Name="HotkeyPanel"
-Grid.Column="1"
-Grid.Row="2"
-Grid.ColumnSpan="4"
-Orientation="Horizontal"
-Margin="2">
-<ComboBox
-Name="HotkeyModifiersComboBox"
-Width="145"
-Margin="0,0,8,0"
-SelectionChanged="HotkeyComboBox_OnSelectionChanged" />
-<ComboBox
-Name="HotkeyKeyComboBox"
-Width="105"
-SelectionChanged="HotkeyComboBox_OnSelectionChanged" />
-</StackPanel>
-
-<Label
-Grid.Column="0"
-Grid.Row="3"
 Content="Shake window"
 Margin="2">
 <Label.ToolTip>
@@ -591,7 +554,7 @@ MaxWidth="360" />
 <Slider
 Name="ShakeTrackingIntervalSlider"
 Grid.Column="1"
-Grid.Row="3"
+Grid.Row="0"
 Width="260"
 VerticalAlignment="Center"
 Minimum="100"
@@ -603,12 +566,12 @@ IsSnapToTickEnabled="True"
 TickPlacement="BottomRight"
 Margin="2"
 ValueChanged="ShakeTrackingIntervalSlider_OnValueChanged" />
-<Label Name="ShakeTrackingIntervalValueLabel" Grid.Column="2" Grid.Row="3"
+<Label Name="ShakeTrackingIntervalValueLabel" Grid.Column="2" Grid.Row="0"
 Content="{Binding ElementName=ShakeTrackingIntervalSlider, Path=Value, UpdateSourceTrigger=PropertyChanged, StringFormat={}{0:0}}" Margin="2" />
-<Label Grid.Column="3" Grid.Row="3" Content="ms" Margin="2" />
+<Label Grid.Column="3" Grid.Row="0" Content="ms" Margin="2" />
 <DockPanel
 Grid.Column="4"
-Grid.Row="3"
+Grid.Row="0"
 Margin="8,4,2,2">
 <TextBlock
 Text=""
@@ -622,10 +585,9 @@ TextWrapping="Wrap"
 FontSize="11"
 Foreground="{DynamicResource Theme.SecondaryForegroundBrush}" />
 </DockPanel>
-
 <Label
 Grid.Column="0"
-Grid.Row="4"
+Grid.Row="1"
 Content="Shake speed"
 Margin="2">
 <Label.ToolTip>
@@ -644,7 +606,7 @@ MaxWidth="360" />
 <Slider
 Name="ShakeMinimumSpeedSlider"
 Grid.Column="1"
-Grid.Row="4"
+Grid.Row="1"
 Width="260"
 VerticalAlignment="Center"
 Minimum="0.2"
@@ -656,12 +618,12 @@ IsSnapToTickEnabled="True"
 TickPlacement="BottomRight"
 Margin="2"
 ValueChanged="ShakeMinimumSpeedSlider_OnValueChanged" />
-<Label Name="ShakeMinimumSpeedValueLabel" Grid.Column="2" Grid.Row="4"
+<Label Name="ShakeMinimumSpeedValueLabel" Grid.Column="2" Grid.Row="1"
 Content="{Binding ElementName=ShakeMinimumSpeedSlider, Path=Value, UpdateSourceTrigger=PropertyChanged, StringFormat={}{0:0.0}}" Margin="2" />
-<Label Grid.Column="3" Grid.Row="4" Content="px/ms" Margin="2" />
+<Label Grid.Column="3" Grid.Row="1" Content="px/ms" Margin="2" />
 <DockPanel
 Grid.Column="4"
-Grid.Row="4"
+Grid.Row="1"
 Margin="8,4,2,2">
 <TextBlock
 Text=""
@@ -675,10 +637,9 @@ TextWrapping="Wrap"
 FontSize="11"
 Foreground="{DynamicResource Theme.SecondaryForegroundBrush}" />
 </DockPanel>
-
 <Label
 Grid.Column="0"
-Grid.Row="5"
+Grid.Row="2"
 Content="Direction changes"
 Margin="2">
 <Label.ToolTip>
@@ -697,7 +658,7 @@ MaxWidth="360" />
 <Slider
 Name="ShakeMinimumTurnsSlider"
 Grid.Column="1"
-Grid.Row="5"
+Grid.Row="2"
 Width="260"
 VerticalAlignment="Center"
 Minimum="1"
@@ -709,12 +670,12 @@ IsSnapToTickEnabled="True"
 TickPlacement="BottomRight"
 Margin="2"
 ValueChanged="ShakeMinimumTurnsSlider_OnValueChanged" />
-<Label Name="ShakeMinimumTurnsValueLabel" Grid.Column="2" Grid.Row="5"
+<Label Name="ShakeMinimumTurnsValueLabel" Grid.Column="2" Grid.Row="2"
 Content="{Binding ElementName=ShakeMinimumTurnsSlider, Path=Value, UpdateSourceTrigger=PropertyChanged, StringFormat={}{0:0}}" Margin="2" />
-<Label Grid.Column="3" Grid.Row="5" Content="turns" Margin="2" />
+<Label Grid.Column="3" Grid.Row="2" Content="turns" Margin="2" />
 <DockPanel
 Grid.Column="4"
-Grid.Row="5"
+Grid.Row="2"
 Margin="8,4,2,2">
 <TextBlock
 Text=""
@@ -729,6 +690,94 @@ FontSize="11"
 Foreground="{DynamicResource Theme.SecondaryForegroundBrush}" />
 </DockPanel>
 </Grid>
+</Grid>
+</TabItem>
+<TabItem Header="Hotkey">
+<Grid Margin="8">
+<Grid.ColumnDefinitions>
+<ColumnDefinition Width="130" />
+<ColumnDefinition Width="Auto" />
+<ColumnDefinition Width="*" />
+</Grid.ColumnDefinitions>
+<Grid.RowDefinitions>
+<RowDefinition Height="Auto" />
+<RowDefinition Height="Auto" />
+<RowDefinition Height="Auto" />
+</Grid.RowDefinitions>
+<CheckBox
+Name="HotkeyActivationEnabledCheckBox"
+Grid.Column="1"
+Grid.Row="0"
+Grid.ColumnSpan="2"
+Content="_Enable hotkey activation"
+VerticalAlignment="Center"
+Margin="2,2,2,8"
+Checked="ActivationSourceCheckBox_OnChanged"
+Unchecked="ActivationSourceCheckBox_OnChanged" />
+<Grid
+Name="HotkeyActivationControlsGrid"
+Grid.Column="0"
+Grid.Row="1"
+Grid.ColumnSpan="3">
+<Grid.ColumnDefinitions>
+<ColumnDefinition Width="130" />
+<ColumnDefinition Width="Auto" />
+<ColumnDefinition Width="*" />
+</Grid.ColumnDefinitions>
+<Grid.RowDefinitions>
+<RowDefinition Height="Auto" />
+<RowDefinition Height="Auto" />
+</Grid.RowDefinitions>
+<Label
+Grid.Column="0"
+Grid.Row="0"
+Content="Mode"
+Margin="2" />
+<ComboBox
+Name="HotkeyActivationModeComboBox"
+Grid.Column="1"
+Grid.Row="0"
+Width="120"
+HorizontalAlignment="Left"
+Margin="2"
+SelectionChanged="HotkeyActivationModeComboBox_OnSelectionChanged" />
+<Label
+Grid.Column="0"
+Grid.Row="1"
+Content="Shortcut"
+Margin="2" />
+<StackPanel
+Name="HotkeyRecorderPanel"
+Grid.Column="1"
+Grid.Row="1"
+Grid.ColumnSpan="2"
+Orientation="Horizontal"
+Margin="2">
+<TextBox
+Name="HotkeyDisplayTextBox"
+Width="190"
+IsReadOnly="True"
+Focusable="True"
+VerticalContentAlignment="Center"
+Margin="0,0,8,0"
+PreviewKeyDown="HotkeyDisplayTextBox_OnPreviewKeyDown"
+PreviewKeyUp="HotkeyDisplayTextBox_OnPreviewKeyUp" />
+<Button
+Name="HotkeyRecordButton"
+Content="_Record"
+Padding="8,2"
+Margin="0,0,6,0"
+Click="HotkeyRecordButton_OnClick" />
+<Button
+Name="HotkeyResetButton"
+Content="R_eset"
+Padding="8,2"
+Click="HotkeyResetButton_OnClick" />
+</StackPanel>
+</Grid>
+</Grid>
+</TabItem>
+</TabControl>
 </GroupBox>
 
 <DockPanel Grid.Row="3" LastChildFill="False" Margin="0,2,0,0">
