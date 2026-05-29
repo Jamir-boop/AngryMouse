@@ -531,6 +531,18 @@ namespace AngryMouse
                 return;
             }
 
+            if (e.IsShaking)
+            {
+                // Per-move work is gated off while idle, so refresh the visual + position
+                // once on shake start before the overlay grows.
+                if (!SystemCursorOverride.IsActive)
+                {
+                    ApplyCurrentCursorVisual(force: false);
+                }
+
+                UpdateOverlayMousePosition();
+            }
+
             _overlayWindows.ForEach(window => window.SetMouseShake(e.IsShaking, e.Timestamp));
         }
 
@@ -578,6 +590,12 @@ namespace AngryMouse
                 x = _pendingMouseX;
                 y = _pendingMouseY;
                 _mouseMoveQueued = false;
+            }
+
+            // Nothing is visible while idle: skip all per-move work (cost #2).
+            if (!_detectorShaking && !_rolePreviewActive)
+            {
+                return;
             }
 
             if (!SystemCursorOverride.IsActive)
@@ -757,9 +775,9 @@ namespace AngryMouse
                 return;
             }
 
-            string roleKey;
-            var hasKnownRole = CursorVisualLoader.TryGetCurrentWindowsCursorRoleKey(out roleKey);
             var systemCursorHandle = CursorVisualLoader.GetCurrentSystemCursorHandle();
+            string roleKey;
+            var hasKnownRole = CursorVisualLoader.TryGetWindowsCursorRoleKey(systemCursorHandle, out roleKey);
             var identity = string.Equals(mode, CursorCollectionManager.SystemMode, StringComparison.OrdinalIgnoreCase)
                 ? "system|" + systemCursorHandle
                 : hasKnownRole

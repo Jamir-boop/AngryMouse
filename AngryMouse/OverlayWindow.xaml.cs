@@ -66,6 +66,39 @@ namespace AngryMouse
         private bool _systemCursorOverrideActive;
 
         /// <summary>
+        /// Whether the overlay should currently be visible (shaking or role preview).
+        /// </summary>
+        private bool _shouldBeVisible;
+
+        /// <summary>
+        /// Hides the overlay window after the shrink animation finishes so it stops being
+        /// composited by DWM while idle.
+        /// </summary>
+        private readonly DispatcherTimer _idleHideTimer = new DispatcherTimer
+        {
+            IsEnabled = false
+        };
+
+        /// <summary>
+        /// Cached current cursor visual dimensions (image pixels) and hotspot.
+        /// </summary>
+        private double _cursorVisualWidth = CursorVisualLoader.BuiltInCursorWidth;
+        private double _cursorVisualHeight = CursorVisualLoader.BuiltInCursorHeight;
+        private double _cursorHotspotX;
+        private double _cursorHotspotY;
+
+        /// <summary>
+        /// Follow-window geometry (physical pixels): size of the small window and the hotspot
+        /// offset within it. The window is moved so the hotspot stays under the mouse.
+        /// </summary>
+        private int _followBoxWidth;
+        private int _followBoxHeight;
+        private int _followAnchorX;
+        private int _followAnchorY;
+        private int _lastMouseX;
+        private int _lastMouseY;
+
+        /// <summary>
         /// Main constructor.
         /// </summary>
         /// <param name="screen">The window to show the screen in.</param>
@@ -77,7 +110,7 @@ namespace AngryMouse
             _debug = debug;
             _screen = screen;
             _topmostRefreshTimer.Tick += TopmostRefreshTimer_Tick;
-
+            _idleHideTimer.Tick += IdleHideTimer_Tick;
         }
 
         protected override void OnSourceInitialized(EventArgs e)
@@ -100,6 +133,7 @@ namespace AngryMouse
             if (_mouseAnimator != null)
             {
                 _mouseAnimator.DpiInfo = newDpiScaleInfo;
+                ConfigureFollowBox();
             }
         }
 
@@ -124,18 +158,7 @@ namespace AngryMouse
 
             CursorHost.RenderTransform = transformGroup;
 
-            // Open this window maximized on the appropriate screen
-            Top = _screen.BoundY;
-            Left = _screen.BoundX;
-            WindowState = WindowState.Maximized;
-
-            OverlayCanvas.Width = _screen.BoundWidth;
-            OverlayCanvas.Height = _screen.BoundHeight;
-
             _dpiInfo = VisualTreeHelper.GetDpi(this);
-
-            Viewbox.Width = _screen.BoundWidth / _dpiInfo.PixelsPerDip;
-            Viewbox.Height = _screen.BoundHeight / _dpiInfo.PixelsPerDip;
 
             if (_debug)
             {
@@ -144,12 +167,24 @@ namespace AngryMouse
             }
 
             _mouseAnimator = new MouseAnimator(_cursorScale, _dpiInfo);
+            _mouseAnimator.CursorVisualHeight = _cursorVisualHeight;
+
+            // Size the small follow-window to the current cursor instead of the full screen.
+            ConfigureFollowBox();
+
+            // Initialized while shown so DPI/animator are ready; hide now since idle.
+            if (!_shouldBeVisible)
+            {
+                Hide();
+            }
         }
 
         private void Window_Closed(object sender, EventArgs e)
         {
             _topmostRefreshTimer.Stop();
             _topmostRefreshTimer.Tick -= TopmostRefreshTimer_Tick;
+            _idleHideTimer.Stop();
+            _idleHideTimer.Tick -= IdleHideTimer_Tick;
         }
 
         public void UpdateMousePosition(int x, int y)
@@ -159,6 +194,9 @@ namespace AngryMouse
                 Dispatcher.BeginInvoke(new Action(() => UpdateMousePosition(x, y)));
                 return;
             }
+
+            _lastMouseX = x;
+            _lastMouseY = y;
 
             var mouseInScreen = x >= _screen.BoundX && x <= _screen.BoundX + _screen.BoundWidth &&
                                 y >= _screen.BoundY && y <= _screen.BoundY + _screen.BoundHeight;
@@ -185,8 +223,8 @@ namespace AngryMouse
                 return;
             }
 
-            _cursorTranslate.X = x - _screen.BoundX;
-            _cursorTranslate.Y = y - _screen.BoundY;
+            // Move the small window so the cursor hotspot stays under the mouse.
+            ApplyWindowPosition();
         }
 
         internal void SetCursorVisual(CursorVisualInfo cursorVisual)
@@ -242,9 +280,15 @@ namespace AngryMouse
             _cursorHotspotTranslate.X = -cursorVisual.Hotspot.X;
             _cursorHotspotTranslate.Y = -cursorVisual.Hotspot.Y;
 
+            _cursorVisualWidth = cursorVisual.Width;
+            _cursorVisualHeight = cursorVisual.Height;
+            _cursorHotspotX = cursorVisual.Hotspot.X;
+            _cursorHotspotY = cursorVisual.Hotspot.Y;
+
             if (_mouseAnimator != null)
             {
                 _mouseAnimator.CursorVisualHeight = cursorVisual.Height;
+                ConfigureFollowBox();
             }
         }
 
@@ -260,6 +304,16 @@ namespace AngryMouse
             {
                 Dispatcher.BeginInvoke(new Action(() => SetMouseShake(shaking, timestamp)));
                 return;
+            }
+
+            _shouldBeVisible = shaking;
+            if (shaking)
+            {
+                ShowOverlay();
+            }
+            else
+            {
+                ScheduleIdleHide();
             }
 
             if (_mouseAnimator == null)
@@ -283,6 +337,38 @@ namespace AngryMouse
             _mouseAnimator.SetMouseShake(shaking, timestamp);
         }
 
+        private void ShowOverlay()
+        {
+            _idleHideTimer.Stop();
+            if (!IsVisible)
+            {
+                Show();
+            }
+
+            // Re-assert geometry: WPF can reset window position/size across Hide/Show.
+            ApplyWindowBounds();
+            RefreshTopmost();
+        }
+
+        private void ScheduleIdleHide()
+        {
+            // Keep the window alive until the shrink animation completes, then hide it so
+            // DWM stops compositing the full-screen layered surface while idle.
+            _idleHideTimer.Stop();
+            var animationLength = Math.Max(1, AngryMouse.Properties.Settings.Default.CursorAnimationLength);
+            _idleHideTimer.Interval = TimeSpan.FromMilliseconds(animationLength + 100);
+            _idleHideTimer.Start();
+        }
+
+        private void IdleHideTimer_Tick(object sender, EventArgs e)
+        {
+            _idleHideTimer.Stop();
+            if (!_shouldBeVisible && IsVisible)
+            {
+                Hide();
+            }
+        }
+
         private void TopmostRefreshTimer_Tick(object sender, EventArgs e)
         {
             RefreshTopmost();
@@ -291,6 +377,58 @@ namespace AngryMouse
         private void RefreshTopmost()
         {
             SetTopmostNoActivate(this);
+        }
+
+        /// <summary>
+        /// Sizes the small follow-window (and its canvas/viewbox) to the current cursor at full
+        /// scale, anchoring the hotspot inside it. Recomputed when the cursor visual, DPI, or
+        /// configured size changes. The grow/shrink animation plays within this fixed box.
+        /// </summary>
+        private void ConfigureFollowBox()
+        {
+            if (_mouseAnimator == null)
+            {
+                return;
+            }
+
+            var pixelsPerDip = _dpiInfo.PixelsPerDip <= 0 ? 1.0 : _dpiInfo.PixelsPerDip;
+            var targetScale = MouseAnimator.GetTargetScale(_cursorVisualHeight, pixelsPerDip);
+
+            var scaledWidth = _cursorVisualWidth * targetScale;
+            var scaledHeight = _cursorVisualHeight * targetScale;
+
+            // Margin (physical px) absorbs the built-in cursor's stroke overflow and rounding.
+            var margin = (int)Math.Ceiling(6 * targetScale) + 2;
+
+            _followAnchorX = (int)Math.Round(_cursorHotspotX * targetScale) + margin;
+            _followAnchorY = (int)Math.Round(_cursorHotspotY * targetScale) + margin;
+            _followBoxWidth = (int)Math.Ceiling(scaledWidth) + margin * 2;
+            _followBoxHeight = (int)Math.Ceiling(scaledHeight) + margin * 2;
+
+            OverlayCanvas.Width = _followBoxWidth;
+            OverlayCanvas.Height = _followBoxHeight;
+            Viewbox.Width = _followBoxWidth / pixelsPerDip;
+            Viewbox.Height = _followBoxHeight / pixelsPerDip;
+
+            _cursorTranslate.X = _followAnchorX;
+            _cursorTranslate.Y = _followAnchorY;
+
+            ApplyWindowBounds();
+        }
+
+        private void ApplyWindowBounds()
+        {
+            if (_followBoxWidth <= 0 || _followBoxHeight <= 0)
+            {
+                return;
+            }
+
+            SetWindowBounds(this, _lastMouseX - _followAnchorX, _lastMouseY - _followAnchorY, _followBoxWidth, _followBoxHeight);
+        }
+
+        private void ApplyWindowPosition()
+        {
+            SetWindowPosition(this, _lastMouseX - _followAnchorX, _lastMouseY - _followAnchorY);
         }
 
         internal void SetSystemCursorOverrideActive(bool active)

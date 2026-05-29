@@ -96,9 +96,13 @@ namespace AngryMouse.Cursors
 
         public static bool TryGetCurrentWindowsCursorRoleKey(out string roleKey)
         {
+            return TryGetWindowsCursorRoleKey(GetCurrentSystemCursorHandle(), out roleKey);
+        }
+
+        public static bool TryGetWindowsCursorRoleKey(IntPtr cursorHandle, out string roleKey)
+        {
             roleKey = null;
 
-            var cursorHandle = GetCurrentSystemCursorHandle();
             if (cursorHandle == IntPtr.Zero)
             {
                 return false;

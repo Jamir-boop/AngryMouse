@@ -73,5 +73,47 @@ namespace AngryMouse.Util
                 0,
                 SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOOWNERZORDER);
         }
+
+        /// <summary>
+        /// Moves the window (physical pixels) without resizing, activating, or changing Z-order.
+        /// </summary>
+        public static void SetWindowPosition(Window window, int x, int y)
+        {
+            var hwnd = new WindowInteropHelper(window).Handle;
+            if (hwnd == IntPtr.Zero)
+            {
+                return;
+            }
+
+            SetWindowPos(
+                hwnd,
+                HwndNoChange,
+                x,
+                y,
+                0,
+                0,
+                SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOOWNERZORDER);
+        }
+
+        /// <summary>
+        /// Moves and resizes the window (physical pixels) without activating or changing Z-order.
+        /// </summary>
+        public static void SetWindowBounds(Window window, int x, int y, int width, int height)
+        {
+            var hwnd = new WindowInteropHelper(window).Handle;
+            if (hwnd == IntPtr.Zero)
+            {
+                return;
+            }
+
+            SetWindowPos(
+                hwnd,
+                HwndNoChange,
+                x,
+                y,
+                width,
+                height,
+                SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOOWNERZORDER);
+        }
     }
 }

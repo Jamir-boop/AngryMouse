@@ -7,6 +7,7 @@ using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
@@ -34,7 +35,8 @@ namespace AngryMouse.Cursors
 
         static CursorVisualCache()
         {
-            CleanupDiskCache();
+            // Off the startup path: recursive EnumerateFiles must not block launch.
+            Task.Run(() => CleanupDiskCache());
         }
 
         private static void CleanupDiskCache()
@@ -599,7 +601,9 @@ namespace AngryMouse.Cursors
                 settings.HotspotOffsetX.ToString("R", CultureInfo.InvariantCulture),
                 settings.HotspotOffsetY.ToString("R", CultureInfo.InvariantCulture));
 
-            return ComputeHash(rawKey);
+            // In-memory key: use the composed string directly. No SHA256 on every lookup
+            // (cleared on collection change via NotifyCollectionChanged), unlike the disk key.
+            return rawKey;
         }
 
         private static string ComputeHash(string rawKey)

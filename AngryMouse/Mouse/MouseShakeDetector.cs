@@ -129,10 +129,13 @@ namespace AngryMouse.Mouse
                 MousePosition p0 = current.Previous?.Value;
 
                 // Distance between the current and the next point.
-                double d = Math.Sqrt(Math.Pow(p1.X - p2.X, 2) + Math.Pow(p1.Y - p2.Y, 2));
+                double dx = p1.X - p2.X;
+                double dy = p1.Y - p2.Y;
+                double d = Math.Sqrt(dx * dx + dy * dy);
 
                 // Speed between the current and the next point.
-                double v = d / (p1.Timestamp - p2.Timestamp);
+                int dt = p1.Timestamp - p2.Timestamp;
+                double v = dt == 0 ? 0 : d / dt;
 
                 speedSum += v;
 
@@ -171,16 +174,25 @@ namespace AngryMouse.Mouse
 
         private void Timer_Tick(object sender, ElapsedEventArgs e)
         {
-            if (DateTime.Now >= _visibleUntil)
+            if (DateTime.Now < _visibleUntil)
             {
-                Application.Current.Dispatcher.Invoke(() =>
-                {
-                    if (DateTime.Now >= _visibleUntil)
-                    {
-                        SetShaking(false);
-                    }
-                });
+                return;
             }
+
+            // Non-blocking: never block the hook thread on the UI thread.
+            Application.Current.Dispatcher.BeginInvoke(new Action(() =>
+            {
+                if (DateTime.Now >= _visibleUntil)
+                {
+                    SetShaking(false);
+
+                    // Idle: stop the 100ms wakeups. OnMouseMove re-enables on the next shake.
+                    if (!_shaking)
+                    {
+                        _timer.Enabled = false;
+                    }
+                }
+            }));
         }
 
         public void Dispose()

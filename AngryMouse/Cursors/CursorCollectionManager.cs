@@ -46,6 +46,14 @@ namespace AngryMouse.Cursors
         private static readonly Dictionary<string, string> KnownFileNames =
             CreateKnownFileNameMap();
 
+        private static readonly object MetadataCacheLock = new object();
+
+        private static readonly Dictionary<string, Dictionary<string, string>> AssignmentsCache =
+            new Dictionary<string, Dictionary<string, string>>(StringComparer.OrdinalIgnoreCase);
+
+        private static readonly Dictionary<string, Dictionary<string, CursorRoleRenderSettings>> RoleSettingsCache =
+            new Dictionary<string, Dictionary<string, CursorRoleRenderSettings>>(StringComparer.OrdinalIgnoreCase);
+
         public static event EventHandler CollectionChanged;
 
         public static void InitializeDefaults()
@@ -367,6 +375,28 @@ namespace AngryMouse.Cursors
 
         public static Dictionary<string, string> LoadAssignments(string collectionName)
         {
+            var cacheKey = collectionName ?? string.Empty;
+            lock (MetadataCacheLock)
+            {
+                Dictionary<string, string> cachedAssignments;
+                if (AssignmentsCache.TryGetValue(cacheKey, out cachedAssignments))
+                {
+                    return new Dictionary<string, string>(cachedAssignments, StringComparer.OrdinalIgnoreCase);
+                }
+            }
+
+            var assignments = LoadAssignmentsFromDisk(collectionName);
+
+            lock (MetadataCacheLock)
+            {
+                AssignmentsCache[cacheKey] = new Dictionary<string, string>(assignments, StringComparer.OrdinalIgnoreCase);
+            }
+
+            return assignments;
+        }
+
+        private static Dictionary<string, string> LoadAssignmentsFromDisk(string collectionName)
+        {
             var path = GetAssignmentsPath(collectionName);
             if (!File.Exists(path))
             {
@@ -402,6 +432,40 @@ namespace AngryMouse.Cursors
         }
 
         public static Dictionary<string, CursorRoleRenderSettings> LoadRoleSettings(string collectionName)
+        {
+            var cacheKey = collectionName ?? string.Empty;
+            lock (MetadataCacheLock)
+            {
+                Dictionary<string, CursorRoleRenderSettings> cachedSettings;
+                if (RoleSettingsCache.TryGetValue(cacheKey, out cachedSettings))
+                {
+                    return CloneRoleSettings(cachedSettings);
+                }
+            }
+
+            var loadedSettings = LoadRoleSettingsFromDisk(collectionName);
+
+            lock (MetadataCacheLock)
+            {
+                RoleSettingsCache[cacheKey] = CloneRoleSettings(loadedSettings);
+            }
+
+            return loadedSettings;
+        }
+
+        private static Dictionary<string, CursorRoleRenderSettings> CloneRoleSettings(
+            Dictionary<string, CursorRoleRenderSettings> source)
+        {
+            var clone = new Dictionary<string, CursorRoleRenderSettings>(StringComparer.OrdinalIgnoreCase);
+            foreach (var entry in source)
+            {
+                clone[entry.Key] = entry.Value != null ? entry.Value.Clone() : new CursorRoleRenderSettings();
+            }
+
+            return clone;
+        }
+
+        private static Dictionary<string, CursorRoleRenderSettings> LoadRoleSettingsFromDisk(string collectionName)
         {
             var settings = CreateDefaultRoleSettings();
             var path = GetRoleSettingsPath(collectionName);
@@ -610,6 +674,12 @@ namespace AngryMouse.Cursors
 
         public static void NotifyCollectionChanged()
         {
+            lock (MetadataCacheLock)
+            {
+                AssignmentsCache.Clear();
+                RoleSettingsCache.Clear();
+            }
+
             CursorVisualCache.ClearMemory();
 
             var handler = CollectionChanged;
