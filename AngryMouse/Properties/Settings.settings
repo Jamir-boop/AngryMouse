@@ -11,6 +11,21 @@
     <Setting Name="CursorVisibleDuration" Type="System.Int32" Scope="User">
       <Value Profile="(Default)">800</Value>
     </Setting>
+    <Setting Name="ShakeActivationEnabled" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">True</Value>
+    </Setting>
+    <Setting Name="HotkeyActivationEnabled" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">True</Value>
+    </Setting>
+    <Setting Name="HotkeyActivationMode" Type="System.String" Scope="User">
+      <Value Profile="(Default)">Hold</Value>
+    </Setting>
+    <Setting Name="HotkeyModifiers" Type="System.String" Scope="User">
+      <Value Profile="(Default)">Control</Value>
+    </Setting>
+    <Setting Name="HotkeyKey" Type="System.String" Scope="User">
+      <Value Profile="(Default)">None</Value>
+    </Setting>
     <Setting Name="HideBuiltInCursor" Type="System.Boolean" Scope="User">
       <Value Profile="(Default)">False</Value>
     </Setting>

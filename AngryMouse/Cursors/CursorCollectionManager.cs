@@ -709,6 +709,11 @@ namespace AngryMouse.Cursors
                     CreateSettingElement("CursorSize", settings.CursorSize.ToString(CultureInfo.InvariantCulture)),
                     CreateSettingElement("CursorAnimationLength", settings.CursorAnimationLength.ToString(CultureInfo.InvariantCulture)),
                     CreateSettingElement("CursorVisibleDuration", settings.CursorVisibleDuration.ToString(CultureInfo.InvariantCulture)),
+                    CreateSettingElement("ShakeActivationEnabled", settings.ShakeActivationEnabled.ToString().ToLowerInvariant()),
+                    CreateSettingElement("HotkeyActivationEnabled", settings.HotkeyActivationEnabled.ToString().ToLowerInvariant()),
+                    CreateSettingElement("HotkeyActivationMode", NormalizeHotkeyActivationMode(settings.HotkeyActivationMode)),
+                    CreateSettingElement("HotkeyModifiers", NormalizeHotkeyModifiers(settings.HotkeyModifiers)),
+                    CreateSettingElement("HotkeyKey", NormalizeHotkeyKey(settings.HotkeyKey)),
                     CreateSettingElement("HideBuiltInCursor", settings.HideBuiltInCursor.ToString().ToLowerInvariant()),
                     CreateSettingElement("CursorSourceMode", settings.CursorSourceMode ?? string.Empty),
                     CreateSettingElement("CursorCollectionName", settings.CursorCollectionName ?? string.Empty),
@@ -898,6 +903,35 @@ namespace AngryMouse.Cursors
                 settings.CursorVisibleDuration = intValue;
             }
 
+            if (TryGetSettingValue(values, "ShakeActivationEnabled", out stringValue) &&
+                bool.TryParse(stringValue, out boolValue))
+            {
+                settings.ShakeActivationEnabled = boolValue;
+            }
+
+            if (TryGetSettingValue(values, "HotkeyActivationEnabled", out stringValue) &&
+                bool.TryParse(stringValue, out boolValue))
+            {
+                settings.HotkeyActivationEnabled = boolValue;
+            }
+
+            if (TryGetSettingValue(values, "HotkeyActivationMode", out stringValue))
+            {
+                settings.HotkeyActivationMode = NormalizeHotkeyActivationMode(stringValue);
+            }
+
+            if (TryGetSettingValue(values, "HotkeyModifiers", out stringValue))
+            {
+                settings.HotkeyModifiers = NormalizeHotkeyModifiers(stringValue);
+            }
+
+            if (TryGetSettingValue(values, "HotkeyKey", out stringValue))
+            {
+                settings.HotkeyKey = NormalizeHotkeyKey(stringValue);
+            }
+
+            NormalizeActivationSettings(settings);
+
             if (TryGetSettingValue(values, "HideBuiltInCursor", out stringValue) &&
                 bool.TryParse(stringValue, out boolValue))
             {
@@ -1054,6 +1088,101 @@ namespace AngryMouse.Cursors
         private static bool TryGetSettingValue(IDictionary<string, string> values, string name, out string value)
         {
             return values.TryGetValue(name, out value) && value != null;
+        }
+
+        private static void NormalizeActivationSettings(Properties.Settings settings)
+        {
+            if (!settings.ShakeActivationEnabled && !settings.HotkeyActivationEnabled)
+            {
+                settings.ShakeActivationEnabled = true;
+            }
+
+            settings.HotkeyActivationMode = NormalizeHotkeyActivationMode(settings.HotkeyActivationMode);
+            settings.HotkeyModifiers = NormalizeHotkeyModifiers(settings.HotkeyModifiers);
+            settings.HotkeyKey = NormalizeHotkeyKey(settings.HotkeyKey);
+
+            if (string.Equals(settings.HotkeyModifiers, "None", StringComparison.OrdinalIgnoreCase) &&
+                string.Equals(settings.HotkeyKey, "None", StringComparison.OrdinalIgnoreCase))
+            {
+                settings.HotkeyModifiers = "Control";
+            }
+        }
+
+        private static string NormalizeHotkeyActivationMode(string value)
+        {
+            return string.Equals(value, "Toggle", StringComparison.OrdinalIgnoreCase) ? "Toggle" : "Hold";
+        }
+
+        private static string NormalizeHotkeyModifiers(string value)
+        {
+            switch ((value ?? string.Empty).Trim().ToLowerInvariant())
+            {
+                case "none":
+                    return "None";
+                case "alt":
+                    return "Alt";
+                case "shift":
+                    return "Shift";
+                case "control+shift":
+                case "ctrl+shift":
+                    return "Control+Shift";
+                case "control+alt":
+                case "ctrl+alt":
+                    return "Control+Alt";
+                case "alt+shift":
+                    return "Alt+Shift";
+                case "control+alt+shift":
+                case "ctrl+alt+shift":
+                    return "Control+Alt+Shift";
+                default:
+                    return "Control";
+            }
+        }
+
+        private static string NormalizeHotkeyKey(string value)
+        {
+            var normalized = (value ?? string.Empty).Trim();
+            if (string.IsNullOrWhiteSpace(normalized) || string.Equals(normalized, "None", StringComparison.OrdinalIgnoreCase))
+            {
+                return "None";
+            }
+
+            if (normalized.Length == 1)
+            {
+                var c = char.ToUpperInvariant(normalized[0]);
+                if (c >= 'A' && c <= 'Z')
+                {
+                    return c.ToString();
+                }
+
+                if (c >= '0' && c <= '9')
+                {
+                    return "D" + c;
+                }
+            }
+
+            for (var i = 0; i <= 9; i++)
+            {
+                if (string.Equals(normalized, "D" + i.ToString(CultureInfo.InvariantCulture), StringComparison.OrdinalIgnoreCase))
+                {
+                    return "D" + i.ToString(CultureInfo.InvariantCulture);
+                }
+            }
+
+            for (var i = 1; i <= 12; i++)
+            {
+                if (string.Equals(normalized, "F" + i.ToString(CultureInfo.InvariantCulture), StringComparison.OrdinalIgnoreCase))
+                {
+                    return "F" + i.ToString(CultureInfo.InvariantCulture);
+                }
+            }
+
+            if (string.Equals(normalized, "Space", StringComparison.OrdinalIgnoreCase))
+            {
+                return "Space";
+            }
+
+            return string.Equals(normalized, "Escape", StringComparison.OrdinalIgnoreCase) ? "Escape" : "None";
         }
 
         private static Dictionary<string, string> InferAssignments(string collectionName)

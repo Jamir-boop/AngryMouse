@@ -1,8 +1,10 @@
-﻿using Gma.System.MouseKeyHook;
+using Gma.System.MouseKeyHook;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Timers;
 using System.Windows;
+using Forms = System.Windows.Forms;
 
 namespace AngryMouse.Mouse
 {
@@ -17,7 +19,7 @@ namespace AngryMouse.Mouse
         private const int MouseEventRate = 10;
 
         /// <summary>
-        /// The hook into mouse events
+        /// The hook into mouse events.
         /// </summary>
         private readonly IKeyboardMouseEvents _mouseEvents;
 
@@ -26,7 +28,12 @@ namespace AngryMouse.Mouse
         /// </summary>
         private DateTime _lastMouseEvent = DateTime.MinValue;
 
-        private DateTime _visibleUntil = DateTime.MinValue;
+        private DateTime _shakeVisibleUntil = DateTime.MinValue;
+        private bool _hotkeyHeld;
+        private bool _hotkeyMatched;
+        private bool _toggleActive;
+        private bool _shakeGestureActive;
+        private readonly HashSet<Forms.Keys> _pressedKeys = new HashSet<Forms.Keys>();
 
         /// <summary>
         /// Stores the recorded mouse positions.
@@ -61,6 +68,9 @@ namespace AngryMouse.Mouse
             _mouseEvents = StaticHook.GlobalEvents();
 
             _mouseEvents.MouseMoveExt += OnMouseMove;
+            _mouseEvents.KeyDown += OnKeyDown;
+            _mouseEvents.KeyUp += OnKeyUp;
+            Properties.Settings.Default.PropertyChanged += SettingsOnPropertyChanged;
 
             _timer.Interval = 100;
             _timer.Elapsed += Timer_Tick;
@@ -81,10 +91,19 @@ namespace AngryMouse.Mouse
 
                 _lastMouseEvent = currentTime;
 
+                if (!ShakeActivationEnabled)
+                {
+                    _mousePositions.Clear();
+                    _shakeGestureActive = false;
+                    _shakeVisibleUntil = DateTime.MinValue;
+                    ApplyEffectiveState(currentTime);
+                    return;
+                }
+
                 while (_mousePositions.Count > 0 &&
                        e.Timestamp - TrackingInterval > _mousePositions.Last.Value.Timestamp)
                 {
-                    // Remove old positions
+                    // Remove old positions.
                     _mousePositions.RemoveLast();
                 }
 
@@ -92,15 +111,29 @@ namespace AngryMouse.Mouse
 
                 if (IsShaking())
                 {
-                    _visibleUntil = currentTime.AddMilliseconds(VisibleDuration);
-                    SetShaking(true);
-                    if (!_timer.Enabled)
+                    if (ToggleMode)
                     {
-                        _timer.Enabled = true;
+                        if (!_shakeGestureActive)
+                        {
+                            ToggleActivation();
+                        }
                     }
+                    else
+                    {
+                        _shakeVisibleUntil = currentTime.AddMilliseconds(VisibleDuration);
+                        ApplyEffectiveState(currentTime);
+                        if (!_timer.Enabled)
+                        {
+                            _timer.Enabled = true;
+                        }
+                    }
+
+                    _shakeGestureActive = true;
                 }
-                // Note: we do not disable timer here because we need it to turn off shaking state
-                // Timer will be disabled in Timer_Tick when _shaking becomes false
+                else
+                {
+                    _shakeGestureActive = false;
+                }
             }
         }
 
@@ -110,7 +143,7 @@ namespace AngryMouse.Mouse
         /// <returns></returns>
         private bool IsShaking()
         {
-            // At least 10 positions needed
+            // At least 10 positions needed.
             if (_mousePositions.Count < 10)
             {
                 return false;
@@ -121,7 +154,7 @@ namespace AngryMouse.Mouse
 
             LinkedListNode<MousePosition> current = _mousePositions.First;
 
-            // Loop thought the linked list, skipping the last element
+            // Loop through the linked list, skipping the last element.
             while (current.Next != null)
             {
                 MousePosition p1 = current.Value;
@@ -139,7 +172,7 @@ namespace AngryMouse.Mouse
 
                 speedSum += v;
 
-                // Check the movement angle in the point
+                // Check the movement angle in the point.
                 if (p0 != null && p1.Dot(p0, p2) < 0)
                 {
                     sharpTurns++;
@@ -148,7 +181,7 @@ namespace AngryMouse.Mouse
                 current = current.Next;
             }
 
-            // Average mouse speed
+            // Average mouse speed.
             double avgSpeed = speedSum / (_mousePositions.Count - 1);
 
             return avgSpeed >= MinimumSpeed && sharpTurns >= MinimumTurns;
@@ -162,6 +195,220 @@ namespace AngryMouse.Mouse
 
         private static int VisibleDuration => Math.Max(1, Properties.Settings.Default.CursorVisibleDuration);
 
+        private static bool ShakeActivationEnabled
+        {
+            get
+            {
+                var settings = Properties.Settings.Default;
+                return settings.ShakeActivationEnabled || !settings.HotkeyActivationEnabled;
+            }
+        }
+
+        private static bool HotkeyActivationEnabled => Properties.Settings.Default.HotkeyActivationEnabled;
+
+        private static bool ToggleMode => string.Equals(
+            Properties.Settings.Default.HotkeyActivationMode,
+            "Toggle",
+            StringComparison.OrdinalIgnoreCase);
+
+        private static string HotkeyModifiers => Properties.Settings.Default.HotkeyModifiers ?? "Control";
+
+        private static string HotkeyKey => Properties.Settings.Default.HotkeyKey ?? "None";
+
+        private void OnKeyDown(object sender, Forms.KeyEventArgs e)
+        {
+            _pressedKeys.Add(NormalizeKey(e.KeyCode));
+            UpdateHotkeyState();
+        }
+
+        private void OnKeyUp(object sender, Forms.KeyEventArgs e)
+        {
+            _pressedKeys.Remove(NormalizeKey(e.KeyCode));
+            UpdateHotkeyState();
+        }
+
+        private void UpdateHotkeyState()
+        {
+            var matched = HotkeyActivationEnabled && IsHotkeyMatched();
+
+            if (ToggleMode)
+            {
+                if (matched && !_hotkeyMatched)
+                {
+                    ToggleActivation();
+                }
+
+                _hotkeyMatched = HotkeyActivationEnabled && AreHotkeyCoreKeysPressed();
+                _hotkeyHeld = false;
+                return;
+            }
+
+            _hotkeyMatched = matched;
+            if (_hotkeyHeld != matched)
+            {
+                _hotkeyHeld = matched;
+                ApplyEffectiveState(DateTime.Now);
+            }
+        }
+
+        private bool IsHotkeyMatched()
+        {
+            var requiredModifiers = GetRequiredModifiers(HotkeyModifiers);
+            var key = ParseKey(HotkeyKey);
+            if (requiredModifiers.Count == 0 && key == Forms.Keys.None)
+            {
+                requiredModifiers.Add(Forms.Keys.ControlKey);
+            }
+
+            foreach (var modifier in ModifierKeys)
+            {
+                if (_pressedKeys.Contains(modifier) != requiredModifiers.Contains(modifier))
+                {
+                    return false;
+                }
+            }
+
+            return key == Forms.Keys.None || _pressedKeys.Contains(key);
+        }
+
+        private bool AreHotkeyCoreKeysPressed()
+        {
+            var requiredModifiers = GetRequiredModifiers(HotkeyModifiers);
+            var key = ParseKey(HotkeyKey);
+            if (requiredModifiers.Count == 0 && key == Forms.Keys.None)
+            {
+                requiredModifiers.Add(Forms.Keys.ControlKey);
+            }
+
+            foreach (var modifier in requiredModifiers)
+            {
+                if (!_pressedKeys.Contains(modifier))
+                {
+                    return false;
+                }
+            }
+
+            return key == Forms.Keys.None || _pressedKeys.Contains(key);
+        }
+
+        private static HashSet<Forms.Keys> GetRequiredModifiers(string value)
+        {
+            var modifiers = new HashSet<Forms.Keys>();
+            var parts = (value ?? string.Empty).Split(new[] { '+', ',', ';', ' ' }, StringSplitOptions.RemoveEmptyEntries);
+            foreach (var part in parts)
+            {
+                switch (part.Trim().ToLowerInvariant())
+                {
+                    case "control":
+                    case "ctrl":
+                        modifiers.Add(Forms.Keys.ControlKey);
+                        break;
+                    case "shift":
+                        modifiers.Add(Forms.Keys.ShiftKey);
+                        break;
+                    case "alt":
+                    case "menu":
+                        modifiers.Add(Forms.Keys.Menu);
+                        break;
+                }
+            }
+
+            return modifiers;
+        }
+
+        private static Forms.Keys ParseKey(string value)
+        {
+            Forms.Keys key;
+            if (Enum.TryParse(value ?? string.Empty, true, out key))
+            {
+                return NormalizeKey(key);
+            }
+
+            return Forms.Keys.None;
+        }
+
+        private static Forms.Keys NormalizeKey(Forms.Keys key)
+        {
+            switch (key)
+            {
+                case Forms.Keys.LControlKey:
+                case Forms.Keys.RControlKey:
+                case Forms.Keys.Control:
+                    return Forms.Keys.ControlKey;
+                case Forms.Keys.LShiftKey:
+                case Forms.Keys.RShiftKey:
+                case Forms.Keys.Shift:
+                    return Forms.Keys.ShiftKey;
+                case Forms.Keys.LMenu:
+                case Forms.Keys.RMenu:
+                case Forms.Keys.Alt:
+                    return Forms.Keys.Menu;
+                default:
+                    return key;
+            }
+        }
+
+        private void ToggleActivation()
+        {
+            _toggleActive = !_toggleActive;
+            _shakeVisibleUntil = DateTime.MinValue;
+            _hotkeyHeld = false;
+            ApplyEffectiveState(DateTime.Now);
+        }
+
+        private void ApplyEffectiveState(DateTime now)
+        {
+            if (ToggleMode)
+            {
+                SetShaking(_toggleActive);
+                return;
+            }
+
+            var active = (ShakeActivationEnabled && now < _shakeVisibleUntil) || _hotkeyHeld;
+            SetShaking(active);
+        }
+
+        private void SettingsOnPropertyChanged(object sender, PropertyChangedEventArgs e)
+        {
+            switch (e.PropertyName)
+            {
+                case "ShakeActivationEnabled":
+                case "HotkeyActivationEnabled":
+                case "HotkeyActivationMode":
+                case "HotkeyModifiers":
+                case "HotkeyKey":
+                    ApplyActivationSettings();
+                    break;
+            }
+        }
+
+        private void ApplyActivationSettings()
+        {
+            var now = DateTime.Now;
+            if (!ShakeActivationEnabled || ToggleMode)
+            {
+                _shakeVisibleUntil = DateTime.MinValue;
+                _shakeGestureActive = false;
+                _mousePositions.Clear();
+            }
+
+            if (ToggleMode)
+            {
+                _toggleActive = _shaking;
+                _hotkeyHeld = false;
+                _timer.Enabled = false;
+            }
+            else
+            {
+                _toggleActive = false;
+                _hotkeyHeld = HotkeyActivationEnabled && IsHotkeyMatched();
+            }
+
+            _hotkeyMatched = HotkeyActivationEnabled &&
+                             (ToggleMode ? AreHotkeyCoreKeysPressed() : IsHotkeyMatched());
+            ApplyEffectiveState(now);
+        }
+
         private void SetShaking(bool shaking)
         {
             if (_shaking != shaking)
@@ -174,7 +421,13 @@ namespace AngryMouse.Mouse
 
         private void Timer_Tick(object sender, ElapsedEventArgs e)
         {
-            if (DateTime.Now < _visibleUntil)
+            if (ToggleMode)
+            {
+                _timer.Enabled = false;
+                return;
+            }
+
+            if (DateTime.Now < _shakeVisibleUntil)
             {
                 return;
             }
@@ -182,9 +435,10 @@ namespace AngryMouse.Mouse
             // Non-blocking: never block the hook thread on the UI thread.
             Application.Current.Dispatcher.BeginInvoke(new Action(() =>
             {
-                if (DateTime.Now >= _visibleUntil)
+                if (!ToggleMode && DateTime.Now >= _shakeVisibleUntil)
                 {
-                    SetShaking(false);
+                    _shakeVisibleUntil = DateTime.MinValue;
+                    ApplyEffectiveState(DateTime.Now);
 
                     // Idle: stop the 100ms wakeups. OnMouseMove re-enables on the next shake.
                     if (!_shaking)
@@ -198,8 +452,18 @@ namespace AngryMouse.Mouse
         public void Dispose()
         {
             _mouseEvents.MouseMoveExt -= OnMouseMove;
+            _mouseEvents.KeyDown -= OnKeyDown;
+            _mouseEvents.KeyUp -= OnKeyUp;
+            Properties.Settings.Default.PropertyChanged -= SettingsOnPropertyChanged;
             _timer.Enabled = false;
             _timer.Dispose();
         }
+
+        private static readonly Forms.Keys[] ModifierKeys =
+        {
+            Forms.Keys.ControlKey,
+            Forms.Keys.ShiftKey,
+            Forms.Keys.Menu
+        };
     }
 }

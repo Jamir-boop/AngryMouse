@@ -44,6 +44,11 @@ namespace AngryMouse
 
         private static readonly string[] ShakeSettingNames =
         {
+            "ShakeActivationEnabled",
+            "HotkeyActivationEnabled",
+            "HotkeyActivationMode",
+            "HotkeyModifiers",
+            "HotkeyKey",
             "ShakeTrackingInterval",
             "ShakeMinimumSpeed",
             "ShakeMinimumTurns"
@@ -52,6 +57,7 @@ namespace AngryMouse
         public SettingsWindow()
         {
             InitializeComponent();
+            LoadActivationComboItems();
             Title = App.DisplayNameWithVersion;
             VersionTextBlock.Text = "jamir-boop - AngryCursor " + App.DisplayVersion;
             _debounceTimer = new DispatcherTimer
@@ -89,6 +95,14 @@ namespace AngryMouse
             VisibleDurationSlider.Value = Properties.Settings.Default.CursorVisibleDuration;
             HideBuiltInCursorCheckBox.IsChecked = Properties.Settings.Default.HideBuiltInCursor;
             SyncHideBuiltInCursorAvailability(saveWhenChanged: true);
+            ShakeActivationEnabledCheckBox.IsChecked = Properties.Settings.Default.ShakeActivationEnabled;
+            HotkeyActivationEnabledCheckBox.IsChecked = Properties.Settings.Default.HotkeyActivationEnabled;
+            EnsureActivationSourceSelected();
+            SelectComboBoxItemByTag(HotkeyActivationModeComboBox, NormalizeHotkeyActivationMode(Properties.Settings.Default.HotkeyActivationMode));
+            SelectComboBoxItemByTag(HotkeyModifiersComboBox, NormalizeHotkeyModifiers(Properties.Settings.Default.HotkeyModifiers));
+            SelectComboBoxItemByTag(HotkeyKeyComboBox, NormalizeHotkeyKey(Properties.Settings.Default.HotkeyKey));
+            EnsureValidHotkeySelection();
+            UpdateActivationUiAvailability();
             ShakeTrackingIntervalSlider.Value = Properties.Settings.Default.ShakeTrackingInterval;
             ShakeMinimumSpeedSlider.Value = Properties.Settings.Default.ShakeMinimumSpeed;
             ShakeMinimumTurnsSlider.Value = Properties.Settings.Default.ShakeMinimumTurns;
@@ -138,6 +152,74 @@ namespace AngryMouse
             }
 
             CursorSourceComboBox.SelectedIndex = 0;
+        }
+
+        private void LoadActivationComboItems()
+        {
+            HotkeyActivationModeComboBox.Items.Clear();
+            AddComboBoxItem(HotkeyActivationModeComboBox, "Hold", "Hold");
+            AddComboBoxItem(HotkeyActivationModeComboBox, "Toggle", "Toggle");
+
+            HotkeyModifiersComboBox.Items.Clear();
+            AddComboBoxItem(HotkeyModifiersComboBox, "None", "None");
+            AddComboBoxItem(HotkeyModifiersComboBox, "Control", "Control");
+            AddComboBoxItem(HotkeyModifiersComboBox, "Alt", "Alt");
+            AddComboBoxItem(HotkeyModifiersComboBox, "Shift", "Shift");
+            AddComboBoxItem(HotkeyModifiersComboBox, "Control+Shift", "Control+Shift");
+            AddComboBoxItem(HotkeyModifiersComboBox, "Control+Alt", "Control+Alt");
+            AddComboBoxItem(HotkeyModifiersComboBox, "Alt+Shift", "Alt+Shift");
+            AddComboBoxItem(HotkeyModifiersComboBox, "Control+Alt+Shift", "Control+Alt+Shift");
+
+            HotkeyKeyComboBox.Items.Clear();
+            AddComboBoxItem(HotkeyKeyComboBox, "None", "None");
+            for (var key = 'A'; key <= 'Z'; key++)
+            {
+                AddComboBoxItem(HotkeyKeyComboBox, key.ToString(), key.ToString());
+            }
+
+            for (var key = 0; key <= 9; key++)
+            {
+                AddComboBoxItem(HotkeyKeyComboBox, key.ToString(), "D" + key.ToString(CultureInfo.InvariantCulture));
+            }
+
+            for (var key = 1; key <= 12; key++)
+            {
+                var name = "F" + key.ToString(CultureInfo.InvariantCulture);
+                AddComboBoxItem(HotkeyKeyComboBox, name, name);
+            }
+
+            AddComboBoxItem(HotkeyKeyComboBox, "Space", "Space");
+            AddComboBoxItem(HotkeyKeyComboBox, "Escape", "Escape");
+        }
+
+        private static void AddComboBoxItem(ComboBox comboBox, string content, string tag)
+        {
+            comboBox.Items.Add(new ComboBoxItem
+            {
+                Content = content,
+                Tag = tag
+            });
+        }
+
+        private static void SelectComboBoxItemByTag(ComboBox comboBox, string tag)
+        {
+            foreach (var item in comboBox.Items)
+            {
+                var comboBoxItem = item as ComboBoxItem;
+                if (string.Equals(comboBoxItem?.Tag as string, tag, StringComparison.OrdinalIgnoreCase))
+                {
+                    comboBox.SelectedItem = comboBoxItem;
+                    return;
+                }
+            }
+
+            comboBox.SelectedIndex = comboBox.Items.Count > 0 ? 0 : -1;
+        }
+
+        private static string GetSelectedComboBoxTag(ComboBox comboBox, string fallback)
+        {
+            var comboBoxItem = comboBox.SelectedItem as ComboBoxItem;
+            return comboBoxItem?.Tag as string ?? fallback;
         }
 
         private void SelectCollection(string collectionName)
@@ -197,6 +279,128 @@ namespace AngryMouse
         private string GetSelectedRemoveCollectionName()
         {
             return RemoveCollectionComboBox.SelectedItem as string;
+        }
+
+        private static string NormalizeHotkeyActivationMode(string value)
+        {
+            return string.Equals(value, "Toggle", StringComparison.OrdinalIgnoreCase) ? "Toggle" : "Hold";
+        }
+
+        private static string NormalizeHotkeyModifiers(string value)
+        {
+            switch ((value ?? string.Empty).Trim().ToLowerInvariant())
+            {
+                case "none":
+                    return "None";
+                case "alt":
+                    return "Alt";
+                case "shift":
+                    return "Shift";
+                case "control+shift":
+                case "ctrl+shift":
+                    return "Control+Shift";
+                case "control+alt":
+                case "ctrl+alt":
+                    return "Control+Alt";
+                case "alt+shift":
+                    return "Alt+Shift";
+                case "control+alt+shift":
+                case "ctrl+alt+shift":
+                    return "Control+Alt+Shift";
+                default:
+                    return "Control";
+            }
+        }
+
+        private static string NormalizeHotkeyKey(string value)
+        {
+            var normalized = (value ?? string.Empty).Trim();
+            if (string.IsNullOrWhiteSpace(normalized) || string.Equals(normalized, "None", StringComparison.OrdinalIgnoreCase))
+            {
+                return "None";
+            }
+
+            if (normalized.Length == 1)
+            {
+                var c = char.ToUpperInvariant(normalized[0]);
+                if (c >= 'A' && c <= 'Z')
+                {
+                    return c.ToString();
+                }
+
+                if (c >= '0' && c <= '9')
+                {
+                    return "D" + c;
+                }
+            }
+
+            for (var i = 0; i <= 9; i++)
+            {
+                if (string.Equals(normalized, "D" + i.ToString(CultureInfo.InvariantCulture), StringComparison.OrdinalIgnoreCase))
+                {
+                    return "D" + i.ToString(CultureInfo.InvariantCulture);
+                }
+            }
+
+            for (var i = 1; i <= 12; i++)
+            {
+                if (string.Equals(normalized, "F" + i.ToString(CultureInfo.InvariantCulture), StringComparison.OrdinalIgnoreCase))
+                {
+                    return "F" + i.ToString(CultureInfo.InvariantCulture);
+                }
+            }
+
+            if (string.Equals(normalized, "Space", StringComparison.OrdinalIgnoreCase))
+            {
+                return "Space";
+            }
+
+            return string.Equals(normalized, "Escape", StringComparison.OrdinalIgnoreCase) ? "Escape" : "None";
+        }
+
+        private void EnsureActivationSourceSelected()
+        {
+            if (ShakeActivationEnabledCheckBox.IsChecked != true && HotkeyActivationEnabledCheckBox.IsChecked != true)
+            {
+                ShakeActivationEnabledCheckBox.IsChecked = true;
+            }
+        }
+
+        private void EnsureValidHotkeySelection()
+        {
+            var modifiers = GetSelectedComboBoxTag(HotkeyModifiersComboBox, "Control");
+            var key = GetSelectedComboBoxTag(HotkeyKeyComboBox, "None");
+            if (string.Equals(modifiers, "None", StringComparison.OrdinalIgnoreCase) &&
+                string.Equals(key, "None", StringComparison.OrdinalIgnoreCase))
+            {
+                SelectComboBoxItemByTag(HotkeyModifiersComboBox, "Control");
+            }
+        }
+
+        private void SaveActivationSettings()
+        {
+            EnsureActivationSourceSelected();
+            EnsureValidHotkeySelection();
+
+            Properties.Settings.Default.ShakeActivationEnabled = ShakeActivationEnabledCheckBox.IsChecked == true;
+            Properties.Settings.Default.HotkeyActivationEnabled = HotkeyActivationEnabledCheckBox.IsChecked == true;
+            Properties.Settings.Default.HotkeyActivationMode = GetSelectedComboBoxTag(HotkeyActivationModeComboBox, "Hold");
+            Properties.Settings.Default.HotkeyModifiers = GetSelectedComboBoxTag(HotkeyModifiersComboBox, "Control");
+            Properties.Settings.Default.HotkeyKey = GetSelectedComboBoxTag(HotkeyKeyComboBox, "None");
+            SaveSettings();
+            UpdateActivationUiAvailability();
+        }
+
+        private void UpdateActivationUiAvailability()
+        {
+            var shakeEnabled = ShakeActivationEnabledCheckBox.IsChecked == true;
+            var hotkeyEnabled = HotkeyActivationEnabledCheckBox.IsChecked == true;
+
+            HotkeyActivationModeComboBox.IsEnabled = hotkeyEnabled;
+            HotkeyPanel.IsEnabled = hotkeyEnabled;
+            ShakeTrackingIntervalSlider.IsEnabled = shakeEnabled;
+            ShakeMinimumSpeedSlider.IsEnabled = shakeEnabled;
+            ShakeMinimumTurnsSlider.IsEnabled = shakeEnabled;
         }
 
         private void CursorSourceComboBox_OnSelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -571,6 +775,27 @@ namespace AngryMouse
             }
 
             SaveSettings();
+        }
+
+        private void ActivationSourceCheckBox_OnChanged(object sender, RoutedEventArgs e)
+        {
+            if (_loading) return;
+
+            SaveActivationSettings();
+        }
+
+        private void HotkeyActivationModeComboBox_OnSelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (_loading) return;
+
+            SaveActivationSettings();
+        }
+
+        private void HotkeyComboBox_OnSelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (_loading) return;
+
+            SaveActivationSettings();
         }
 
         private void ShakeTrackingIntervalSlider_OnValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)

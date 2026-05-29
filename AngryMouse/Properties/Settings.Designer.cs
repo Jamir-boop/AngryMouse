@@ -61,6 +61,66 @@ namespace AngryMouse.Properties {
 
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool ShakeActivationEnabled {
+            get {
+                return ((bool)(this["ShakeActivationEnabled"]));
+            }
+            set {
+                this["ShakeActivationEnabled"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool HotkeyActivationEnabled {
+            get {
+                return ((bool)(this["HotkeyActivationEnabled"]));
+            }
+            set {
+                this["HotkeyActivationEnabled"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("Hold")]
+        public string HotkeyActivationMode {
+            get {
+                return ((string)(this["HotkeyActivationMode"]));
+            }
+            set {
+                this["HotkeyActivationMode"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("Control")]
+        public string HotkeyModifiers {
+            get {
+                return ((string)(this["HotkeyModifiers"]));
+            }
+            set {
+                this["HotkeyModifiers"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("None")]
+        public string HotkeyKey {
+            get {
+                return ((string)(this["HotkeyKey"]));
+            }
+            set {
+                this["HotkeyKey"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("False")]
         public bool HideBuiltInCursor {
             get {
