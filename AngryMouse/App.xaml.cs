@@ -523,6 +523,17 @@ namespace AngryMouse
 
             _detectorShaking = e.IsShaking;
             _lastDetectorShakeTimestamp = e.Timestamp;
+            DebugLog.Write(
+                "App mouse shake event: shaking=" +
+                (e.IsShaking ? "On" : "Off") +
+                ", rolePreview=" +
+                (_rolePreviewActive ? "On" : "Off") +
+                ", overlayCount=" +
+                _overlayWindows.Count +
+                ", systemCursorOverride=" +
+                (SystemCursorOverride.IsActive ? "On" : "Off") +
+                ", timestamp=" +
+                e.Timestamp.ToString("O", CultureInfo.InvariantCulture));
             ShellUiDetector.SetActive(e.IsShaking);
             UpdateSystemCursorVisibility();
 

@@ -36,7 +36,7 @@ namespace AngryMouse
         private readonly HashSet<Slider> _activeSliderValueToolTips = new HashSet<Slider>();
         private readonly HashSet<string> _recordingHotkeyModifiers = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         private bool _recordingHotkey;
-        private string _recordingHotkeyKey = "None";
+        private string _recordingHotkeyKey = HotkeySettings.DefaultKey;
         private static readonly string[] CursorSettingNames =
         {
             "CursorSize",
@@ -60,6 +60,7 @@ namespace AngryMouse
         public SettingsWindow()
         {
             InitializeComponent();
+            AnimationLengthSlider.Minimum = CursorAnimationSettings.MinimumAnimationLength;
             LoadActivationComboItems();
             Title = App.DisplayNameWithVersion;
             VersionTextBlock.Text = "jamir-boop - AngryCursor " + App.DisplayVersion;
@@ -93,6 +94,7 @@ namespace AngryMouse
             DarkModeCheckBox.IsChecked = AppTheme.IsDarkMode(Properties.Settings.Default.ThemeMode);
             DebugEnabledCheckBox.IsChecked = Properties.Settings.Default.DebugEnabled;
             LoadCollectionsToControls();
+            NormalizeCursorTimingSettings();
             SizeSlider.Value = Properties.Settings.Default.CursorSize;
             AnimationLengthSlider.Value = Properties.Settings.Default.CursorAnimationLength;
             VisibleDurationSlider.Value = Properties.Settings.Default.CursorVisibleDuration;
@@ -101,7 +103,7 @@ namespace AngryMouse
             ShakeActivationEnabledCheckBox.IsChecked = Properties.Settings.Default.ShakeActivationEnabled;
             HotkeyActivationEnabledCheckBox.IsChecked = Properties.Settings.Default.HotkeyActivationEnabled;
             EnsureActivationSourceSelected();
-            SelectComboBoxItemByTag(HotkeyActivationModeComboBox, NormalizeHotkeyActivationMode(Properties.Settings.Default.HotkeyActivationMode));
+            SelectComboBoxItemByTag(HotkeyActivationModeComboBox, HotkeySettings.NormalizeActivationMode(Properties.Settings.Default.HotkeyActivationMode));
             NormalizeHotkeySettingValues();
             UpdateHotkeyDisplay();
             UpdateActivationUiAvailability();
@@ -159,8 +161,8 @@ namespace AngryMouse
         private void LoadActivationComboItems()
         {
             HotkeyActivationModeComboBox.Items.Clear();
-            AddComboBoxItem(HotkeyActivationModeComboBox, "Hold", "Hold");
-            AddComboBoxItem(HotkeyActivationModeComboBox, "Toggle", "Toggle");
+            AddComboBoxItem(HotkeyActivationModeComboBox, "Hold", HotkeySettings.HoldMode);
+            AddComboBoxItem(HotkeyActivationModeComboBox, "Toggle", HotkeySettings.ToggleMode);
         }
 
         private static void AddComboBoxItem(ComboBox comboBox, string content, string tag)
@@ -252,83 +254,6 @@ namespace AngryMouse
             return RemoveCollectionComboBox.SelectedItem as string;
         }
 
-        private static string NormalizeHotkeyActivationMode(string value)
-        {
-            return string.Equals(value, "Toggle", StringComparison.OrdinalIgnoreCase) ? "Toggle" : "Hold";
-        }
-
-        private static string NormalizeHotkeyModifiers(string value)
-        {
-            switch ((value ?? string.Empty).Trim().ToLowerInvariant())
-            {
-                case "none":
-                    return "None";
-                case "alt":
-                    return "Alt";
-                case "shift":
-                    return "Shift";
-                case "control+shift":
-                case "ctrl+shift":
-                    return "Control+Shift";
-                case "control+alt":
-                case "ctrl+alt":
-                    return "Control+Alt";
-                case "alt+shift":
-                    return "Alt+Shift";
-                case "control+alt+shift":
-                case "ctrl+alt+shift":
-                    return "Control+Alt+Shift";
-                default:
-                    return "Control";
-            }
-        }
-
-        private static string NormalizeHotkeyKey(string value)
-        {
-            var normalized = (value ?? string.Empty).Trim();
-            if (string.IsNullOrWhiteSpace(normalized) || string.Equals(normalized, "None", StringComparison.OrdinalIgnoreCase))
-            {
-                return "None";
-            }
-
-            if (normalized.Length == 1)
-            {
-                var c = char.ToUpperInvariant(normalized[0]);
-                if (c >= 'A' && c <= 'Z')
-                {
-                    return c.ToString();
-                }
-
-                if (c >= '0' && c <= '9')
-                {
-                    return "D" + c;
-                }
-            }
-
-            for (var i = 0; i <= 9; i++)
-            {
-                if (string.Equals(normalized, "D" + i.ToString(CultureInfo.InvariantCulture), StringComparison.OrdinalIgnoreCase))
-                {
-                    return "D" + i.ToString(CultureInfo.InvariantCulture);
-                }
-            }
-
-            for (var i = 1; i <= 12; i++)
-            {
-                if (string.Equals(normalized, "F" + i.ToString(CultureInfo.InvariantCulture), StringComparison.OrdinalIgnoreCase))
-                {
-                    return "F" + i.ToString(CultureInfo.InvariantCulture);
-                }
-            }
-
-            if (string.Equals(normalized, "Space", StringComparison.OrdinalIgnoreCase))
-            {
-                return "Space";
-            }
-
-            return string.Equals(normalized, "Escape", StringComparison.OrdinalIgnoreCase) ? "Escape" : "None";
-        }
-
         private void EnsureActivationSourceSelected(object changedSource = null)
         {
             if (ShakeActivationEnabledCheckBox.IsChecked != true && HotkeyActivationEnabledCheckBox.IsChecked != true)
@@ -349,15 +274,32 @@ namespace AngryMouse
         private void NormalizeHotkeySettingValues()
         {
             Properties.Settings.Default.HotkeyActivationMode =
-                NormalizeHotkeyActivationMode(Properties.Settings.Default.HotkeyActivationMode);
-            Properties.Settings.Default.HotkeyModifiers = NormalizeHotkeyModifiers(Properties.Settings.Default.HotkeyModifiers);
-            Properties.Settings.Default.HotkeyKey = NormalizeHotkeyKey(Properties.Settings.Default.HotkeyKey);
+                HotkeySettings.NormalizeActivationMode(Properties.Settings.Default.HotkeyActivationMode);
+            Properties.Settings.Default.HotkeyModifiers = HotkeySettings.NormalizeModifiers(Properties.Settings.Default.HotkeyModifiers);
+            Properties.Settings.Default.HotkeyKey = HotkeySettings.NormalizeKey(Properties.Settings.Default.HotkeyKey);
 
-            if (IsEmptyHotkey(Properties.Settings.Default.HotkeyModifiers, Properties.Settings.Default.HotkeyKey))
+            if (HotkeySettings.IsEmpty(Properties.Settings.Default.HotkeyModifiers, Properties.Settings.Default.HotkeyKey))
             {
-                Properties.Settings.Default.HotkeyModifiers = "Control";
-                Properties.Settings.Default.HotkeyKey = "None";
+                Properties.Settings.Default.HotkeyModifiers = HotkeySettings.DefaultModifiers;
+                Properties.Settings.Default.HotkeyKey = HotkeySettings.DefaultKey;
             }
+        }
+
+        private static void NormalizeCursorTimingSettings()
+        {
+            var normalizedAnimationLength = CursorAnimationSettings.NormalizeLength(Properties.Settings.Default.CursorAnimationLength);
+            if (Properties.Settings.Default.CursorAnimationLength == normalizedAnimationLength)
+            {
+                return;
+            }
+
+            DebugLog.Write(
+                "Cursor animation length normalized: configuredMs=" +
+                Properties.Settings.Default.CursorAnimationLength +
+                ", effectiveMs=" +
+                normalizedAnimationLength);
+            Properties.Settings.Default.CursorAnimationLength = normalizedAnimationLength;
+            SaveSettings();
         }
 
         private void SaveActivationSettings(object changedSource = null)
@@ -368,7 +310,7 @@ namespace AngryMouse
             var oldConfig = GetActivationLogSummary();
             Properties.Settings.Default.ShakeActivationEnabled = ShakeActivationEnabledCheckBox.IsChecked == true;
             Properties.Settings.Default.HotkeyActivationEnabled = HotkeyActivationEnabledCheckBox.IsChecked == true;
-            Properties.Settings.Default.HotkeyActivationMode = GetSelectedComboBoxTag(HotkeyActivationModeComboBox, "Hold");
+            Properties.Settings.Default.HotkeyActivationMode = GetSelectedComboBoxTag(HotkeyActivationModeComboBox, HotkeySettings.HoldMode);
             NormalizeHotkeySettingValues();
             SaveSettings();
             UpdateActivationUiAvailability();
@@ -397,57 +339,20 @@ namespace AngryMouse
                 return;
             }
 
-            HotkeyDisplayTextBox.Text = FormatHotkeyDisplay(
+            HotkeyDisplayTextBox.Text = HotkeySettings.FormatDisplay(
                 Properties.Settings.Default.HotkeyModifiers,
                 Properties.Settings.Default.HotkeyKey);
             HotkeyRecordButton.Content = "_Record";
-        }
-
-        private static bool IsEmptyHotkey(string modifiers, string key)
-        {
-            return string.Equals(NormalizeHotkeyModifiers(modifiers), "None", StringComparison.OrdinalIgnoreCase) &&
-                   string.Equals(NormalizeHotkeyKey(key), "None", StringComparison.OrdinalIgnoreCase);
         }
 
         private string GetActivationLogSummary()
         {
             return "Shake=" + (Properties.Settings.Default.ShakeActivationEnabled ? "On" : "Off") +
                    ", Hotkey=" + (Properties.Settings.Default.HotkeyActivationEnabled ? "On" : "Off") +
-                   ", Mode=" + NormalizeHotkeyActivationMode(Properties.Settings.Default.HotkeyActivationMode) +
-                   ", Shortcut=" + FormatHotkeyDisplay(
+                   ", Mode=" + HotkeySettings.NormalizeActivationMode(Properties.Settings.Default.HotkeyActivationMode) +
+                   ", Shortcut=" + HotkeySettings.FormatDisplay(
                        Properties.Settings.Default.HotkeyModifiers,
                        Properties.Settings.Default.HotkeyKey);
-        }
-
-        private static string FormatHotkeyDisplay(string modifiers, string key)
-        {
-            var parts = new List<string>();
-            var normalizedModifiers = NormalizeHotkeyModifiers(modifiers);
-            if (!string.Equals(normalizedModifiers, "None", StringComparison.OrdinalIgnoreCase))
-            {
-                foreach (var modifier in normalizedModifiers.Split(new[] { '+' }, StringSplitOptions.RemoveEmptyEntries))
-                {
-                    parts.Add(string.Equals(modifier, "Control", StringComparison.OrdinalIgnoreCase) ? "Ctrl" : modifier);
-                }
-            }
-
-            var normalizedKey = NormalizeHotkeyKey(key);
-            if (!string.Equals(normalizedKey, "None", StringComparison.OrdinalIgnoreCase))
-            {
-                parts.Add(FormatHotkeyKeyDisplay(normalizedKey));
-            }
-
-            return parts.Count == 0 ? "Ctrl" : string.Join("+", parts);
-        }
-
-        private static string FormatHotkeyKeyDisplay(string key)
-        {
-            if (key != null && key.Length == 2 && key[0] == 'D' && char.IsDigit(key[1]))
-            {
-                return key[1].ToString();
-            }
-
-            return key ?? string.Empty;
         }
 
         private void HotkeyRecordButton_OnClick(object sender, RoutedEventArgs e)
@@ -466,14 +371,14 @@ namespace AngryMouse
                 StopHotkeyRecording();
             }
 
-            SaveHotkeyShortcut("Control", "None", "Hotkey shortcut reset");
+            SaveHotkeyShortcut(HotkeySettings.DefaultModifiers, HotkeySettings.DefaultKey, "Hotkey shortcut reset");
         }
 
         private void StartHotkeyRecording()
         {
             _recordingHotkey = true;
             _recordingHotkeyModifiers.Clear();
-            _recordingHotkeyKey = "None";
+            _recordingHotkeyKey = HotkeySettings.DefaultKey;
             HotkeyDisplayTextBox.Text = "Press shortcut...";
             HotkeyRecordButton.Content = "Recording";
             HotkeyDisplayTextBox.Focus();
@@ -484,7 +389,7 @@ namespace AngryMouse
         {
             _recordingHotkey = false;
             _recordingHotkeyModifiers.Clear();
-            _recordingHotkeyKey = "None";
+            _recordingHotkeyKey = HotkeySettings.DefaultKey;
             HotkeyRecordButton.Content = "_Record";
         }
 
@@ -513,7 +418,7 @@ namespace AngryMouse
             if (key == Input.Key.Back || key == Input.Key.Delete)
             {
                 StopHotkeyRecording();
-                SaveHotkeyShortcut("Control", "None", "Hotkey shortcut reset");
+                SaveHotkeyShortcut(HotkeySettings.DefaultModifiers, HotkeySettings.DefaultKey, "Hotkey shortcut reset");
                 return;
             }
 
@@ -550,7 +455,7 @@ namespace AngryMouse
                 _recordingHotkeyModifiers.Add(modifier);
             }
 
-            if (!string.Equals(_recordingHotkeyKey, "None", StringComparison.OrdinalIgnoreCase) ||
+            if (!string.Equals(_recordingHotkeyKey, HotkeySettings.DefaultKey, StringComparison.OrdinalIgnoreCase) ||
                 _recordingHotkeyModifiers.Count > 0)
             {
                 FinalizeHotkeyRecording();
@@ -559,7 +464,7 @@ namespace AngryMouse
 
         private void UpdateRecordingHotkeyDisplay()
         {
-            HotkeyDisplayTextBox.Text = FormatHotkeyDisplay(GetRecordingModifiers(), _recordingHotkeyKey);
+            HotkeyDisplayTextBox.Text = HotkeySettings.FormatDisplay(GetRecordingModifiers(), _recordingHotkeyKey);
         }
 
         private void FinalizeHotkeyRecording()
@@ -572,12 +477,12 @@ namespace AngryMouse
 
         private void SaveHotkeyShortcut(string modifiers, string key, string logMessage)
         {
-            var normalizedModifiers = NormalizeHotkeyModifiers(modifiers);
-            var normalizedKey = NormalizeHotkeyKey(key);
-            if (IsEmptyHotkey(normalizedModifiers, normalizedKey))
+            var normalizedModifiers = HotkeySettings.NormalizeModifiers(modifiers);
+            var normalizedKey = HotkeySettings.NormalizeKey(key);
+            if (HotkeySettings.IsEmpty(normalizedModifiers, normalizedKey))
             {
-                normalizedModifiers = "Control";
-                normalizedKey = "None";
+                normalizedModifiers = HotkeySettings.DefaultModifiers;
+                normalizedKey = HotkeySettings.DefaultKey;
             }
 
             var oldConfig = GetActivationLogSummary();
@@ -593,7 +498,7 @@ namespace AngryMouse
                 DebugLog.Write("Activation settings saved: " + newConfig);
             }
 
-            DebugLog.Write(logMessage + ": " + FormatHotkeyDisplay(normalizedModifiers, normalizedKey));
+            DebugLog.Write(logMessage + ": " + HotkeySettings.FormatDisplay(normalizedModifiers, normalizedKey));
         }
 
         private void CaptureCurrentModifiers()
@@ -633,7 +538,7 @@ namespace AngryMouse
                 parts.Add("Shift");
             }
 
-            return parts.Count == 0 ? "None" : string.Join("+", parts);
+            return parts.Count == 0 ? HotkeySettings.DefaultKey : string.Join("+", parts);
         }
 
         private static Input.Key GetEffectiveKey(Input.KeyEventArgs e)
@@ -1035,8 +940,14 @@ namespace AngryMouse
         {
             if (_loading) return;
 
-            Properties.Settings.Default.CursorAnimationLength = (int)e.NewValue;
+            var animationLength = CursorAnimationSettings.NormalizeLength((int)e.NewValue);
+            Properties.Settings.Default.CursorAnimationLength = animationLength;
             SaveSettings();
+            DebugLog.Write(
+                "Cursor animation length saved: configuredMs=" +
+                (int)e.NewValue +
+                ", effectiveMs=" +
+                animationLength);
         }
 
         private void VisibleDurationSlider_OnValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)

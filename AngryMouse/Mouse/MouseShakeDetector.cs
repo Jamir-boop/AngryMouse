@@ -1,7 +1,9 @@
+using AngryMouse.Util;
 using Gma.System.MouseKeyHook;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Globalization;
 using System.Timers;
 using System.Windows;
 using Forms = System.Windows.Forms;
@@ -115,7 +117,7 @@ namespace AngryMouse.Mouse
                     {
                         if (!_shakeGestureActive)
                         {
-                            ToggleActivation();
+                            ToggleActivation("Shake");
                         }
                     }
                     else
@@ -207,13 +209,13 @@ namespace AngryMouse.Mouse
         private static bool HotkeyActivationEnabled => Properties.Settings.Default.HotkeyActivationEnabled;
 
         private static bool ToggleMode => string.Equals(
-            Properties.Settings.Default.HotkeyActivationMode,
-            "Toggle",
+            HotkeySettings.NormalizeActivationMode(Properties.Settings.Default.HotkeyActivationMode),
+            HotkeySettings.ToggleMode,
             StringComparison.OrdinalIgnoreCase);
 
-        private static string HotkeyModifiers => Properties.Settings.Default.HotkeyModifiers ?? "Control";
+        private static string HotkeyModifiers => HotkeySettings.NormalizeModifiers(Properties.Settings.Default.HotkeyModifiers);
 
-        private static string HotkeyKey => Properties.Settings.Default.HotkeyKey ?? "None";
+        private static string HotkeyKey => HotkeySettings.NormalizeKey(Properties.Settings.Default.HotkeyKey);
 
         private void OnKeyDown(object sender, Forms.KeyEventArgs e)
         {
@@ -235,7 +237,7 @@ namespace AngryMouse.Mouse
             {
                 if (matched && !_hotkeyMatched)
                 {
-                    ToggleActivation();
+                    ToggleActivation("Hotkey");
                 }
 
                 _hotkeyMatched = HotkeyActivationEnabled && AreHotkeyCoreKeysPressed();
@@ -247,6 +249,11 @@ namespace AngryMouse.Mouse
             if (_hotkeyHeld != matched)
             {
                 _hotkeyHeld = matched;
+                DebugLog.Write(
+                    "Hotkey hold changed: held=" +
+                    (_hotkeyHeld ? "On" : "Off") +
+                    ", " +
+                    GetActivationSummary(DateTime.Now));
                 ApplyEffectiveState(DateTime.Now);
             }
         }
@@ -348,11 +355,18 @@ namespace AngryMouse.Mouse
             }
         }
 
-        private void ToggleActivation()
+        private void ToggleActivation(string source)
         {
             _toggleActive = !_toggleActive;
             _shakeVisibleUntil = DateTime.MinValue;
             _hotkeyHeld = false;
+            DebugLog.Write(
+                "Activation toggled: source=" +
+                source +
+                ", toggleActive=" +
+                (_toggleActive ? "On" : "Off") +
+                ", " +
+                GetActivationSummary(DateTime.Now));
             ApplyEffectiveState(DateTime.Now);
         }
 
@@ -377,6 +391,7 @@ namespace AngryMouse.Mouse
                 case "HotkeyActivationMode":
                 case "HotkeyModifiers":
                 case "HotkeyKey":
+                    DebugLog.Write("Activation setting changed: " + e.PropertyName);
                     ApplyActivationSettings();
                     break;
             }
@@ -406,6 +421,7 @@ namespace AngryMouse.Mouse
 
             _hotkeyMatched = HotkeyActivationEnabled &&
                              (ToggleMode ? AreHotkeyCoreKeysPressed() : IsHotkeyMatched());
+            DebugLog.Write("Activation settings applied: " + GetActivationSummary(now));
             ApplyEffectiveState(now);
         }
 
@@ -414,6 +430,11 @@ namespace AngryMouse.Mouse
             if (_shaking != shaking)
             {
                 _shaking = shaking;
+                DebugLog.Write(
+                    "MouseShakeDetector state changed: shaking=" +
+                    (_shaking ? "On" : "Off") +
+                    ", " +
+                    GetActivationSummary(DateTime.Now));
                 MouseShakeArgs args = new MouseShakeArgs(shaking, DateTime.Now);
                 MouseShake?.Invoke(this, args);
             }
@@ -447,6 +468,52 @@ namespace AngryMouse.Mouse
                     }
                 }
             }));
+        }
+
+        private string GetActivationSummary(DateTime now)
+        {
+            return "mode=" +
+                   (ToggleMode ? "Toggle" : "Hold") +
+                   ", shakeEnabled=" +
+                   (ShakeActivationEnabled ? "On" : "Off") +
+                   ", hotkeyEnabled=" +
+                   (HotkeyActivationEnabled ? "On" : "Off") +
+                   ", hotkeyHeld=" +
+                   (_hotkeyHeld ? "On" : "Off") +
+                   ", hotkeyMatched=" +
+                   (_hotkeyMatched ? "On" : "Off") +
+                   ", toggleActive=" +
+                   (_toggleActive ? "On" : "Off") +
+                   ", shakeVisibleUntil=" +
+                   FormatDateTime(_shakeVisibleUntil) +
+                   ", now=" +
+                   FormatDateTime(now) +
+                   ", pressedKeys=" +
+                   FormatPressedKeys();
+        }
+
+        private static string FormatDateTime(DateTime value)
+        {
+            return value == DateTime.MinValue
+                ? "None"
+                : value.ToString("O", CultureInfo.InvariantCulture);
+        }
+
+        private string FormatPressedKeys()
+        {
+            if (_pressedKeys.Count == 0)
+            {
+                return "None";
+            }
+
+            var keys = new List<string>();
+            foreach (var key in _pressedKeys)
+            {
+                keys.Add(key.ToString());
+            }
+
+            keys.Sort(StringComparer.Ordinal);
+            return string.Join("+", keys.ToArray());
         }
 
         public void Dispose()

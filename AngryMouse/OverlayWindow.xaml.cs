@@ -3,6 +3,7 @@ using AngryMouse.Cursors;
 using AngryMouse.Screen;
 using AngryMouse.Util;
 using System;
+using System.Globalization;
 using System.IO;
 using System.Text;
 using System.Windows;
@@ -185,6 +186,8 @@ namespace AngryMouse
             _topmostRefreshTimer.Tick -= TopmostRefreshTimer_Tick;
             _idleHideTimer.Stop();
             _idleHideTimer.Tick -= IdleHideTimer_Tick;
+            _mouseAnimator?.Dispose();
+            _mouseAnimator = null;
         }
 
         public void UpdateMousePosition(int x, int y)
@@ -307,6 +310,20 @@ namespace AngryMouse
             }
 
             _shouldBeVisible = shaking;
+            DebugLog.Write(
+                "Overlay state requested: screen=" +
+                _screen.Name +
+                ", shaking=" +
+                (shaking ? "On" : "Off") +
+                ", isVisible=" +
+                (IsVisible ? "On" : "Off") +
+                ", animatorReady=" +
+                (_mouseAnimator != null ? "On" : "Off") +
+                ", systemCursorOverride=" +
+                (_systemCursorOverrideActive ? "On" : "Off") +
+                ", timestamp=" +
+                timestamp.ToString("O", CultureInfo.InvariantCulture));
+
             if (shaking)
             {
                 ShowOverlay();
@@ -318,6 +335,7 @@ namespace AngryMouse
 
             if (_mouseAnimator == null)
             {
+                DebugLog.Write("Overlay animator missing: screen=" + _screen.Name);
                 return;
             }
 
@@ -342,6 +360,7 @@ namespace AngryMouse
             _idleHideTimer.Stop();
             if (!IsVisible)
             {
+                DebugLog.Write("Overlay show: screen=" + _screen.Name);
                 Show();
             }
 
@@ -355,8 +374,17 @@ namespace AngryMouse
             // Keep the window alive until the shrink animation completes, then hide it so
             // DWM stops compositing the full-screen layered surface while idle.
             _idleHideTimer.Stop();
-            var animationLength = Math.Max(1, AngryMouse.Properties.Settings.Default.CursorAnimationLength);
+            var animationLength = CursorAnimationSettings.GetEffectiveLength();
             _idleHideTimer.Interval = TimeSpan.FromMilliseconds(animationLength + 100);
+            DebugLog.Write(
+                "Overlay idle hide scheduled: screen=" +
+                _screen.Name +
+                ", configuredAnimationMs=" +
+                AngryMouse.Properties.Settings.Default.CursorAnimationLength +
+                ", effectiveAnimationMs=" +
+                animationLength +
+                ", intervalMs=" +
+                (animationLength + 100));
             _idleHideTimer.Start();
         }
 
@@ -365,6 +393,7 @@ namespace AngryMouse
             _idleHideTimer.Stop();
             if (!_shouldBeVisible && IsVisible)
             {
+                DebugLog.Write("Overlay hide: screen=" + _screen.Name);
                 Hide();
             }
         }
@@ -440,6 +469,11 @@ namespace AngryMouse
             }
 
             _systemCursorOverrideActive = active;
+            DebugLog.Write(
+                "Overlay system cursor override: screen=" +
+                _screen.Name +
+                ", active=" +
+                (active ? "On" : "Off"));
             if (active)
             {
                 _topmostRefreshTimer.Stop();
