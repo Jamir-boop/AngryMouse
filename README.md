@@ -4,6 +4,7 @@
   <img src="icon.png" alt="MinimalFox Icon" width="100" height="100">
 </p>
 AngryMouse is a small Windows utility that brings macOS-style “shake to find cursor” behavior to Windows.
+
 *This is a detached fork from the now abandoned Longi94/AngryMouse project.*
 
 https://github.com/user-attachments/assets/31aad272-b5f8-4721-b0ec-93ab6c588ed4
