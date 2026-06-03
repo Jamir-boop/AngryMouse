@@ -23,6 +23,13 @@ Closed="Window_Closed">
 </Grid.RowDefinitions>
 
 <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,0,0,8">
+<CheckBox
+Name="StartMinimizedToTrayCheckBox"
+Content="_Start minimized to tray"
+VerticalAlignment="Center"
+Margin="0,0,16,0"
+Checked="StartMinimizedToTrayCheckBox_OnChanged"
+Unchecked="StartMinimizedToTrayCheckBox_OnChanged" />
 <TextBlock Text="Theme" VerticalAlignment="Center" Margin="0,0,8,0" />
 <CheckBox
 Name="DarkModeCheckBox"

@@ -92,6 +92,7 @@ namespace AngryMouse
 
             SelectCursorSourceMode(GetSavedCursorSourceMode());
             DarkModeCheckBox.IsChecked = AppTheme.IsDarkMode(Properties.Settings.Default.ThemeMode);
+            StartMinimizedToTrayCheckBox.IsChecked = Properties.Settings.Default.StartMinimizedToTray;
             DebugEnabledCheckBox.IsChecked = Properties.Settings.Default.DebugEnabled;
             LoadCollectionsToControls();
             NormalizeCursorTimingSettings();
@@ -816,6 +817,14 @@ namespace AngryMouse
             SaveSettings();
             AppTheme.ApplySavedTheme();
             CursorRoleDataGrid.Items.Refresh();
+        }
+
+        private void StartMinimizedToTrayCheckBox_OnChanged(object sender, RoutedEventArgs e)
+        {
+            if (_loading) return;
+
+            Properties.Settings.Default.StartMinimizedToTray = StartMinimizedToTrayCheckBox.IsChecked == true;
+            SaveSettings();
         }
 
         private void DebugEnabledCheckBox_OnChanged(object sender, RoutedEventArgs e)

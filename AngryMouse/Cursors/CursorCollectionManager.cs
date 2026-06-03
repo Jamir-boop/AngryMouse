@@ -718,6 +718,7 @@ namespace AngryMouse.Cursors
                     CreateSettingElement("CursorSourceMode", settings.CursorSourceMode ?? string.Empty),
                     CreateSettingElement("CursorCollectionName", settings.CursorCollectionName ?? string.Empty),
                     CreateSettingElement("ThemeMode", settings.ThemeMode ?? string.Empty),
+                    CreateSettingElement("StartMinimizedToTray", settings.StartMinimizedToTray.ToString().ToLowerInvariant()),
                     CreateSettingElement("ShakeTrackingInterval", settings.ShakeTrackingInterval.ToString(CultureInfo.InvariantCulture)),
                     CreateSettingElement("ShakeMinimumSpeed", settings.ShakeMinimumSpeed.ToString(CultureInfo.InvariantCulture)),
                     CreateSettingElement("ShakeMinimumTurns", settings.ShakeMinimumTurns.ToString(CultureInfo.InvariantCulture))));
@@ -966,6 +967,12 @@ namespace AngryMouse.Cursors
                 settings.ThemeMode = string.Equals(stringValue, AppTheme.LightMode, StringComparison.OrdinalIgnoreCase)
                     ? AppTheme.LightMode
                     : AppTheme.DarkMode;
+            }
+
+            if (TryGetSettingValue(values, "StartMinimizedToTray", out stringValue) &&
+                bool.TryParse(stringValue, out boolValue))
+            {
+                settings.StartMinimizedToTray = boolValue;
             }
 
             if (TryGetSettingValue(values, "ShakeTrackingInterval", out stringValue) &&

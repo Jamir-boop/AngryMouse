@@ -169,9 +169,11 @@ namespace AngryMouse
             ApplyCurrentCursorVisual(force: true);
             StartActiveCollectionPrewarm();
             _singleInstanceReady = true;
-            if (autostartLaunch)
+            if (autostartLaunch || AngryMouse.Properties.Settings.Default.StartMinimizedToTray)
             {
-                DebugLog.Write("Autostart launch. Settings window suppressed.");
+                DebugLog.Write(autostartLaunch
+                    ? "Autostart launch. Settings window suppressed."
+                    : "Startup minimized to tray. Settings window suppressed.");
             }
             else
             {

@@ -170,6 +170,18 @@ namespace AngryMouse.Properties {
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool StartMinimizedToTray {
+            get {
+                return ((bool)(this["StartMinimizedToTray"]));
+            }
+            set {
+                this["StartMinimizedToTray"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
         public bool DebugEnabled {
             get {
                 return ((bool)(this["DebugEnabled"]));
