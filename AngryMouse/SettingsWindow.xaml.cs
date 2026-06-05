@@ -36,6 +36,7 @@ namespace AngryMouse
         private readonly HashSet<Slider> _activeSliderValueToolTips = new HashSet<Slider>();
         private readonly HashSet<string> _recordingHotkeyModifiers = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         private bool _recordingHotkey;
+        private bool _suppressNextAltGrControlKeyUp;
         private string _recordingHotkeyKey = HotkeySettings.DefaultKey;
         private static readonly string[] CursorSettingNames =
         {
@@ -378,6 +379,7 @@ namespace AngryMouse
         private void StartHotkeyRecording()
         {
             _recordingHotkey = true;
+            _suppressNextAltGrControlKeyUp = false;
             _recordingHotkeyModifiers.Clear();
             _recordingHotkeyKey = HotkeySettings.DefaultKey;
             HotkeyDisplayTextBox.Text = "Press shortcut...";
@@ -389,6 +391,7 @@ namespace AngryMouse
         private void StopHotkeyRecording()
         {
             _recordingHotkey = false;
+            _suppressNextAltGrControlKeyUp = false;
             _recordingHotkeyModifiers.Clear();
             _recordingHotkeyKey = HotkeySettings.DefaultKey;
             HotkeyRecordButton.Content = "_Record";
@@ -410,6 +413,12 @@ namespace AngryMouse
 
             e.Handled = true;
             var key = GetEffectiveKey(e);
+            if (IsAltGrActive(key))
+            {
+                IgnoreAltGrRecordingKey();
+                return;
+            }
+
             if (key == Input.Key.Escape)
             {
                 CancelHotkeyRecording();
@@ -449,6 +458,20 @@ namespace AngryMouse
 
             e.Handled = true;
             var key = GetEffectiveKey(e);
+            if (IsAltGrActive(key))
+            {
+                IgnoreAltGrRecordingKey();
+                return;
+            }
+
+            if (_suppressNextAltGrControlKeyUp && IsControlInputKey(key))
+            {
+                _suppressNextAltGrControlKeyUp = false;
+                _recordingHotkeyModifiers.Remove("Control");
+                UpdateRecordingHotkeyDisplay();
+                return;
+            }
+
             CaptureCurrentModifiers();
             var modifier = GetModifierFromInputKey(key);
             if (modifier != null)
@@ -456,8 +479,7 @@ namespace AngryMouse
                 _recordingHotkeyModifiers.Add(modifier);
             }
 
-            if (!string.Equals(_recordingHotkeyKey, HotkeySettings.DefaultKey, StringComparison.OrdinalIgnoreCase) ||
-                _recordingHotkeyModifiers.Count > 0)
+            if (HasRecordedHotkey())
             {
                 FinalizeHotkeyRecording();
             }
@@ -465,7 +487,15 @@ namespace AngryMouse
 
         private void UpdateRecordingHotkeyDisplay()
         {
-            HotkeyDisplayTextBox.Text = HotkeySettings.FormatDisplay(GetRecordingModifiers(), _recordingHotkeyKey);
+            HotkeyDisplayTextBox.Text = HasRecordedHotkey()
+                ? HotkeySettings.FormatDisplay(GetRecordingModifiers(), _recordingHotkeyKey)
+                : "Press shortcut...";
+        }
+
+        private bool HasRecordedHotkey()
+        {
+            return _recordingHotkeyModifiers.Count > 0 ||
+                   !string.Equals(_recordingHotkeyKey, HotkeySettings.DefaultKey, StringComparison.OrdinalIgnoreCase);
         }
 
         private void FinalizeHotkeyRecording()
@@ -504,18 +534,19 @@ namespace AngryMouse
 
         private void CaptureCurrentModifiers()
         {
-            var modifiers = Input.Keyboard.Modifiers;
-            if ((modifiers & Input.ModifierKeys.Control) == Input.ModifierKeys.Control)
+            if (Input.Keyboard.IsKeyDown(Input.Key.LeftCtrl) ||
+                Input.Keyboard.IsKeyDown(Input.Key.RightCtrl))
             {
                 _recordingHotkeyModifiers.Add("Control");
             }
 
-            if ((modifiers & Input.ModifierKeys.Alt) == Input.ModifierKeys.Alt)
+            if (Input.Keyboard.IsKeyDown(Input.Key.LeftAlt))
             {
                 _recordingHotkeyModifiers.Add("Alt");
             }
 
-            if ((modifiers & Input.ModifierKeys.Shift) == Input.ModifierKeys.Shift)
+            if (Input.Keyboard.IsKeyDown(Input.Key.LeftShift) ||
+                Input.Keyboard.IsKeyDown(Input.Key.RightShift))
             {
                 _recordingHotkeyModifiers.Add("Shift");
             }
@@ -554,6 +585,24 @@ namespace AngryMouse
                 : e.Key;
         }
 
+        private void IgnoreAltGrRecordingKey()
+        {
+            _suppressNextAltGrControlKeyUp = true;
+            _recordingHotkeyModifiers.Clear();
+            _recordingHotkeyKey = HotkeySettings.DefaultKey;
+            UpdateRecordingHotkeyDisplay();
+        }
+
+        private static bool IsAltGrActive(Input.Key key)
+        {
+            return key == Input.Key.RightAlt || Input.Keyboard.IsKeyDown(Input.Key.RightAlt);
+        }
+
+        private static bool IsControlInputKey(Input.Key key)
+        {
+            return key == Input.Key.LeftCtrl || key == Input.Key.RightCtrl;
+        }
+
         private static string GetModifierFromInputKey(Input.Key key)
         {
             switch (key)
@@ -562,7 +611,6 @@ namespace AngryMouse
                 case Input.Key.RightCtrl:
                     return "Control";
                 case Input.Key.LeftAlt:
-                case Input.Key.RightAlt:
                     return "Alt";
                 case Input.Key.LeftShift:
                 case Input.Key.RightShift:

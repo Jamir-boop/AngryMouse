@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Globalization;
+using System.Runtime.InteropServices;
 using System.Timers;
 using System.Windows;
 using Forms = System.Windows.Forms;
@@ -19,6 +20,7 @@ namespace AngryMouse.Mouse
         /// Minimum milliseconds between recording a mouse event.
         /// </summary>
         private const int MouseEventRate = 10;
+        private const int VirtualKeyRightMenu = 0xA5;
 
         /// <summary>
         /// The hook into mouse events.
@@ -219,12 +221,26 @@ namespace AngryMouse.Mouse
 
         private void OnKeyDown(object sender, Forms.KeyEventArgs e)
         {
+            if (IsAltGrKey(e.KeyCode) || IsSyntheticControlForAltGr(e.KeyCode))
+            {
+                RemoveAltGrKeys();
+                UpdateHotkeyState();
+                return;
+            }
+
             _pressedKeys.Add(NormalizeKey(e.KeyCode));
             UpdateHotkeyState();
         }
 
         private void OnKeyUp(object sender, Forms.KeyEventArgs e)
         {
+            if (IsAltGrKey(e.KeyCode))
+            {
+                RemoveAltGrKeys();
+                UpdateHotkeyState();
+                return;
+            }
+
             _pressedKeys.Remove(NormalizeKey(e.KeyCode));
             UpdateHotkeyState();
         }
@@ -347,13 +363,52 @@ namespace AngryMouse.Mouse
                 case Forms.Keys.Shift:
                     return Forms.Keys.ShiftKey;
                 case Forms.Keys.LMenu:
-                case Forms.Keys.RMenu:
                 case Forms.Keys.Alt:
                     return Forms.Keys.Menu;
                 default:
                     return key;
             }
         }
+
+        private void RemoveAltGrKeys()
+        {
+            _pressedKeys.Remove(Forms.Keys.RMenu);
+            _pressedKeys.Remove(Forms.Keys.Menu);
+            _pressedKeys.Remove(Forms.Keys.ControlKey);
+        }
+
+        private static bool IsAltGrKey(Forms.Keys key)
+        {
+            return key == Forms.Keys.RMenu ||
+                   (key == Forms.Keys.Menu && IsPhysicalRightAltDown());
+        }
+
+        private static bool IsSyntheticControlForAltGr(Forms.Keys key)
+        {
+            return IsControlKey(key) && IsPhysicalRightAltDown();
+        }
+
+        private static bool IsControlKey(Forms.Keys key)
+        {
+            switch (key)
+            {
+                case Forms.Keys.LControlKey:
+                case Forms.Keys.RControlKey:
+                case Forms.Keys.Control:
+                case Forms.Keys.ControlKey:
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
+        private static bool IsPhysicalRightAltDown()
+        {
+            return (GetAsyncKeyState(VirtualKeyRightMenu) & 0x8000) != 0;
+        }
+
+        [DllImport("user32.dll")]
+        private static extern short GetAsyncKeyState(int vKey);
 
         private void ToggleActivation(string source)
         {
