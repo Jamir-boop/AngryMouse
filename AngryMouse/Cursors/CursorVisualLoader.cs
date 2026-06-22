@@ -18,9 +18,6 @@ namespace AngryMouse.Cursors
         public const double BuiltInCursorHeight = 254;
 
         private const int CursorShowing = 0x00000001;
-        private const uint ImageCursor = 2;
-        private const uint LoadFromFile = 0x00000010;
-        private const uint CreateDibSection = 0x00002000;
 
         private static readonly Dictionary<IntPtr, string> CursorRolesByHandle = CreateCursorRolesByHandle();
 
@@ -145,93 +142,6 @@ namespace AngryMouse.Cursors
             }
         }
 
-        public static CursorVisualInfo LoadCustomCursor(string path, int hotspotX, int hotspotY)
-        {
-            if (string.IsNullOrWhiteSpace(path))
-            {
-                return BuiltIn("No custom cursor selected. Using built-in cursor.");
-            }
-
-            if (!File.Exists(path))
-            {
-                return BuiltIn("Custom cursor file not found. Using built-in cursor.");
-            }
-
-            var extension = Path.GetExtension(path)?.ToLowerInvariant();
-
-            try
-            {
-                if (extension == ".cur")
-                {
-                    return LoadCurFile(path);
-                }
-
-                if (extension == ".png" || extension == ".ico")
-                {
-                    return LoadBitmapFile(path, hotspotX, hotspotY);
-                }
-
-                return BuiltIn("Unsupported cursor format. Use PNG, ICO, or CUR.");
-            }
-            catch (Exception ex) when (
-                ex is IOException ||
-                ex is UnauthorizedAccessException ||
-                ex is NotSupportedException ||
-                ex is InvalidOperationException ||
-                ex is ArgumentException ||
-                ex is COMException)
-            {
-                DebugLog.WriteException("Custom cursor load failed: " + path, ex);
-                return BuiltIn("Custom cursor failed to load. Using built-in cursor.");
-            }
-        }
-
-        private static CursorVisualInfo LoadBitmapFile(string path, int hotspotX, int hotspotY)
-        {
-            using (var stream = File.OpenRead(path))
-            {
-                var decoder = BitmapDecoder.Create(
-                    stream,
-                    BitmapCreateOptions.PreservePixelFormat,
-                    BitmapCacheOption.OnLoad);
-
-                var frame = decoder.Frames
-                    .OrderByDescending(item => item.PixelWidth * item.PixelHeight)
-                    .FirstOrDefault();
-
-                if (frame == null)
-                {
-                    return BuiltIn("Custom cursor image has no frames. Using built-in cursor.");
-                }
-
-                frame.Freeze();
-
-                return new CursorVisualInfo(
-                    frame,
-                    new Point(Math.Max(0, hotspotX), Math.Max(0, hotspotY)),
-                    "Using custom cursor.");
-            }
-        }
-
-        private static CursorVisualInfo LoadCurFile(string path)
-        {
-            var size = ReadLargestCursorSize(path);
-            var handle = LoadImage(
-                IntPtr.Zero,
-                path,
-                ImageCursor,
-                size.Width,
-                size.Height,
-                LoadFromFile | CreateDibSection);
-
-            if (handle == IntPtr.Zero)
-            {
-                return BuiltIn("CUR file failed to load. Using built-in cursor.");
-            }
-
-            return LoadCursorHandle(handle, copyHandle: false, "Using custom CUR cursor.");
-        }
-
         internal static CursorVisualInfo LoadSystemCursorRole(int windowsCursorId)
         {
             var cursorHandle = LoadCursor(IntPtr.Zero, new IntPtr(windowsCursorId));
@@ -302,59 +212,6 @@ namespace AngryMouse.Cursors
             }
         }
 
-        private static CursorSize ReadLargestCursorSize(string path)
-        {
-            try
-            {
-                using (var stream = File.OpenRead(path))
-                using (var reader = new BinaryReader(stream))
-                {
-                    if (reader.ReadUInt16() != 0 || reader.ReadUInt16() != 2)
-                    {
-                        return CursorSize.Default;
-                    }
-
-                    var count = reader.ReadUInt16();
-                    var best = CursorSize.Default;
-                    var bestArea = 0;
-
-                    for (var index = 0; index < count; index++)
-                    {
-                        var width = DecodeIconDimension(reader.ReadByte());
-                        var height = DecodeIconDimension(reader.ReadByte());
-                        reader.ReadByte();
-                        reader.ReadByte();
-                        reader.ReadUInt16();
-                        reader.ReadUInt16();
-                        reader.ReadUInt32();
-                        reader.ReadUInt32();
-
-                        var area = width * height;
-                        if (area > bestArea)
-                        {
-                            bestArea = area;
-                            best = new CursorSize(width, height);
-                        }
-                    }
-
-                    return best;
-                }
-            }
-            catch (IOException)
-            {
-                return CursorSize.Default;
-            }
-            catch (UnauthorizedAccessException)
-            {
-                return CursorSize.Default;
-            }
-        }
-
-        private static int DecodeIconDimension(byte value)
-        {
-            return value == 0 ? 256 : value;
-        }
-
         public static BitmapSource LoadPngBitmap(string path, int targetHeight)
         {
             if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
@@ -417,15 +274,6 @@ namespace AngryMouse.Cursors
         [DllImport("user32.dll")]
         private static extern bool GetIconInfo(IntPtr hIcon, out IconInfo piconinfo);
 
-        [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
-        private static extern IntPtr LoadImage(
-            IntPtr hinst,
-            string lpszName,
-            uint uType,
-            int cxDesired,
-            int cyDesired,
-            uint fuLoad);
-
         [DllImport("user32.dll")]
         private static extern IntPtr LoadCursor(IntPtr hInstance, IntPtr lpCursorName);
 
@@ -460,20 +308,6 @@ namespace AngryMouse.Cursors
             public int yHotspot;
             public IntPtr hbmMask;
             public IntPtr hbmColor;
-        }
-
-        private struct CursorSize
-        {
-            public static readonly CursorSize Default = new CursorSize(0, 0);
-
-            public CursorSize(int width, int height)
-            {
-                Width = width;
-                Height = height;
-            }
-
-            public int Width { get; }
-            public int Height { get; }
         }
     }
 }

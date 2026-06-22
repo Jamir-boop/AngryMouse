@@ -379,19 +379,17 @@ namespace AngryMouse.Cursors
             CursorRoleRenderSettings roleSettings,
             CursorCachedBitmap cachedBitmap)
         {
-            // For PNG files, use the image dimensions as source width/height
-            var sourceWidth = cachedBitmap?.UncroppedWidth ?? 24;
-            var sourceHeight = cachedBitmap?.UncroppedHeight ?? 24;
-
-            if (sourceWidth <= 0 || sourceHeight <= 0 || cachedBitmap == null)
+            // Crop is always 0 and source dims always equal the bitmap's, so the old
+            // scale/offset math collapses to hotspot + configured offset.
+            if (cachedBitmap == null || cachedBitmap.UncroppedWidth <= 0 || cachedBitmap.UncroppedHeight <= 0)
             {
                 return hotspot;
             }
 
             var settings = roleSettings ?? new CursorRoleRenderSettings();
             return new Point(
-                (hotspot.X + settings.HotspotOffsetX) * cachedBitmap.UncroppedWidth / sourceWidth - cachedBitmap.CropLeft,
-                (hotspot.Y + settings.HotspotOffsetY) * cachedBitmap.UncroppedHeight / sourceHeight - cachedBitmap.CropTop);
+                hotspot.X + settings.HotspotOffsetX,
+                hotspot.Y + settings.HotspotOffsetY);
         }
 
         private static string GetBundledRenderedPng(

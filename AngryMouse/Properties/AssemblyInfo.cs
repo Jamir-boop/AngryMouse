@@ -50,7 +50,7 @@ using System.Windows;
 // by using the '*' as shown below:
 // [assembly: AssemblyVersion("1.0.*")]
 // ClickOnce and CLR assembly identity require four parts. Public AngryMouse version is three-part semver.
-[assembly: AssemblyVersion("2.9.4.0")]
-[assembly: AssemblyFileVersion("2.9.4.0")]
-[assembly: AssemblyInformationalVersion("2.9.4")]
+[assembly: AssemblyVersion("2.9.5.0")]
+[assembly: AssemblyFileVersion("2.9.5.0")]
+[assembly: AssemblyInformationalVersion("2.9.5")]
 

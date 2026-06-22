@@ -3,7 +3,6 @@ using AngryMouse.Screen;
 using AngryMouse.Util;
 using AngryMouse.Startup;
 using AngryMouse.Cursors;
-using CommandLine;
 using Gma.System.MouseKeyHook;
 using Microsoft.Win32;
 using System;
@@ -102,7 +101,7 @@ namespace AngryMouse
 
         protected override void OnStartup(StartupEventArgs e)
         {
-            var autostartLaunch = HasAutostartFlag(e.Args);
+            var autostartLaunch = HasFlag(e.Args, "--autostart");
             if (!TryAcquireSingleInstance())
             {
                 if (!autostartLaunch)
@@ -121,13 +120,7 @@ namespace AngryMouse
             base.OnStartup(e);
             AppTheme.Initialize();
 
-            ParserResult<Options> parserResult = Parser.Default.ParseArguments<Options>(e.Args);
-
-            parserResult.WithParsed((options) =>
-            {
-                _debug = options.Debug;
-                autostartLaunch = options.Autostart;
-            });
+            _debug = HasFlag(e.Args, "-d", "--debug");
 
             CursorCollectionManager.InitializeDefaults();
 
@@ -231,7 +224,7 @@ namespace AngryMouse
             SystemCursorHider.Restore();
         }
 
-        private static bool HasAutostartFlag(IEnumerable<string> args)
+        private static bool HasFlag(IEnumerable<string> args, params string[] names)
         {
             if (args == null)
             {
@@ -240,9 +233,12 @@ namespace AngryMouse
 
             foreach (var arg in args)
             {
-                if (string.Equals(arg, "--autostart", StringComparison.OrdinalIgnoreCase))
+                foreach (var name in names)
                 {
-                    return true;
+                    if (string.Equals(arg, name, StringComparison.OrdinalIgnoreCase))
+                    {
+                        return true;
+                    }
                 }
             }
 
