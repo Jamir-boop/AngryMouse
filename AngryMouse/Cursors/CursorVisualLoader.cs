@@ -26,11 +26,6 @@ namespace AngryMouse.Cursors
             return new CursorVisualInfo(null, new Point(0, 0), status);
         }
 
-        public static CursorVisualInfo LoadFromSettings()
-        {
-            return LoadFromSettings(GetCurrentWindowsCursorRoleKey());
-        }
-
         public static CursorVisualInfo LoadFromSettings(string roleKey)
         {
             var mode = Properties.Settings.Default.CursorSourceMode;
@@ -85,17 +80,6 @@ namespace AngryMouse.Cursors
             return cursorInfo.hCursor;
         }
 
-        public static string GetCurrentWindowsCursorRoleKey()
-        {
-            string roleKey;
-            return TryGetCurrentWindowsCursorRoleKey(out roleKey) ? roleKey : "arrow";
-        }
-
-        public static bool TryGetCurrentWindowsCursorRoleKey(out string roleKey)
-        {
-            return TryGetWindowsCursorRoleKey(GetCurrentSystemCursorHandle(), out roleKey);
-        }
-
         public static bool TryGetWindowsCursorRoleKey(IntPtr cursorHandle, out string roleKey)
         {
             roleKey = null;
@@ -111,12 +95,6 @@ namespace AngryMouse.Cursors
             }
 
             return SystemCursorHider.TryGetHiddenCursorRoleKey(cursorHandle, out roleKey);
-        }
-
-        public static CursorVisualInfo LoadCollectionCursor()
-        {
-            var roleKey = GetCurrentWindowsCursorRoleKey();
-            return LoadCollectionRole(roleKey);
         }
 
         public static CursorVisualInfo LoadCollectionRole(string roleKey)

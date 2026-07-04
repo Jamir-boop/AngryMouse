@@ -37,6 +37,7 @@ namespace AngryMouse.Mouse
         private bool _hotkeyMatched;
         private bool _toggleActive;
         private bool _shakeGestureActive;
+        private bool _recordingActive;
         private readonly HashSet<Forms.Keys> _pressedKeys = new HashSet<Forms.Keys>();
 
         /// <summary>
@@ -219,8 +220,30 @@ namespace AngryMouse.Mouse
 
         private static string HotkeyKey => HotkeySettings.NormalizeKey(Properties.Settings.Default.HotkeyKey);
 
+        /// <summary>
+        /// While the settings window is recording a shortcut, the detector must not track keys
+        /// or activate the overlay. Clears held-key state so a shortcut recorded with keys still
+        /// down does not immediately arm the hotkey when recording ends.
+        /// </summary>
+        public void SetRecordingActive(bool active)
+        {
+            _recordingActive = active;
+            _pressedKeys.Clear();
+            _hotkeyMatched = false;
+            _hotkeyHeld = false;
+            if (!active)
+            {
+                ApplyEffectiveState(DateTime.Now);
+            }
+        }
+
         private void OnKeyDown(object sender, Forms.KeyEventArgs e)
         {
+            if (_recordingActive)
+            {
+                return;
+            }
+
             if (IsAltGrKey(e.KeyCode) || IsSyntheticControlForAltGr(e.KeyCode))
             {
                 RemoveAltGrKeys();
@@ -234,6 +257,11 @@ namespace AngryMouse.Mouse
 
         private void OnKeyUp(object sender, Forms.KeyEventArgs e)
         {
+            if (_recordingActive)
+            {
+                return;
+            }
+
             if (IsAltGrKey(e.KeyCode))
             {
                 RemoveAltGrKeys();
@@ -509,7 +537,15 @@ namespace AngryMouse.Mouse
             }
 
             // Non-blocking: never block the hook thread on the UI thread.
-            Application.Current.Dispatcher.BeginInvoke(new Action(() =>
+            var application = Application.Current;
+            if (application == null)
+            {
+                // App is shutting down; stop the timer so it stops firing.
+                _timer.Enabled = false;
+                return;
+            }
+
+            application.Dispatcher.BeginInvoke(new Action(() =>
             {
                 if (!ToggleMode && DateTime.Now >= _shakeVisibleUntil)
                 {

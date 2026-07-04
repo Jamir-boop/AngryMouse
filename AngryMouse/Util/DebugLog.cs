@@ -60,13 +60,16 @@ namespace AngryMouse.Util
 
         public static void WriteCrashException(string context, Exception exception)
         {
-            if (!IsEnabled)
-            {
-                return;
-            }
+            // Crashes are always logged, even with debug logging off, so users can report them.
+            var message = exception == null
+                ? context + ": unknown error"
+                : context + ": " + exception.GetType().Name + ": " + exception.Message;
+            WriteEntry(message);
 
-            WriteException(context, exception);
-            TryOpenInNotepad();
+            if (IsEnabled)
+            {
+                TryOpenInNotepad();
+            }
         }
 
         public static void OpenInNotepad()

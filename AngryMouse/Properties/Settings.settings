@@ -53,15 +53,6 @@
     <Setting Name="LastExportSettingsFolder" Type="System.String" Scope="User">
       <Value Profile="(Default)" />
     </Setting>
-    <Setting Name="CustomCursorPath" Type="System.String" Scope="User">
-      <Value Profile="(Default)" />
-    </Setting>
-    <Setting Name="CustomCursorHotspotX" Type="System.Int32" Scope="User">
-      <Value Profile="(Default)">0</Value>
-    </Setting>
-    <Setting Name="CustomCursorHotspotY" Type="System.Int32" Scope="User">
-      <Value Profile="(Default)">0</Value>
-    </Setting>
     <Setting Name="ShakeTrackingInterval" Type="System.Int32" Scope="User">
       <Value Profile="(Default)">500</Value>
     </Setting>
