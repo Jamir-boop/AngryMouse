@@ -146,16 +146,6 @@
                 Grid.Row="0"
                 Margin="2"
                 TextChanged="HotspotOffset_OnChanged" />
-
-            <CheckBox
-                Name="TrimTransparentPaddingCheckBox"
-                Grid.Column="0"
-                Grid.Row="1"
-                Grid.ColumnSpan="4"
-                Margin="2,8,2,2"
-                Content="Trim transparent padding"
-                Checked="TrimTransparentPadding_OnChanged"
-                Unchecked="TrimTransparentPadding_OnChanged" />
         </Grid>
 
         <TextBlock

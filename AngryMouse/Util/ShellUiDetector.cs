@@ -45,8 +45,6 @@ namespace AngryMouse.Util
 
         public static event Action<bool> ShellUiActiveChanged;
 
-        public static bool IsShellUiActive => _shellUiActive;
-
         public static void Start()
         {
             if (_started)

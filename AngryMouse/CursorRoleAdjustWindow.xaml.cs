@@ -89,7 +89,6 @@ namespace AngryMouse
             SystemCursorImage.Visibility = _systemCursorVisual.HasBitmap ? Visibility.Visible : Visibility.Hidden;
             HotspotOffsetXTextBox.Text = settings.HotspotOffsetX.ToString(CultureInfo.InvariantCulture);
             HotspotOffsetYTextBox.Text = settings.HotspotOffsetY.ToString(CultureInfo.InvariantCulture);
-            TrimTransparentPaddingCheckBox.IsChecked = settings.TrimTransparentPadding;
 
             _loading = false;
             RefreshPreview(renderBitmap: true);
@@ -125,22 +124,11 @@ namespace AngryMouse
             }
         }
 
-        private void TrimTransparentPadding_OnChanged(object sender, RoutedEventArgs e)
-        {
-            if (_loading)
-            {
-                return;
-            }
-
-            QueuePreviewRender();
-        }
-
         private void ResetButton_OnClick(object sender, RoutedEventArgs e)
         {
             _loading = true;
             HotspotOffsetXTextBox.Text = "0";
             HotspotOffsetYTextBox.Text = "0";
-            TrimTransparentPaddingCheckBox.IsChecked = true;
             _loading = false;
 
             _renderTimer.Stop();
@@ -232,7 +220,10 @@ namespace AngryMouse
             var systemHeight = systemBitmap == null ? 0 : systemBitmap.PixelHeight;
             var mousePosition = _previewCursorPosition;
             var screen = System.Windows.Forms.Screen.FromPoint(mousePosition);
-            var previewDpi = GetMonitorDpiScale(mousePosition, GetPreviewDpi(VisualTreeHelper.GetDpi(this)));
+            // Canvas DIP<->pixel conversion uses this window's DPI; the runtime cursor scale uses
+            // the DPI of the monitor under the mouse (which may differ on a mixed-DPI setup).
+            var windowDpi = GetPreviewDpi(VisualTreeHelper.GetDpi(this));
+            var previewDpi = GetMonitorDpiScale(mousePosition, windowDpi);
             var runtimeScale = MouseAnimator.GetTargetScale(bitmapHeight, previewDpi);
             var pngBounds = new Rect(
                 mousePosition.X - adjustedHotspot.X * runtimeScale,
@@ -252,8 +243,8 @@ namespace AngryMouse
                 screen.Bounds.Width,
                 screen.Bounds.Height);
             var viewportBounds = GetViewportBounds(pngBounds, systemBounds, screenBounds, PreviewPadding * previewDpi);
-            var viewportScale = ComputeViewportScale(canvasWidth, canvasHeight, viewportBounds, previewDpi);
-            var displayScale = viewportScale / previewDpi;
+            var viewportScale = ComputeViewportScale(canvasWidth, canvasHeight, viewportBounds, windowDpi);
+            var displayScale = viewportScale / windowDpi;
 
             var viewportLeft = (canvasWidth - viewportBounds.Width * displayScale) / 2;
             var viewportTop = (canvasHeight - viewportBounds.Height * displayScale) / 2;
@@ -325,15 +316,15 @@ namespace AngryMouse
             return new Rect(left, top, width, height);
         }
 
-        private static double ComputeViewportScale(double canvasWidth, double canvasHeight, Rect viewportBounds, double previewDpi)
+        private static double ComputeViewportScale(double canvasWidth, double canvasHeight, Rect viewportBounds, double canvasDpi)
         {
             var viewportWidth = Math.Max(1, viewportBounds.Width);
             var viewportHeight = Math.Max(1, viewportBounds.Height);
             var scale = Math.Min(
                 1,
                 Math.Min(
-                    GetFitScale(canvasWidth * previewDpi, viewportWidth),
-                    GetFitScale(canvasHeight * previewDpi, viewportHeight)));
+                    GetFitScale(canvasWidth * canvasDpi, viewportWidth),
+                    GetFitScale(canvasHeight * canvasDpi, viewportHeight)));
 
             if (double.IsNaN(scale) || double.IsInfinity(scale) || scale <= 0)
             {
@@ -526,10 +517,9 @@ namespace AngryMouse
                 return false;
             }
 
-            settings = new CursorRoleRenderSettings(
-                offsetX,
-                offsetY,
-                TrimTransparentPaddingCheckBox.IsChecked == true);
+            // Trim-transparent-padding is retained at its default (true) but is no longer a no-op
+            // user toggle; the render pipeline treats trimmed and untrimmed bitmaps identically.
+            settings = new CursorRoleRenderSettings(offsetX, offsetY, true);
             return true;
         }
 

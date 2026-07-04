@@ -386,15 +386,25 @@ namespace AngryMouse
             HotkeyRecordButton.Content = "Recording";
             HotkeyDisplayTextBox.Focus();
             Input.Keyboard.Focus(HotkeyDisplayTextBox);
+
+            // Silence the live hotkey detector so keys typed into the recorder do not
+            // activate the overlay while recording.
+            (Application.Current as App)?.SetHotkeyRecording(true);
         }
 
         private void StopHotkeyRecording()
         {
+            var wasRecording = _recordingHotkey;
             _recordingHotkey = false;
             _suppressNextAltGrControlKeyUp = false;
             _recordingHotkeyModifiers.Clear();
             _recordingHotkeyKey = HotkeySettings.DefaultKey;
             HotkeyRecordButton.Content = "_Record";
+
+            if (wasRecording)
+            {
+                (Application.Current as App)?.SetHotkeyRecording(false);
+            }
         }
 
         private void CancelHotkeyRecording()
@@ -402,6 +412,14 @@ namespace AngryMouse
             StopHotkeyRecording();
             UpdateHotkeyDisplay();
             DebugLog.Write("Hotkey shortcut recording canceled.");
+        }
+
+        private void HotkeyDisplayTextBox_OnLostKeyboardFocus(object sender, Input.KeyboardFocusChangedEventArgs e)
+        {
+            if (_recordingHotkey)
+            {
+                CancelHotkeyRecording();
+            }
         }
 
         private void HotkeyDisplayTextBox_OnPreviewKeyDown(object sender, Input.KeyEventArgs e)
@@ -444,9 +462,16 @@ namespace AngryMouse
             var settingKey = GetSettingKeyFromInputKey(key);
             if (settingKey != null)
             {
+                // A non-modifier key completes the shortcut (e.g. Ctrl+A). Commit immediately
+                // so the user does not have to release keys in a particular order.
                 _recordingHotkeyKey = settingKey;
                 UpdateRecordingHotkeyDisplay();
+                FinalizeHotkeyRecording();
+                return;
             }
+
+            // Non-modifier key we cannot bind: tell the user instead of silently ignoring it.
+            HotkeyDisplayTextBox.Text = "Unsupported key. Use letters, digits, F1-F12 or Space.";
         }
 
         private void HotkeyDisplayTextBox_OnPreviewKeyUp(object sender, Input.KeyEventArgs e)
@@ -472,17 +497,23 @@ namespace AngryMouse
                 return;
             }
 
-            CaptureCurrentModifiers();
-            var modifier = GetModifierFromInputKey(key);
-            if (modifier != null)
-            {
-                _recordingHotkeyModifiers.Add(modifier);
-            }
-
-            if (HasRecordedHotkey())
+            // A non-modifier key commits on key-down. On key-up we only finalize modifier-only
+            // shortcuts, and only once every tracked key is released, so combos like Ctrl+Shift
+            // can be built up without an early partial-release commit.
+            if (HasRecordedHotkey() && AreAllRecordingKeysReleased())
             {
                 FinalizeHotkeyRecording();
             }
+        }
+
+        private static bool AreAllRecordingKeysReleased()
+        {
+            return !Input.Keyboard.IsKeyDown(Input.Key.LeftCtrl) &&
+                   !Input.Keyboard.IsKeyDown(Input.Key.RightCtrl) &&
+                   !Input.Keyboard.IsKeyDown(Input.Key.LeftAlt) &&
+                   !Input.Keyboard.IsKeyDown(Input.Key.RightAlt) &&
+                   !Input.Keyboard.IsKeyDown(Input.Key.LeftShift) &&
+                   !Input.Keyboard.IsKeyDown(Input.Key.RightShift);
         }
 
         private void UpdateRecordingHotkeyDisplay()
@@ -587,9 +618,11 @@ namespace AngryMouse
 
         private void IgnoreAltGrRecordingKey()
         {
+            // Ignore only the AltGr event itself. The synthetic Left-Ctrl that Windows injects
+            // with AltGr is removed on its key-up via _suppressNextAltGrControlKeyUp. Do not wipe
+            // an in-progress combo the user already recorded.
             _suppressNextAltGrControlKeyUp = true;
-            _recordingHotkeyModifiers.Clear();
-            _recordingHotkeyKey = HotkeySettings.DefaultKey;
+            _recordingHotkeyModifiers.Remove("Alt");
             UpdateRecordingHotkeyDisplay();
         }
 
@@ -1102,6 +1135,11 @@ namespace AngryMouse
 
         private void Window_Closed(object sender, EventArgs e)
         {
+            if (_recordingHotkey)
+            {
+                StopHotkeyRecording();
+            }
+
             (Application.Current as App)?.EndCursorRolePreview();
             CancelPrewarm();
         }
@@ -1656,11 +1694,6 @@ namespace AngryMouse
 
             var maxOffset = Math.Max(0, sliderWidth - toolTipWidth);
             return Math.Max(0, Math.Min(maxOffset, (sliderWidth * ratio) - (toolTipWidth / 2)));
-        }
-
-        private static T GetSettingDefaultValue<T>(string settingName)
-        {
-            return (T)GetSettingDefaultValue(settingName);
         }
 
         private static object GetSettingDefaultValue(string settingName)

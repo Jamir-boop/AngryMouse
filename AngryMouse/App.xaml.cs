@@ -133,22 +133,12 @@ namespace AngryMouse
 
             CreateContextMenu();
 
-            _detector = new MouseShakeDetector();
-            _detector.MouseShake += OnMouseShake;
-            _detector.MouseMove += OnMouseMove;
             ShellUiDetector.ShellUiActiveChanged += OnShellUiActiveChanged;
             ShellUiDetector.Start();
             AngryMouse.Properties.Settings.Default.PropertyChanged += SettingsOnPropertyChanged;
             CursorCollectionManager.CollectionChanged += CursorCollectionManagerOnCollectionChanged;
 
             _screenInfos = GetScreenInfos();
-
-            if (_debug)
-            {
-                // Debug window. Only shown when the -d option is used.
-                var debugInfoWindow = new DebugInfoWindow(_detector, _screenInfos);
-                debugInfoWindow.Show();
-            }
 
             // Create and load windows on the secondary screens.
             foreach (var screen in _screenInfos)
@@ -161,6 +151,21 @@ namespace AngryMouse
 
             ApplyCurrentCursorVisual(force: true);
             StartActiveCollectionPrewarm();
+
+            // Install the global mouse/keyboard hook only after the windows and first cursor
+            // visual are ready. The hook is serviced on this UI thread, so any heavy startup
+            // work done while it is installed stalls cursor movement system-wide.
+            _detector = new MouseShakeDetector();
+            _detector.MouseShake += OnMouseShake;
+            _detector.MouseMove += OnMouseMove;
+
+            if (_debug)
+            {
+                // Debug window. Only shown when the -d option is used.
+                var debugInfoWindow = new DebugInfoWindow(_detector, _screenInfos);
+                debugInfoWindow.Show();
+            }
+
             _singleInstanceReady = true;
             if (autostartLaunch || AngryMouse.Properties.Settings.Default.StartMinimizedToTray)
             {
@@ -442,6 +447,11 @@ namespace AngryMouse
             _settingsWindow.Activate();
         }
 
+        internal void SetHotkeyRecording(bool active)
+        {
+            _detector?.SetRecordingActive(active);
+        }
+
         internal void BeginCursorRolePreview(string roleKey)
         {
             if (!Current.Dispatcher.CheckAccess())
@@ -645,6 +655,15 @@ namespace AngryMouse
 
         private void CursorCollectionManagerOnCollectionChanged(object sender, EventArgs e)
         {
+            // NotifyCollectionChanged can fire on a background prewarm thread (e.g. when a
+            // missing assignments file is written during load). Marshal to the UI thread
+            // before touching windows, cursor state, or _prewarmCancellation.
+            if (!Current.Dispatcher.CheckAccess())
+            {
+                Current.Dispatcher.BeginInvoke(new Action(() => CursorCollectionManagerOnCollectionChanged(sender, e)));
+                return;
+            }
+
             if (SystemCursorOverride.IsActive)
             {
                 SystemCursorOverride.Restore();
