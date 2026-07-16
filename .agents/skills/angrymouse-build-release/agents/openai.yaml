@@ -1,0 +1,4 @@
+interface:
+  display_name: "AngryMouse Build Release"
+  short_description: "Build, verify, zip, and release AngryMouse."
+  default_prompt: "Build/test AngryMouse, package release zip, and explain verification."
