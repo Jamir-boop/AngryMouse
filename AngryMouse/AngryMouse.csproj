@@ -109,7 +109,7 @@
     <Compile Include="Cursors\CursorRenderPrewarmer.cs" />
     <Compile Include="Cursors\CursorRoleDefinition.cs" />
     <Compile Include="Cursors\CursorRoleRenderSettings.cs" />
-        <Compile Include="Cursors\CursorVisualCache.cs" />
+    <Compile Include="Cursors\CursorVisualCache.cs" />
     <Compile Include="Cursors\CursorVisualInfo.cs" />
     <Compile Include="Cursors\CursorVisualLoader.cs" />
     <Compile Include="Cursors\SystemCursorHider.cs" />

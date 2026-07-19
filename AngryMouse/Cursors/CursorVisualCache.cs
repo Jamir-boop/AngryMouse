@@ -173,50 +173,21 @@ namespace AngryMouse.Cursors
             return GetPreview(path, roleKey, CursorCollectionManager.GetRoleSettings(collectionName, roleKey));
         }
 
-        public static CursorVisualInfo GetPreviewVisual(
-            string collectionName,
-            string roleKey,
-            string path,
-            CursorRoleRenderSettings roleSettings)
-        {
-            if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
-            {
-                return CursorVisualLoader.BuiltIn("Cursor collection file unavailable. Using built-in cursor.");
-            }
-
-            var role = CursorCollectionManager.GetRole(roleKey);
-            var settings = roleSettings ?? new CursorRoleRenderSettings();
-            var cachedBitmap = GetCachedSvgBitmap(path, PreviewTargetHeight, role.Key, settings);
-            var hotspot = ScaleHotspot(path, role.Hotspot, settings, cachedBitmap);
-            return new CursorVisualInfo(cachedBitmap.Bitmap, hotspot, "Preview");
-        }
-
-        public static CursorCachedBitmap GetPreviewBitmap(string path, bool trimTransparentPadding)
-        {
-            if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
-            {
-                return null;
-            }
-
-            var settings = new CursorRoleRenderSettings(0, 0, trimTransparentPadding);
-            return GetCachedSvgBitmap(path, PreviewTargetHeight, "preview", settings);
-        }
-
-        public static Point GetPreviewHotspot(
-            string path,
-            Point roleHotspot,
-            CursorRoleRenderSettings roleSettings,
-            CursorCachedBitmap cachedBitmap)
-        {
-            return ScaleHotspot(path, roleHotspot, roleSettings ?? new CursorRoleRenderSettings(), cachedBitmap);
-        }
-
         public static void ClearMemory()
         {
-            lock (LockObject)
+            // Use the same locks the readers use, and clear the LRU order lists too, otherwise
+            // eviction removes keys that are no longer in the dictionary and the cache can grow
+            // past its cap. Called from NotifyCollectionChanged, possibly off the UI thread.
+            lock (RuntimeLock)
             {
                 RuntimeCache.Clear();
+                RuntimeCacheOrder.Clear();
+            }
+
+            lock (PreviewLock)
+            {
                 PreviewCache.Clear();
+                PreviewCacheOrder.Clear();
             }
         }
 
@@ -296,6 +267,7 @@ namespace AngryMouse.Cursors
             {
                 if (File.Exists(cachePath) && File.Exists(metadataPath))
                 {
+                    TouchCacheFile(cachePath);
                     return LoadCachedPng(cachePath, metadataPath);
                 }
             }
@@ -379,8 +351,8 @@ namespace AngryMouse.Cursors
             CursorRoleRenderSettings roleSettings,
             CursorCachedBitmap cachedBitmap)
         {
-            // Crop is always 0 and source dims always equal the bitmap's, so the old
-            // scale/offset math collapses to hotspot + configured offset.
+            // Role hotspots are normalized (0-1) fractions of the image. Scale them to the runtime
+            // bitmap's pixel size, then apply the user offset which is stored in bitmap pixels.
             if (cachedBitmap == null || cachedBitmap.UncroppedWidth <= 0 || cachedBitmap.UncroppedHeight <= 0)
             {
                 return hotspot;
@@ -388,8 +360,8 @@ namespace AngryMouse.Cursors
 
             var settings = roleSettings ?? new CursorRoleRenderSettings();
             return new Point(
-                hotspot.X + settings.HotspotOffsetX,
-                hotspot.Y + settings.HotspotOffsetY);
+                hotspot.X * cachedBitmap.UncroppedWidth + settings.HotspotOffsetX,
+                hotspot.Y * cachedBitmap.UncroppedHeight + settings.HotspotOffsetY);
         }
 
         private static string GetBundledRenderedPng(
@@ -423,6 +395,22 @@ namespace AngryMouse.Cursors
             }
 
             return CursorCollectionManager.GetBundledRenderedPngPath(role.DefaultFileName);
+        }
+
+        private static void TouchCacheFile(string cachePath)
+        {
+            // The disk-cache cleanup evicts by last-write time. Touch on every hit so cursors in
+            // active use are not deleted after DiskCacheCleanupDays.
+            try
+            {
+                File.SetLastWriteTimeUtc(cachePath, DateTime.UtcNow);
+            }
+            catch (IOException)
+            {
+            }
+            catch (UnauthorizedAccessException)
+            {
+            }
         }
 
         private static CursorCachedBitmap LoadCachedPng(string cachePath, string metadataPath)

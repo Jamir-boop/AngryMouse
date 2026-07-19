@@ -768,7 +768,8 @@ Focusable="True"
 VerticalContentAlignment="Center"
 Margin="0,0,8,0"
 PreviewKeyDown="HotkeyDisplayTextBox_OnPreviewKeyDown"
-PreviewKeyUp="HotkeyDisplayTextBox_OnPreviewKeyUp" />
+PreviewKeyUp="HotkeyDisplayTextBox_OnPreviewKeyUp"
+LostKeyboardFocus="HotkeyDisplayTextBox_OnLostKeyboardFocus" />
 <Button
 Name="HotkeyRecordButton"
 Content="_Record"

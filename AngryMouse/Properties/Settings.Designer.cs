@@ -229,42 +229,6 @@ namespace AngryMouse.Properties {
 
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("")]
-        public string CustomCursorPath {
-            get {
-                return ((string)(this["CustomCursorPath"]));
-            }
-            set {
-                this["CustomCursorPath"] = value;
-            }
-        }
-
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("0")]
-        public int CustomCursorHotspotX {
-            get {
-                return ((int)(this["CustomCursorHotspotX"]));
-            }
-            set {
-                this["CustomCursorHotspotX"] = value;
-            }
-        }
-
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("0")]
-        public int CustomCursorHotspotY {
-            get {
-                return ((int)(this["CustomCursorHotspotY"]));
-            }
-            set {
-                this["CustomCursorHotspotY"] = value;
-            }
-        }
-
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("500")]
         public int ShakeTrackingInterval {
             get {

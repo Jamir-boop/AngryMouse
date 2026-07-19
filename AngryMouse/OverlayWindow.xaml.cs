@@ -117,10 +117,8 @@ namespace AngryMouse
         protected override void OnSourceInitialized(EventArgs e)
         {
             base.OnSourceInitialized(e);
-            // Do not capture any mouse events
-            // TODO I suspect this is the reason we cannot replace the cursor (hide it) since
-            // the cursor draws on top of the big cursor.
-            // Also hide window from alt-tab menu
+            // Click-through (WS_EX_TRANSPARENT) so the overlay never captures mouse events, and
+            // WS_EX_TOOLWINDOW to keep it out of the alt-tab menu.
             SetWindowStyles(this, ExtendedWindowStyles.WS_EX_TOOLWINDOW | ExtendedWindowStyles.WS_EX_TRANSPARENT);
         }
 

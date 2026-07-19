@@ -22,21 +22,24 @@ namespace AngryMouse.Cursors
         private const string PackageCollectionsRoot = "CursorCollections";
         private const string PackageVersion = "2.5.3";
 
+        // Hotspots are normalized (0-1) fractions of the cursor image, so they scale exactly to
+        // any runtime bitmap size (CursorVisualCache.ScaleHotspot multiplies by the bitmap's pixel
+        // dimensions). These were migrated from the original 24px design grid, e.g. 12/24 = 0.5.
         public static readonly CursorRoleDefinition[] Roles =
         {
             new CursorRoleDefinition("arrow", "Arrow", "arrow.png", 32512, new System.Windows.Point(0, 0)),
-            new CursorRoleDefinition("ibeam", "I-beam", "ibeam.png", 32513, new System.Windows.Point(12, 12)),
-            new CursorRoleDefinition("wait", "Wait", "wait.png", 32514, new System.Windows.Point(12, 12)),
+            new CursorRoleDefinition("ibeam", "I-beam", "ibeam.png", 32513, new System.Windows.Point(0.5, 0.5)),
+            new CursorRoleDefinition("wait", "Wait", "wait.png", 32514, new System.Windows.Point(0.5, 0.5)),
             new CursorRoleDefinition("appstarting", "App starting", "appstarting.png", 32650, new System.Windows.Point(0, 0)),
-            new CursorRoleDefinition("crosshair", "Crosshair", "crosshair.png", 32515, new System.Windows.Point(12, 12)),
-            new CursorRoleDefinition("uparrow", "Up arrow", "uparrow.png", 32516, new System.Windows.Point(12, 0)),
-            new CursorRoleDefinition("sizens", "Size NS", "sizens.png", 32645, new System.Windows.Point(12, 12)),
-            new CursorRoleDefinition("sizewe", "Size WE", "sizewe.png", 32644, new System.Windows.Point(12, 12)),
-            new CursorRoleDefinition("sizenwse", "Size NWSE", "sizenwse.png", 32642, new System.Windows.Point(12, 12)),
-            new CursorRoleDefinition("sizenesw", "Size NESW", "sizenesw.png", 32643, new System.Windows.Point(12, 12)),
-            new CursorRoleDefinition("sizeall", "Size all", "sizeall.png", 32646, new System.Windows.Point(12, 12)),
-            new CursorRoleDefinition("no", "No", "no.png", 32648, new System.Windows.Point(12, 12)),
-            new CursorRoleDefinition("hand", "Hand", "hand.png", 32649, new System.Windows.Point(6, 1)),
+            new CursorRoleDefinition("crosshair", "Crosshair", "crosshair.png", 32515, new System.Windows.Point(0.5, 0.5)),
+            new CursorRoleDefinition("uparrow", "Up arrow", "uparrow.png", 32516, new System.Windows.Point(0.5, 0)),
+            new CursorRoleDefinition("sizens", "Size NS", "sizens.png", 32645, new System.Windows.Point(0.5, 0.5)),
+            new CursorRoleDefinition("sizewe", "Size WE", "sizewe.png", 32644, new System.Windows.Point(0.5, 0.5)),
+            new CursorRoleDefinition("sizenwse", "Size NWSE", "sizenwse.png", 32642, new System.Windows.Point(0.5, 0.5)),
+            new CursorRoleDefinition("sizenesw", "Size NESW", "sizenesw.png", 32643, new System.Windows.Point(0.5, 0.5)),
+            new CursorRoleDefinition("sizeall", "Size all", "sizeall.png", 32646, new System.Windows.Point(0.5, 0.5)),
+            new CursorRoleDefinition("no", "No", "no.png", 32648, new System.Windows.Point(0.5, 0.5)),
+            new CursorRoleDefinition("hand", "Hand", "hand.png", 32649, new System.Windows.Point(0.25, 1.0 / 24.0)),
             new CursorRoleDefinition("help", "Help", "help.png", 32651, new System.Windows.Point(0, 0))
         };
 
@@ -205,11 +208,6 @@ namespace AngryMouse.Cursors
             return collectionName;
         }
 
-        public static void ExportSettingsPackage(string packagePath)
-        {
-            ExportSettingsPackage(packagePath, includeCollections: true);
-        }
-
         public static void ExportSettingsPackage(string packagePath, bool includeCollections)
         {
             if (string.IsNullOrWhiteSpace(packagePath))
@@ -256,11 +254,6 @@ namespace AngryMouse.Cursors
                     }
                 }
             }
-        }
-
-        public static SettingsPackageImportResult ImportSettingsPackage(string packagePath)
-        {
-            return ImportSettingsPackage(packagePath, includeCollections: true);
         }
 
         public static SettingsPackageImportResult ImportSettingsPackage(string packagePath, bool includeCollections)
