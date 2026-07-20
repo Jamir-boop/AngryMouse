@@ -40,9 +40,20 @@ namespace AngryMouse
             _mouseEvents = StaticHook.GlobalEvents();
             _mouseEvents.MouseMoveExt += OnMouseMove;
 
-            ScreenInfos = new ObservableCollection<ScreenInfo>(screenInfos);
+            ScreenInfos = new ObservableCollection<ScreenInfo>();
 
             ScreensTable.ItemsSource = ScreenInfos;
+
+            UpdateScreens(screenInfos);
+        }
+
+        internal void UpdateScreens(IEnumerable<ScreenInfo> screenInfos)
+        {
+            ScreenInfos.Clear();
+            foreach (var screenInfo in screenInfos)
+            {
+                ScreenInfos.Add(screenInfo);
+            }
 
             VirtualScreen.Content = SystemParameters.VirtualScreenWidth + "x" + SystemParameters.VirtualScreenHeight;
             VirtualScreenTopLeft.Content = SystemParameters.VirtualScreenLeft + "x" + SystemParameters.VirtualScreenTop;

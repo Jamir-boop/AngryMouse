@@ -77,6 +77,8 @@ namespace AngryMouse
 
         private AboutWindow _aboutWindow;
 
+        private DebugInfoWindow _debugInfoWindow;
+
         private string _lastCursorIdentity;
 
         private int _pendingMouseX;
@@ -141,15 +143,9 @@ namespace AngryMouse
             CursorCollectionManager.CollectionChanged += CursorCollectionManagerOnCollectionChanged;
 
             _screenInfos = GetScreenInfos();
+            SystemEvents.DisplaySettingsChanged += OnDisplaySettingsChanged;
 
-            // Create and load windows on the secondary screens.
-            foreach (var screen in _screenInfos)
-            {
-                var window = new OverlayWindow(screen, _debug);
-                window.Show();
-
-                _overlayWindows.Add(window);
-            }
+            CreateOverlayWindows();
 
             ApplyCurrentCursorVisual(force: true);
             StartActiveCollectionPrewarm();
@@ -164,8 +160,8 @@ namespace AngryMouse
             if (_debug)
             {
                 // Debug window. Only shown when the -d option is used.
-                var debugInfoWindow = new DebugInfoWindow(_detector, _screenInfos);
-                debugInfoWindow.Show();
+                _debugInfoWindow = new DebugInfoWindow(_detector, _screenInfos);
+                _debugInfoWindow.Show();
             }
 
             _singleInstanceReady = true;
@@ -186,6 +182,7 @@ namespace AngryMouse
             ShellUiDetector.ShellUiActiveChanged -= OnShellUiActiveChanged;
             ShellUiDetector.Stop();
             RestoreAllSystemCursors();
+            SystemEvents.DisplaySettingsChanged -= OnDisplaySettingsChanged;
             _singleInstanceReady = false;
             StopSingleInstanceSignalListener();
             UnregisterSystemCursorRestoreHandlers();
@@ -229,6 +226,42 @@ namespace AngryMouse
         {
             SystemCursorOverride.Restore();
             SystemCursorHider.Restore();
+        }
+
+        private void OnDisplaySettingsChanged(object sender, EventArgs e)
+        {
+            if (!Dispatcher.CheckAccess())
+            {
+                Dispatcher.BeginInvoke(new Action(() => OnDisplaySettingsChanged(sender, e)));
+                return;
+            }
+
+            foreach (var window in _overlayWindows)
+            {
+                window.Close();
+            }
+
+            _overlayWindows.Clear();
+            _screenInfos = GetScreenInfos();
+            CreateOverlayWindows();
+            _debugInfoWindow?.UpdateScreens(_screenInfos);
+            _lastCursorIdentity = null;
+            ApplyCurrentCursorVisual(force: true);
+            UpdateSystemCursorVisibility();
+            UpdateOverlayMousePosition();
+            _overlayWindows.ForEach(window => window.SetMouseShake(
+                _rolePreviewActive || _detectorShaking,
+                _rolePreviewActive ? DateTime.Now : _lastDetectorShakeTimestamp));
+        }
+
+        private void CreateOverlayWindows()
+        {
+            foreach (var screen in _screenInfos)
+            {
+                var window = new OverlayWindow(screen, _debug);
+                window.Show();
+                _overlayWindows.Add(window);
+            }
         }
 
         private static bool HasFlag(IEnumerable<string> args, params string[] names)
@@ -508,6 +541,7 @@ namespace AngryMouse
         {
             ShellUiDetector.ShellUiActiveChanged -= OnShellUiActiveChanged;
             ShellUiDetector.Stop();
+            SystemEvents.DisplaySettingsChanged -= OnDisplaySettingsChanged;
             RestoreAllSystemCursors();
             AngryMouse.Properties.Settings.Default.PropertyChanged -= SettingsOnPropertyChanged;
             CursorCollectionManager.CollectionChanged -= CursorCollectionManagerOnCollectionChanged;
