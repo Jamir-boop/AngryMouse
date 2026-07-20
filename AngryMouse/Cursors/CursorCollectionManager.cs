@@ -135,7 +135,6 @@ namespace AngryMouse.Cursors
             {
                 var collectionName = Path.GetFileName(bundledCollectionPath);
                 var targetPath = GetCollectionPath(collectionName);
-                Directory.CreateDirectory(targetPath);
 
                 var sourceFiles = Directory.GetFiles(bundledCollectionPath, "*.png", SearchOption.TopDirectoryOnly);
                 if (sourceFiles.Length == 0)
@@ -146,6 +145,20 @@ namespace AngryMouse.Cursors
                         sourceFiles = Directory.GetFiles(renderedPath, "*.png", SearchOption.TopDirectoryOnly);
                     }
                 }
+
+                if (sourceFiles.Length == 0)
+                {
+                    continue;
+                }
+
+                if (Directory.Exists(targetPath) &&
+                    Directory.GetFiles(targetPath, "*.png", SearchOption.TopDirectoryOnly).Length > 0 &&
+                    BundledCollectionDiffers(targetPath, sourceFiles))
+                {
+                    BackupAndReplaceBundledCollection(collectionName, targetPath, sourceFiles);
+                }
+
+                Directory.CreateDirectory(targetPath);
 
                 foreach (var sourceFile in sourceFiles.OrderBy(Path.GetFileName))
                 {
@@ -161,6 +174,71 @@ namespace AngryMouse.Cursors
                 {
                     SaveAssignments(collectionName, InferAssignments(collectionName));
                 }
+            }
+        }
+
+        private static bool BundledCollectionDiffers(string targetPath, IEnumerable<string> sourceFiles)
+        {
+            var sources = sourceFiles.ToArray();
+            var targets = Directory.GetFiles(targetPath, "*.png", SearchOption.TopDirectoryOnly)
+                .ToDictionary(Path.GetFileName, StringComparer.OrdinalIgnoreCase);
+            if (sources.Length != targets.Count)
+            {
+                return true;
+            }
+
+            foreach (var sourcePath in sources)
+            {
+                string targetPathForFile;
+                if (!targets.TryGetValue(Path.GetFileName(sourcePath), out targetPathForFile) ||
+                    new FileInfo(sourcePath).Length != new FileInfo(targetPathForFile).Length ||
+                    !File.ReadAllBytes(sourcePath).SequenceEqual(File.ReadAllBytes(targetPathForFile)))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static void BackupAndReplaceBundledCollection(
+            string collectionName,
+            string targetPath,
+            IEnumerable<string> sourceFiles)
+        {
+            var replacementPath = Path.Combine(
+                GetUserCollectionsRoot(),
+                ".bundled-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(replacementPath);
+            try
+            {
+                foreach (var sourceFile in sourceFiles)
+                {
+                    File.Copy(sourceFile, Path.Combine(replacementPath, Path.GetFileName(sourceFile)));
+                }
+
+                var backupName = GetAvailableCollectionName(collectionName + " Backup");
+                var backupPath = GetCollectionPath(backupName);
+                Directory.Move(targetPath, backupPath);
+                try
+                {
+                    Directory.Move(replacementPath, targetPath);
+                }
+                catch
+                {
+                    if (!Directory.Exists(targetPath) && Directory.Exists(backupPath))
+                    {
+                        Directory.Move(backupPath, targetPath);
+                    }
+
+                    throw;
+                }
+
+                DebugLog.Write("Bundled cursor collection refreshed; previous files backed up as " + backupName + ".");
+            }
+            finally
+            {
+                TryDeleteDirectory(replacementPath, "Bundled collection staging cleanup failed");
             }
         }
 
