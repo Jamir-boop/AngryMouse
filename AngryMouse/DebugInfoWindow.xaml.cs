@@ -18,6 +18,8 @@ namespace AngryMouse
         /// </summary>
         private readonly IKeyboardMouseEvents _mouseEvents;
 
+        private readonly MouseShakeDetector _detector;
+
         /// <summary>
         /// List of screens.
         /// </summary>
@@ -32,7 +34,8 @@ namespace AngryMouse
         {
             InitializeComponent();
 
-            detector.MouseShake += OnMouseShake;
+            _detector = detector;
+            _detector.MouseShake += OnMouseShake;
 
             _mouseEvents = StaticHook.GlobalEvents();
             _mouseEvents.MouseMoveExt += OnMouseMove;
@@ -57,6 +60,7 @@ namespace AngryMouse
 
         private void Window_Closed(object sender, EventArgs e)
         {
+            _detector.MouseShake -= OnMouseShake;
             _mouseEvents.MouseMoveExt -= OnMouseMove;
         }
     }
