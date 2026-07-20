@@ -31,6 +31,7 @@ namespace AngryMouse
         private bool _needsRemoveCollectionButtonUpdate;
         private bool _needsCollectionUiAvailabilityUpdate;
         private bool _needsPrewarmRestart;
+        private bool _settingsSaveErrorShown;
         private readonly Dictionary<Slider, ToolTip> _sliderValueToolTips = new Dictionary<Slider, ToolTip>();
         private readonly Dictionary<Slider, string> _sliderValueToolTipFormats = new Dictionary<Slider, string>();
         private readonly HashSet<Slider> _activeSliderValueToolTips = new HashSet<Slider>();
@@ -287,7 +288,7 @@ namespace AngryMouse
             }
         }
 
-        private static void NormalizeCursorTimingSettings()
+        private void NormalizeCursorTimingSettings()
         {
             var normalizedAnimationLength = CursorAnimationSettings.NormalizeLength(Properties.Settings.Default.CursorAnimationLength);
             if (Properties.Settings.Default.CursorAnimationLength == normalizedAnimationLength)
@@ -1114,7 +1115,7 @@ namespace AngryMouse
 
             Properties.Settings.Default.Reset();
             CursorCollectionManager.InitializeDefaults();
-            Properties.Settings.Default.Save();
+            SaveSettings();
             AppTheme.ApplySavedTheme();
             LoadSettingsToControls();
             _loading = false;
@@ -1483,7 +1484,7 @@ namespace AngryMouse
             StartPrewarmSelectedCollection();
         }
 
-        private static void ResetSettingsToDefaults(IEnumerable<string> settingNames)
+        private void ResetSettingsToDefaults(IEnumerable<string> settingNames)
         {
             foreach (var settingName in settingNames)
             {
@@ -1819,9 +1820,32 @@ namespace AngryMouse
             return action + " failed.";
         }
 
-        private static void SaveSettings()
+        private void SaveSettings()
         {
-            Properties.Settings.Default.Save();
+            try
+            {
+                Properties.Settings.Default.Save();
+                _settingsSaveErrorShown = false;
+            }
+            catch (Exception ex) when (
+                ex is System.Configuration.ConfigurationErrorsException ||
+                ex is IOException ||
+                ex is UnauthorizedAccessException)
+            {
+                DebugLog.WriteException("Settings save failed", ex);
+                if (_settingsSaveErrorShown)
+                {
+                    return;
+                }
+
+                _settingsSaveErrorShown = true;
+                MessageBox.Show(
+                    this,
+                    "AngryMouse could not save settings. Changes will remain active for this session, but may be lost when the app exits.",
+                    "Settings not saved",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+            }
         }
 
         private void ScheduleDebouncedUpdate()

@@ -83,7 +83,7 @@ namespace AngryMouse.Cursors
 
             if (changed)
             {
-                settings.Save();
+                TrySaveSettings("Default settings save failed");
             }
         }
 
@@ -109,7 +109,7 @@ namespace AngryMouse.Cursors
                 ? "(none)"
                 : selectedCollectionName;
             settings.CursorCollectionName = BundledAdwaitaName;
-            settings.Save();
+            TrySaveSettings("Collection fallback settings save failed");
             DebugLog.Write("Selected cursor collection missing or empty. Fallback to " + BundledAdwaitaName + ": " + missingCollectionName);
             NotifyCollectionChanged();
             return true;
@@ -360,7 +360,7 @@ namespace AngryMouse.Cursors
             if (string.Equals(settings.CursorCollectionName, collectionName, StringComparison.OrdinalIgnoreCase))
             {
                 settings.CursorCollectionName = BundledAdwaitaName;
-                settings.Save();
+                TrySaveSettings("Removed collection settings save failed");
             }
 
             NotifyCollectionChanged();
@@ -979,7 +979,18 @@ namespace AngryMouse.Cursors
             }
 
             ApplyImportedRoleSettings(document, collectionNameMap);
-            settings.Save();
+            try
+            {
+                settings.Save();
+            }
+            catch (Exception ex) when (
+                ex is System.Configuration.ConfigurationErrorsException ||
+                ex is IOException ||
+                ex is UnauthorizedAccessException)
+            {
+                DebugLog.WriteException("Imported settings save failed", ex);
+                throw new IOException("Imported settings could not be saved.", ex);
+            }
         }
 
         private static void ApplyImportedRoleSettings(XDocument document, IDictionary<string, string> collectionNameMap)
@@ -1270,6 +1281,23 @@ namespace AngryMouse.Cursors
                 .Select(ch => invalid.Contains(ch) ? '_' : ch)
                 .ToArray();
             return new string(chars);
+        }
+
+        private static bool TrySaveSettings(string context)
+        {
+            try
+            {
+                Properties.Settings.Default.Save();
+                return true;
+            }
+            catch (Exception ex) when (
+                ex is System.Configuration.ConfigurationErrorsException ||
+                ex is IOException ||
+                ex is UnauthorizedAccessException)
+            {
+                DebugLog.WriteException(context, ex);
+                return false;
+            }
         }
 
         private static Dictionary<string, string> CreateKnownFileNameMap()
