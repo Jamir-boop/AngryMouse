@@ -26,6 +26,7 @@ namespace AngryMouse.Cursors
         private const long MaxPackageEntryBytes = 64L * 1024 * 1024;
         private const long MaxPackageTotalBytes = 256L * 1024 * 1024;
         private const long MaxPackageCompressionRatio = 200;
+        private const int MaximumCursorAnimationLength = 1000;
 
         // Hotspots are normalized (0-1) fractions of the cursor image, so they scale exactly to
         // any runtime bitmap size (CursorVisualCache.ScaleHotspot multiplies by the bitmap's pixel
@@ -1053,7 +1054,7 @@ namespace AngryMouse.Cursors
             if (TryGetSettingValue(values, "CursorSize", out stringValue) &&
                 double.TryParse(stringValue, NumberStyles.Float, CultureInfo.InvariantCulture, out doubleValue))
             {
-                settings.CursorSize = doubleValue;
+                settings.CursorSize = ClampImportedDouble(doubleValue, 2, 10, 6);
             }
 
             if (TryGetSettingValue(values, "CursorAnimationLength", out stringValue) &&
@@ -1065,7 +1066,7 @@ namespace AngryMouse.Cursors
             if (TryGetSettingValue(values, "CursorVisibleDuration", out stringValue) &&
                 int.TryParse(stringValue, NumberStyles.Integer, CultureInfo.InvariantCulture, out intValue))
             {
-                settings.CursorVisibleDuration = intValue;
+                settings.CursorVisibleDuration = Clamp(intValue, 100, 3000);
             }
 
             if (TryGetSettingValue(values, "ShakeActivationEnabled", out stringValue) &&
@@ -1142,19 +1143,19 @@ namespace AngryMouse.Cursors
             if (TryGetSettingValue(values, "ShakeTrackingInterval", out stringValue) &&
                 int.TryParse(stringValue, NumberStyles.Integer, CultureInfo.InvariantCulture, out intValue))
             {
-                settings.ShakeTrackingInterval = intValue;
+                settings.ShakeTrackingInterval = Clamp(intValue, 100, 2000);
             }
 
             if (TryGetSettingValue(values, "ShakeMinimumSpeed", out stringValue) &&
                 double.TryParse(stringValue, NumberStyles.Float, CultureInfo.InvariantCulture, out doubleValue))
             {
-                settings.ShakeMinimumSpeed = doubleValue;
+                settings.ShakeMinimumSpeed = ClampImportedDouble(doubleValue, 0.2, 5, 1);
             }
 
             if (TryGetSettingValue(values, "ShakeMinimumTurns", out stringValue) &&
                 int.TryParse(stringValue, NumberStyles.Integer, CultureInfo.InvariantCulture, out intValue))
             {
-                settings.ShakeMinimumTurns = intValue;
+                settings.ShakeMinimumTurns = Clamp(intValue, 1, 12);
             }
 
             ApplyImportedRoleSettings(document, collectionNameMap);
@@ -1268,7 +1269,9 @@ namespace AngryMouse.Cursors
 
         private static int NormalizeCursorAnimationLength(int value)
         {
-            var normalizedValue = CursorAnimationSettings.NormalizeLength(value);
+            var normalizedValue = Math.Min(
+                MaximumCursorAnimationLength,
+                CursorAnimationSettings.NormalizeLength(value));
             if (normalizedValue != value)
             {
                 DebugLog.Write(
@@ -1279,6 +1282,21 @@ namespace AngryMouse.Cursors
             }
 
             return normalizedValue;
+        }
+
+        private static double ClampImportedDouble(double value, double minimum, double maximum, double fallback)
+        {
+            if (double.IsNaN(value))
+            {
+                return fallback;
+            }
+
+            return Math.Max(minimum, Math.Min(maximum, value));
+        }
+
+        private static int Clamp(int value, int minimum, int maximum)
+        {
+            return Math.Max(minimum, Math.Min(maximum, value));
         }
 
         private static void NormalizeActivationSettings(Properties.Settings settings)
