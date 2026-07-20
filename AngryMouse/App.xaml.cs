@@ -24,8 +24,8 @@ namespace AngryMouse
     /// </summary>
     public partial class App
     {
-        private const string SingleInstanceMutexName = @"Global\JamirBoop.AngryMouse.SingleInstance";
-        private const string SingleInstanceOpenSettingsEventName = @"Global\JamirBoop.AngryMouse.OpenSettings";
+        private const string SingleInstanceMutexName = @"Local\JamirBoop.AngryMouse.SingleInstance";
+        private const string SingleInstanceOpenSettingsEventName = @"Local\JamirBoop.AngryMouse.OpenSettings";
 
         internal static string DisplayVersion
         {
