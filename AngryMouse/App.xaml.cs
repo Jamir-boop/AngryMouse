@@ -89,6 +89,8 @@ namespace AngryMouse
 
         private CancellationTokenSource _prewarmCancellation;
 
+        private readonly object _prewarmLock = new object();
+
         private bool _detectorShaking;
 
         private DateTime _lastDetectorShakeTimestamp = DateTime.Now;
@@ -854,15 +856,25 @@ namespace AngryMouse
             }
 
             var source = new CancellationTokenSource();
-            _prewarmCancellation = source;
+            lock (_prewarmLock)
+            {
+                _prewarmCancellation = source;
+            }
             var collectionName = AngryMouse.Properties.Settings.Default.CursorCollectionName;
             DebugLog.Write("Active collection prewarm started: " + collectionName);
 
             CursorRenderPrewarmer.PrewarmCollectionAsync(collectionName, null, source.Token)
                 .ContinueWith(task =>
                 {
-                    var isCurrent = ReferenceEquals(_prewarmCancellation, source);
-                    source.Dispose();
+                    lock (_prewarmLock)
+                    {
+                        if (ReferenceEquals(_prewarmCancellation, source))
+                        {
+                            _prewarmCancellation = null;
+                        }
+
+                        source.Dispose();
+                    }
 
                     if (task.IsCanceled)
                     {
@@ -878,23 +890,22 @@ namespace AngryMouse
                         DebugLog.Write("Active collection prewarm completed: " + collectionName);
                     }
 
-                    if (isCurrent)
-                    {
-                        _prewarmCancellation = null;
-                    }
                 }, TaskScheduler.Default);
         }
 
         private void CancelActiveCollectionPrewarm()
         {
-            var source = _prewarmCancellation;
-            if (source == null)
+            lock (_prewarmLock)
             {
-                return;
-            }
+                var source = _prewarmCancellation;
+                if (source == null)
+                {
+                    return;
+                }
 
-            _prewarmCancellation = null;
-            source.Cancel();
+                _prewarmCancellation = null;
+                source.Cancel();
+            }
         }
 
         private List<ScreenInfo> GetScreenInfos()
