@@ -32,7 +32,17 @@ namespace AngryMouse.Animation
         /// <summary>
         /// dpi info
         /// </summary>
-        public DpiScale DpiInfo;
+        private DpiScale _dpiInfo;
+
+        public DpiScale DpiInfo
+        {
+            get => _dpiInfo;
+            set
+            {
+                _dpiInfo = value;
+                RefreshVisibleScale();
+            }
+        }
 
         public double CursorVisualHeight
         {
@@ -47,7 +57,7 @@ namespace AngryMouse.Animation
         public MouseAnimator(ScaleTransform cursorScale, DpiScale dpiInfo)
         {
             _cursorScale = cursorScale;
-            DpiInfo = dpiInfo;
+            _dpiInfo = dpiInfo;
 
             Properties.Settings.Default.PropertyChanged += DefaultOnPropertyChanged;
         }
