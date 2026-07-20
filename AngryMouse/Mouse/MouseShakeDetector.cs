@@ -30,7 +30,8 @@ namespace AngryMouse.Mouse
         /// <summary>
         /// The last time we received a mouse event.
         /// </summary>
-        private DateTime _lastMouseEvent = DateTime.MinValue;
+        private int _lastMouseEventTimestamp;
+        private bool _hasLastMouseEvent;
 
         private DateTime _shakeVisibleUntil = DateTime.MinValue;
         private bool _hotkeyHeld;
@@ -90,11 +91,12 @@ namespace AngryMouse.Mouse
         private void OnMouseMove(object sender, MouseEventExtArgs e)
         {
             var currentTime = DateTime.Now;
-            if (currentTime.AddMilliseconds(-MouseEventRate) > _lastMouseEvent)
+            if (!_hasLastMouseEvent || unchecked((uint)(e.Timestamp - _lastMouseEventTimestamp)) > MouseEventRate)
             {
                 MouseMove?.Invoke(this, e);
 
-                _lastMouseEvent = currentTime;
+                _lastMouseEventTimestamp = e.Timestamp;
+                _hasLastMouseEvent = true;
 
                 if (!ShakeActivationEnabled)
                 {
@@ -106,7 +108,7 @@ namespace AngryMouse.Mouse
                 }
 
                 while (_mousePositions.Count > 0 &&
-                       e.Timestamp - TrackingInterval > _mousePositions.Last.Value.Timestamp)
+                       unchecked((uint)(e.Timestamp - _mousePositions.Last.Value.Timestamp)) > TrackingInterval)
                 {
                     // Remove old positions.
                     _mousePositions.RemoveLast();
@@ -172,7 +174,7 @@ namespace AngryMouse.Mouse
                 double d = Math.Sqrt(dx * dx + dy * dy);
 
                 // Speed between the current and the next point.
-                int dt = p1.Timestamp - p2.Timestamp;
+                uint dt = unchecked((uint)(p1.Timestamp - p2.Timestamp));
                 double v = dt == 0 ? 0 : d / dt;
 
                 speedSum += v;
