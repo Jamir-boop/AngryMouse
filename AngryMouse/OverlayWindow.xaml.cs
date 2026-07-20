@@ -199,8 +199,8 @@ namespace AngryMouse
             _lastMouseX = x;
             _lastMouseY = y;
 
-            var mouseInScreen = x >= _screen.BoundX && x <= _screen.BoundX + _screen.BoundWidth &&
-                                y >= _screen.BoundY && y <= _screen.BoundY + _screen.BoundHeight;
+            var mouseInScreen = x >= _screen.BoundX && x < _screen.BoundX + _screen.BoundWidth &&
+                                y >= _screen.BoundY && y < _screen.BoundY + _screen.BoundHeight;
             if (_debug)
             {
                 var infoBuilder = new StringBuilder();
