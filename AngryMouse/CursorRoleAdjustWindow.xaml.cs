@@ -24,7 +24,6 @@ namespace AngryMouse
         private readonly string _collectionName;
         private readonly string _roleKey;
         private readonly string _filePath;
-        private readonly DispatcherTimer _renderTimer;
         private readonly DispatcherTimer _placementTimer;
         private bool _loading = true;
         private CursorRoleDefinition _role;
@@ -45,12 +44,6 @@ namespace AngryMouse
             _roleKey = roleKey;
             _filePath = filePath;
 
-            _renderTimer = new DispatcherTimer
-            {
-                Interval = TimeSpan.FromMilliseconds(120)
-            };
-            _renderTimer.Tick += RenderTimer_OnTick;
-
             _placementTimer = new DispatcherTimer
             {
                 Interval = TimeSpan.FromMilliseconds(100)
@@ -60,7 +53,6 @@ namespace AngryMouse
 
         protected override void OnClosed(EventArgs e)
         {
-            _renderTimer.Stop();
             _placementTimer.Stop();
             base.OnClosed(e);
         }
@@ -91,7 +83,7 @@ namespace AngryMouse
             HotspotOffsetYTextBox.Text = settings.HotspotOffsetY.ToString(CultureInfo.InvariantCulture);
 
             _loading = false;
-            RefreshPreview(renderBitmap: true);
+            RefreshPreview();
             _placementTimer.Start();
         }
 
@@ -102,7 +94,7 @@ namespace AngryMouse
                 return;
             }
 
-            RefreshPreview(renderBitmap: false);
+            RefreshPreview();
         }
 
         private void PreviewCanvas_OnSizeChanged(object sender, SizeChangedEventArgs e)
@@ -131,8 +123,7 @@ namespace AngryMouse
             HotspotOffsetYTextBox.Text = "0";
             _loading = false;
 
-            _renderTimer.Stop();
-            RefreshPreview(renderBitmap: true);
+            RefreshPreview();
         }
 
         private void SaveButton_OnClick(object sender, RoutedEventArgs e)
@@ -148,19 +139,6 @@ namespace AngryMouse
             DialogResult = true;
         }
 
-        private void QueuePreviewRender()
-        {
-            _renderTimer.Stop();
-            _renderTimer.Start();
-            StatusTextBlock.Text = "Rendering preview...";
-        }
-
-        private void RenderTimer_OnTick(object sender, EventArgs e)
-        {
-            _renderTimer.Stop();
-            RefreshPreview(renderBitmap: true);
-        }
-
         private void PlacementTimer_OnTick(object sender, EventArgs e)
         {
             if (_draggingPreview)
@@ -172,7 +150,7 @@ namespace AngryMouse
             RefreshPlacementIfReady();
         }
 
-        private void RefreshPreview(bool renderBitmap)
+        private void RefreshPreview()
         {
             CursorRoleRenderSettings settings;
             if (!TryReadSettings(out settings))
@@ -390,7 +368,7 @@ namespace AngryMouse
             var offsetY = _dragStartOffsetY - (position.Y - _dragStartPosition.Y) / _dragScale;
 
             SetHotspotOffsetText(offsetX, offsetY);
-            RefreshPreview(renderBitmap: false);
+            RefreshPreview();
             e.Handled = true;
         }
 
@@ -517,9 +495,7 @@ namespace AngryMouse
                 return false;
             }
 
-            // Trim-transparent-padding is retained at its default (true) but is no longer a no-op
-            // user toggle; the render pipeline treats trimmed and untrimmed bitmaps identically.
-            settings = new CursorRoleRenderSettings(offsetX, offsetY, true);
+            settings = new CursorRoleRenderSettings(offsetX, offsetY);
             return true;
         }
 

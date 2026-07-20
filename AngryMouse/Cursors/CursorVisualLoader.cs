@@ -229,8 +229,6 @@ namespace AngryMouse.Cursors
                 }
 
                 var scale = targetHeight / (double)frame.PixelHeight;
-                var width = Math.Max(1, (int)Math.Round(frame.PixelWidth * scale));
-                var height = Math.Max(1, (int)Math.Round(frame.PixelHeight * scale));
 
                 var bitmap = new TransformedBitmap(
                     frame,

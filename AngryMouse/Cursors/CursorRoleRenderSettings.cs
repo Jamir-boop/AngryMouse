@@ -3,26 +3,23 @@ namespace AngryMouse.Cursors
     internal sealed class CursorRoleRenderSettings
     {
         public CursorRoleRenderSettings()
-            : this(0, 0, true)
+            : this(0, 0)
         {
         }
 
-        public CursorRoleRenderSettings(double hotspotOffsetX, double hotspotOffsetY, bool trimTransparentPadding)
+        public CursorRoleRenderSettings(double hotspotOffsetX, double hotspotOffsetY)
         {
             HotspotOffsetX = hotspotOffsetX;
             HotspotOffsetY = hotspotOffsetY;
-            TrimTransparentPadding = trimTransparentPadding;
         }
 
         public double HotspotOffsetX { get; set; }
 
         public double HotspotOffsetY { get; set; }
 
-        public bool TrimTransparentPadding { get; set; }
-
         public CursorRoleRenderSettings Clone()
         {
-            return new CursorRoleRenderSettings(HotspotOffsetX, HotspotOffsetY, TrimTransparentPadding);
+            return new CursorRoleRenderSettings(HotspotOffsetX, HotspotOffsetY);
         }
     }
 }

@@ -165,12 +165,12 @@ namespace AngryMouse.Cursors
 
         public static BitmapSource GetPreview(string path)
         {
-            return GetPreview(path, "preview", new CursorRoleRenderSettings());
+            return GetPreview(path, new CursorRoleRenderSettings());
         }
 
         public static BitmapSource GetPreview(string collectionName, string roleKey, string path)
         {
-            return GetPreview(path, roleKey, CursorCollectionManager.GetRoleSettings(collectionName, roleKey));
+            return GetPreview(path, CursorCollectionManager.GetRoleSettings(collectionName, roleKey));
         }
 
         public static void ClearMemory()
@@ -191,7 +191,7 @@ namespace AngryMouse.Cursors
             }
         }
 
-        private static BitmapSource GetPreview(string path, string roleKey, CursorRoleRenderSettings roleSettings)
+        private static BitmapSource GetPreview(string path, CursorRoleRenderSettings roleSettings)
         {
             if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
             {
@@ -214,7 +214,7 @@ namespace AngryMouse.Cursors
 
             try
             {
-                var bitmap = GetCachedSvgBitmap(path, PreviewTargetHeight, roleKey, roleSettings).Bitmap;
+                var bitmap = GetCachedSvgBitmap(path, PreviewTargetHeight, roleSettings).Bitmap;
 
                 lock (PreviewLock)
                 {
@@ -245,23 +245,22 @@ namespace AngryMouse.Cursors
             CursorRoleDefinition role,
             CursorRoleRenderSettings roleSettings)
         {
-            var bundledPng = GetBundledRenderedPng(path, collectionName, role, roleSettings);
+            var bundledPng = GetBundledRenderedPng(path, collectionName, role);
             if (!string.IsNullOrWhiteSpace(bundledPng) && File.Exists(bundledPng))
             {
                 var bitmap = LoadPng(bundledPng);
                 return new CursorCachedBitmap(bitmap, 0, 0, bitmap.PixelWidth, bitmap.PixelHeight);
             }
 
-            return GetCachedSvgBitmap(path, RuntimeTargetHeight, role.Key, roleSettings);
+            return GetCachedSvgBitmap(path, RuntimeTargetHeight, roleSettings);
         }
 
         private static CursorCachedBitmap GetCachedSvgBitmap(
             string path,
             int targetHeight,
-            string roleKey,
             CursorRoleRenderSettings roleSettings)
         {
-            var cachePath = GetDiskCachePath(path, targetHeight, roleKey, roleSettings);
+            var cachePath = GetDiskCachePath(path, targetHeight, roleSettings);
             var metadataPath = cachePath + ".txt";
             lock (LockObject)
             {
@@ -375,14 +374,8 @@ namespace AngryMouse.Cursors
         private static string GetBundledRenderedPng(
             string path,
             string collectionName,
-            CursorRoleDefinition role,
-            CursorRoleRenderSettings roleSettings)
+            CursorRoleDefinition role)
         {
-            if (roleSettings.TrimTransparentPadding)
-            {
-                return null;
-            }
-
             if (!string.Equals(collectionName, CursorCollectionManager.BundledAdwaitaName, StringComparison.OrdinalIgnoreCase))
             {
                 return null;
@@ -579,7 +572,6 @@ namespace AngryMouse.Cursors
         private static string GetDiskCachePath(
             string path,
             int targetHeight,
-            string roleKey,
             CursorRoleRenderSettings roleSettings)
         {
             return Path.Combine(GetDiskCacheRoot(), CreateBitmapCacheKey(path, targetHeight, roleSettings) + ".png");
@@ -606,8 +598,7 @@ namespace AngryMouse.Cursors
                 Path.GetFullPath(path).ToLowerInvariant(),
                 info.Length.ToString(CultureInfo.InvariantCulture),
                 info.LastWriteTimeUtc.Ticks.ToString(CultureInfo.InvariantCulture),
-                targetHeight.ToString(CultureInfo.InvariantCulture),
-                settings.TrimTransparentPadding.ToString());
+                targetHeight.ToString(CultureInfo.InvariantCulture));
 
             return ComputeHash(rawKey);
         }
@@ -627,7 +618,6 @@ namespace AngryMouse.Cursors
                 info.LastWriteTimeUtc.Ticks.ToString(CultureInfo.InvariantCulture),
                 targetHeight.ToString(CultureInfo.InvariantCulture),
                 roleKey ?? string.Empty,
-                settings.TrimTransparentPadding.ToString(),
                 settings.HotspotOffsetX.ToString("R", CultureInfo.InvariantCulture),
                 settings.HotspotOffsetY.ToString("R", CultureInfo.InvariantCulture));
 

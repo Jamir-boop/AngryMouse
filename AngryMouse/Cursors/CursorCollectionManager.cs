@@ -496,7 +496,6 @@ namespace AngryMouse.Cursors
                 }
 
                 double doubleValue;
-                bool boolValue;
                 if (string.Equals(parts[1], "hotspotOffsetX", StringComparison.OrdinalIgnoreCase) &&
                     double.TryParse(value, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out doubleValue))
                 {
@@ -506,11 +505,6 @@ namespace AngryMouse.Cursors
                          double.TryParse(value, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out doubleValue))
                 {
                     roleSettings.HotspotOffsetY = doubleValue;
-                }
-                else if (string.Equals(parts[1], "trimTransparentPadding", StringComparison.OrdinalIgnoreCase) &&
-                         bool.TryParse(value, out boolValue))
-                {
-                    roleSettings.TrimTransparentPadding = boolValue;
                 }
             }
 
@@ -557,7 +551,6 @@ namespace AngryMouse.Cursors
 
                 lines.Add(role.Key + ".hotspotOffsetX=" + roleSettings.HotspotOffsetX.ToString(System.Globalization.CultureInfo.InvariantCulture));
                 lines.Add(role.Key + ".hotspotOffsetY=" + roleSettings.HotspotOffsetY.ToString(System.Globalization.CultureInfo.InvariantCulture));
-                lines.Add(role.Key + ".trimTransparentPadding=" + roleSettings.TrimTransparentPadding.ToString().ToLowerInvariant());
             }
 
             File.WriteAllLines(path, lines);
@@ -761,8 +754,7 @@ namespace AngryMouse.Cursors
                         "Role",
                         new XAttribute("key", role.Key),
                         new XAttribute("hotspotOffsetX", settings.HotspotOffsetX.ToString(CultureInfo.InvariantCulture)),
-                        new XAttribute("hotspotOffsetY", settings.HotspotOffsetY.ToString(CultureInfo.InvariantCulture)),
-                        new XAttribute("trimTransparentPadding", settings.TrimTransparentPadding.ToString().ToLowerInvariant())));
+                        new XAttribute("hotspotOffsetY", settings.HotspotOffsetY.ToString(CultureInfo.InvariantCulture))));
                 }
 
                 root.Add(collectionElement);
@@ -1036,12 +1028,6 @@ namespace AngryMouse.Cursors
 
                     ApplyRoleSettingAttribute(roleElement, "hotspotOffsetX", value => roleSettings.HotspotOffsetX = value);
                     ApplyRoleSettingAttribute(roleElement, "hotspotOffsetY", value => roleSettings.HotspotOffsetY = value);
-
-                    bool trimTransparentPadding;
-                    if (bool.TryParse(roleElement.Attribute("trimTransparentPadding")?.Value, out trimTransparentPadding))
-                    {
-                        roleSettings.TrimTransparentPadding = trimTransparentPadding;
-                    }
 
                     hasRoleSettings = true;
                 }
