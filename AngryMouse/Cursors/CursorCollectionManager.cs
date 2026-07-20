@@ -5,6 +5,7 @@ using System.Globalization;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
+using System.Xml;
 using System.Xml.Linq;
 
 namespace AngryMouse.Cursors
@@ -21,6 +22,10 @@ namespace AngryMouse.Cursors
         private const string PackageSettingsFileName = "settings.xml";
         private const string PackageCollectionsRoot = "CursorCollections";
         private const string PackageVersion = "2.5.3";
+        private const int MaxPackageEntries = 1024;
+        private const long MaxPackageEntryBytes = 64L * 1024 * 1024;
+        private const long MaxPackageTotalBytes = 256L * 1024 * 1024;
+        private const long MaxPackageCompressionRatio = 200;
 
         // Hotspots are normalized (0-1) fractions of the cursor image, so they scale exactly to
         // any runtime bitmap size (CursorVisualCache.ScaleHotspot multiplies by the bitmap's pixel
@@ -190,22 +195,41 @@ namespace AngryMouse.Cursors
 
             var collectionName = GetAvailableCollectionName(baseName);
             var targetPath = GetCollectionPath(collectionName);
+            var stagingPath = Path.Combine(GetUserCollectionsRoot(), ".import-" + Guid.NewGuid().ToString("N"));
             var sourceFiles = Directory.GetFiles(sourceFolder, "*.png", SearchOption.TopDirectoryOnly);
             if (sourceFiles.Length == 0)
             {
                 throw new InvalidOperationException("Cursor collection folder contains no PNG files.");
             }
 
-            Directory.CreateDirectory(targetPath);
-
-            foreach (var sourceFile in sourceFiles.OrderBy(Path.GetFileName))
+            var committed = false;
+            try
             {
-                var targetFile = Path.Combine(targetPath, Path.GetFileName(sourceFile));
-                File.Copy(sourceFile, targetFile);
-            }
+                Directory.CreateDirectory(stagingPath);
+                foreach (var sourceFile in sourceFiles.OrderBy(Path.GetFileName))
+                {
+                    var targetFile = Path.Combine(stagingPath, Path.GetFileName(sourceFile));
+                    File.Copy(sourceFile, targetFile);
+                }
 
-            SaveAssignments(collectionName, InferAssignments(collectionName));
-            return collectionName;
+                Directory.Move(stagingPath, targetPath);
+                committed = true;
+                SaveAssignments(collectionName, InferAssignments(collectionName));
+                return collectionName;
+            }
+            catch
+            {
+                if (committed)
+                {
+                    TryDeleteDirectory(targetPath, "Imported collection rollback failed");
+                }
+
+                throw;
+            }
+            finally
+            {
+                TryDeleteDirectory(stagingPath, "Import staging cleanup failed");
+            }
         }
 
         public static void ExportSettingsPackage(string packagePath, bool includeCollections)
@@ -223,35 +247,50 @@ namespace AngryMouse.Cursors
                 Directory.CreateDirectory(directory);
             }
 
-            if (File.Exists(packagePath))
+            var temporaryPath = packagePath + "." + Guid.NewGuid().ToString("N") + ".tmp";
+            try
             {
-                File.Delete(packagePath);
-            }
-
-            using (var archive = ZipFile.Open(packagePath, ZipArchiveMode.Create))
-            {
-                WriteSettingsPackageEntry(archive);
-
-                if (includeCollections)
+                using (var archive = ZipFile.Open(temporaryPath, ZipArchiveMode.Create))
                 {
-                    var root = GetUserCollectionsRoot();
-                    if (Directory.Exists(root))
-                    {
-                        foreach (var collectionPath in Directory.GetDirectories(root).OrderBy(Path.GetFileName))
-                        {
-                            var collectionName = Path.GetFileName(collectionPath);
-                            if (string.Equals(collectionName, BundledAdwaitaName, StringComparison.OrdinalIgnoreCase))
-                            {
-                                continue;
-                            }
+                    WriteSettingsPackageEntry(archive);
 
-                            foreach (var filePath in GetPackageCollectionFiles(collectionPath))
+                    if (includeCollections)
+                    {
+                        var root = GetUserCollectionsRoot();
+                        if (Directory.Exists(root))
+                        {
+                            foreach (var collectionPath in Directory.GetDirectories(root).OrderBy(Path.GetFileName))
                             {
-                                var entryName = PackageCollectionsRoot + "/" + collectionName + "/" + Path.GetFileName(filePath);
-                                AddPackageFile(archive, filePath, entryName);
+                                var collectionName = Path.GetFileName(collectionPath);
+                                if (string.Equals(collectionName, BundledAdwaitaName, StringComparison.OrdinalIgnoreCase))
+                                {
+                                    continue;
+                                }
+
+                                foreach (var filePath in GetPackageCollectionFiles(collectionPath))
+                                {
+                                    var entryName = PackageCollectionsRoot + "/" + collectionName + "/" + Path.GetFileName(filePath);
+                                    AddPackageFile(archive, filePath, entryName);
+                                }
                             }
                         }
                     }
+                }
+
+                if (File.Exists(packagePath))
+                {
+                    File.Replace(temporaryPath, packagePath, null);
+                }
+                else
+                {
+                    File.Move(temporaryPath, packagePath);
+                }
+            }
+            finally
+            {
+                if (File.Exists(temporaryPath))
+                {
+                    File.Delete(temporaryPath);
                 }
             }
         }
@@ -267,67 +306,142 @@ namespace AngryMouse.Cursors
 
             var result = new SettingsPackageImportResult();
             XDocument settingsDocument = null;
+            var collectionsRoot = GetUserCollectionsRoot();
+            Directory.CreateDirectory(collectionsRoot);
+            var stagingRoot = Path.Combine(collectionsRoot, ".import-" + Guid.NewGuid().ToString("N"));
+            var committedPaths = new List<string>();
+            var roleSettingsSnapshots = new Dictionary<string, byte[]>(StringComparer.OrdinalIgnoreCase);
+            long extractedBytes = 0;
+            var settingsImportStarted = false;
 
-            using (var archive = ZipFile.OpenRead(packagePath))
+            try
             {
-                var settingsEntry = archive.GetEntry(PackageSettingsFileName);
-                if (settingsEntry != null)
+                Directory.CreateDirectory(stagingRoot);
+                using (var archive = ZipFile.OpenRead(packagePath))
                 {
-                    using (var stream = settingsEntry.Open())
+                    ValidatePackageArchive(archive);
+
+                    var settingsEntry = archive.GetEntry(PackageSettingsFileName);
+                    if (settingsEntry != null)
                     {
-                        settingsDocument = XDocument.Load(stream);
+                        using (var stream = new MemoryStream())
+                        {
+                            CopyPackageEntry(settingsEntry, stream, ref extractedBytes);
+                            stream.Position = 0;
+                            var xmlSettings = new XmlReaderSettings
+                            {
+                                DtdProcessing = DtdProcessing.Prohibit,
+                                XmlResolver = null,
+                                MaxCharactersInDocument = MaxPackageEntryBytes
+                            };
+                            using (var reader = XmlReader.Create(stream, xmlSettings))
+                            {
+                                settingsDocument = XDocument.Load(reader);
+                            }
+                        }
+                    }
+
+                    var collectionGroups = archive.Entries
+                        .Where(IsPackageCollectionFile)
+                        .GroupBy(GetPackageCollectionName, StringComparer.OrdinalIgnoreCase)
+                        .OrderBy(group => group.Key, StringComparer.OrdinalIgnoreCase)
+                        .ToArray();
+
+                    if (includeCollections)
+                    {
+                        var reservedNames = new HashSet<string>(GetCollectionNames(), StringComparer.OrdinalIgnoreCase);
+                        foreach (var group in collectionGroups)
+                        {
+                            var sourceCollectionName = SanitizeCollectionName(group.Key);
+                            if (string.IsNullOrWhiteSpace(sourceCollectionName))
+                            {
+                                sourceCollectionName = "Imported";
+                            }
+
+                            if (result.CollectionNameMap.ContainsKey(sourceCollectionName))
+                            {
+                                throw new InvalidDataException("Settings package contains duplicate collection names.");
+                            }
+
+                            var targetCollectionName = GetAvailableCollectionName(sourceCollectionName, reservedNames);
+                            reservedNames.Add(targetCollectionName);
+                            var targetPath = Path.Combine(stagingRoot, targetCollectionName);
+                            Directory.CreateDirectory(targetPath);
+
+                            var extractedNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                            foreach (var entry in group.OrderBy(item => item.FullName, StringComparer.OrdinalIgnoreCase))
+                            {
+                                var fileName = GetPackageCollectionFileName(entry.FullName);
+                                if (string.IsNullOrWhiteSpace(fileName))
+                                {
+                                    continue;
+                                }
+
+                                if (!extractedNames.Add(fileName))
+                                {
+                                    throw new InvalidDataException("Settings package contains duplicate collection files.");
+                                }
+
+                                ExtractPackageEntry(
+                                    entry,
+                                    Path.Combine(targetPath, fileName),
+                                    ref extractedBytes);
+                            }
+
+                            result.CollectionNameMap[sourceCollectionName] = targetCollectionName;
+                            result.ImportedCollectionCount++;
+                            if (!string.Equals(sourceCollectionName, targetCollectionName, StringComparison.OrdinalIgnoreCase))
+                            {
+                                result.RenamedCollectionCount++;
+                            }
+                        }
                     }
                 }
 
-                var collectionGroups = archive.Entries
-                    .Where(IsPackageCollectionFile)
-                    .GroupBy(GetPackageCollectionName, StringComparer.OrdinalIgnoreCase)
-                    .OrderBy(group => group.Key, StringComparer.OrdinalIgnoreCase)
-                    .ToArray();
+                roleSettingsSnapshots = CaptureImportedRoleSettings(settingsDocument, result.CollectionNameMap);
 
-                if (includeCollections)
+                foreach (var stagedPath in Directory.GetDirectories(stagingRoot).OrderBy(Path.GetFileName))
                 {
-                    foreach (var group in collectionGroups)
+                    var finalPath = GetCollectionPath(Path.GetFileName(stagedPath));
+                    Directory.Move(stagedPath, finalPath);
+                    committedPaths.Add(finalPath);
+                }
+
+                foreach (var targetCollectionName in result.CollectionNameMap.Values)
+                {
+                    if (!File.Exists(GetAssignmentsPath(targetCollectionName)))
                     {
-                        var sourceCollectionName = SanitizeCollectionName(group.Key);
-                        if (string.IsNullOrWhiteSpace(sourceCollectionName))
-                        {
-                            sourceCollectionName = "Imported";
-                        }
-
-                        var targetCollectionName = GetAvailableCollectionName(sourceCollectionName);
-                        var targetPath = GetCollectionPath(targetCollectionName);
-                        Directory.CreateDirectory(targetPath);
-
-                        foreach (var entry in group.OrderBy(item => item.FullName, StringComparer.OrdinalIgnoreCase))
-                        {
-                            var fileName = GetPackageCollectionFileName(entry.FullName);
-                            if (string.IsNullOrWhiteSpace(fileName))
-                            {
-                                continue;
-                            }
-
-                            ExtractPackageEntry(entry, Path.Combine(targetPath, fileName));
-                        }
-
-                        if (!File.Exists(GetAssignmentsPath(targetCollectionName)))
-                        {
-                            SaveAssignments(targetCollectionName, InferAssignments(targetCollectionName));
-                        }
-
-                        result.CollectionNameMap[sourceCollectionName] = targetCollectionName;
-                        result.ImportedCollectionCount++;
-                        if (!string.Equals(sourceCollectionName, targetCollectionName, StringComparison.OrdinalIgnoreCase))
-                        {
-                            result.RenamedCollectionCount++;
-                        }
+                        SaveAssignments(targetCollectionName, InferAssignments(targetCollectionName));
                     }
                 }
 
                 if (settingsDocument != null)
                 {
+                    settingsImportStarted = true;
                     ApplyImportedSettings(settingsDocument, result.CollectionNameMap);
                 }
+            }
+            catch
+            {
+                foreach (var committedPath in committedPaths)
+                {
+                    TryDeleteDirectory(committedPath, "Imported collection rollback failed");
+                }
+
+                RestoreRoleSettings(roleSettingsSnapshots);
+                if (settingsImportStarted)
+                {
+                    TryReloadSettings();
+                }
+                if (committedPaths.Count > 0 || roleSettingsSnapshots.Count > 0)
+                {
+                    TryNotifyCollectionChanged();
+                }
+                throw;
+            }
+            finally
+            {
+                TryDeleteDirectory(stagingRoot, "Import staging cleanup failed");
             }
 
             NotifyCollectionChanged();
@@ -794,6 +908,42 @@ namespace AngryMouse.Cursors
             }
         }
 
+        private static void ValidatePackageArchive(ZipArchive archive)
+        {
+            if (archive.Entries.Count > MaxPackageEntries)
+            {
+                throw new InvalidDataException("Settings package contains too many entries.");
+            }
+
+            long totalBytes = 0;
+            foreach (var entry in archive.Entries)
+            {
+                var components = NormalizePackagePath(entry.FullName)
+                    .Split(new[] {'/'}, StringSplitOptions.RemoveEmptyEntries);
+                if (components.Any(component => component == "." || component == ".."))
+                {
+                    throw new InvalidDataException("Settings package contains an unsafe path.");
+                }
+
+                if (entry.Length > MaxPackageEntryBytes)
+                {
+                    throw new InvalidDataException("Settings package entry is too large.");
+                }
+
+                totalBytes = checked(totalBytes + entry.Length);
+                if (totalBytes > MaxPackageTotalBytes)
+                {
+                    throw new InvalidDataException("Settings package is too large.");
+                }
+
+                if (entry.Length > 0 &&
+                    (entry.CompressedLength == 0 || entry.Length / entry.CompressedLength > MaxPackageCompressionRatio))
+                {
+                    throw new InvalidDataException("Settings package compression ratio is unsafe.");
+                }
+            }
+        }
+
         private static bool IsPackageCollectionFile(ZipArchiveEntry entry)
         {
             return !string.IsNullOrWhiteSpace(GetPackageCollectionFileName(entry.FullName));
@@ -850,14 +1000,43 @@ namespace AngryMouse.Cursors
             return (path ?? string.Empty).Replace('\\', '/').Trim('/');
         }
 
-        private static void ExtractPackageEntry(ZipArchiveEntry entry, string targetPath)
+        private static void ExtractPackageEntry(
+            ZipArchiveEntry entry,
+            string targetPath,
+            ref long totalBytes)
         {
             Directory.CreateDirectory(Path.GetDirectoryName(targetPath));
 
-            using (var source = entry.Open())
             using (var target = File.Create(targetPath))
             {
-                source.CopyTo(target);
+                CopyPackageEntry(entry, target, ref totalBytes);
+            }
+        }
+
+        private static void CopyPackageEntry(ZipArchiveEntry entry, Stream target, ref long totalBytes)
+        {
+            var buffer = new byte[81920];
+            long entryBytes = 0;
+            using (var source = entry.Open())
+            {
+                int bytesRead;
+                while ((bytesRead = source.Read(buffer, 0, buffer.Length)) > 0)
+                {
+                    if (entryBytes > MaxPackageEntryBytes - bytesRead ||
+                        totalBytes > MaxPackageTotalBytes - bytesRead)
+                    {
+                        throw new InvalidDataException("Settings package expands beyond the allowed size.");
+                    }
+
+                    entryBytes += bytesRead;
+                    totalBytes += bytesRead;
+                    target.Write(buffer, 0, bytesRead);
+                }
+            }
+
+            if (entryBytes != entry.Length)
+            {
+                throw new InvalidDataException("Settings package entry size is invalid.");
             }
         }
 
@@ -1241,9 +1420,15 @@ namespace AngryMouse.Cursors
 
         private static string GetAvailableCollectionName(string baseName)
         {
+            return GetAvailableCollectionName(baseName, null);
+        }
+
+        private static string GetAvailableCollectionName(string baseName, ISet<string> reservedNames)
+        {
             var candidate = baseName;
             var index = 2;
-            while (Directory.Exists(GetCollectionPath(candidate)))
+            while (Directory.Exists(GetCollectionPath(candidate)) ||
+                   (reservedNames != null && reservedNames.Contains(candidate)))
             {
                 candidate = baseName + " " + index;
                 index++;
@@ -1280,7 +1465,8 @@ namespace AngryMouse.Cursors
             var chars = name.Trim()
                 .Select(ch => invalid.Contains(ch) ? '_' : ch)
                 .ToArray();
-            return new string(chars);
+            var sanitized = new string(chars);
+            return sanitized == "." || sanitized == ".." ? string.Empty : sanitized;
         }
 
         private static bool TrySaveSettings(string context)
@@ -1297,6 +1483,110 @@ namespace AngryMouse.Cursors
             {
                 DebugLog.WriteException(context, ex);
                 return false;
+            }
+        }
+
+        private static Dictionary<string, byte[]> CaptureImportedRoleSettings(
+            XDocument document,
+            IDictionary<string, string> collectionNameMap)
+        {
+            var snapshots = new Dictionary<string, byte[]>(StringComparer.OrdinalIgnoreCase);
+            var root = document?.Root?.Element("CursorRoleSettings");
+            if (root == null)
+            {
+                return snapshots;
+            }
+
+            foreach (var collectionElement in root.Elements("Collection"))
+            {
+                var sourceName = SanitizeCollectionName(collectionElement.Attribute("name")?.Value);
+                if (string.IsNullOrWhiteSpace(sourceName))
+                {
+                    continue;
+                }
+
+                string targetName;
+                if (!collectionNameMap.TryGetValue(sourceName, out targetName))
+                {
+                    targetName = sourceName;
+                }
+
+                if (!Directory.Exists(GetCollectionPath(targetName)))
+                {
+                    continue;
+                }
+
+                var path = GetRoleSettingsPath(targetName);
+                if (!snapshots.ContainsKey(path))
+                {
+                    snapshots[path] = File.Exists(path) ? File.ReadAllBytes(path) : null;
+                }
+            }
+
+            return snapshots;
+        }
+
+        private static void RestoreRoleSettings(IDictionary<string, byte[]> snapshots)
+        {
+            foreach (var snapshot in snapshots)
+            {
+                try
+                {
+                    if (snapshot.Value == null)
+                    {
+                        File.Delete(snapshot.Key);
+                    }
+                    else
+                    {
+                        File.WriteAllBytes(snapshot.Key, snapshot.Value);
+                    }
+                }
+                catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
+                {
+                    DebugLog.WriteException("Imported role settings rollback failed: " + snapshot.Key, ex);
+                }
+            }
+        }
+
+        private static void TryReloadSettings()
+        {
+            try
+            {
+                Properties.Settings.Default.Reload();
+            }
+            catch (Exception ex) when (
+                ex is System.Configuration.ConfigurationErrorsException ||
+                ex is IOException ||
+                ex is UnauthorizedAccessException)
+            {
+                DebugLog.WriteException("Settings reload after failed import failed", ex);
+            }
+        }
+
+        private static void TryNotifyCollectionChanged()
+        {
+            try
+            {
+                NotifyCollectionChanged();
+            }
+            catch (Exception ex)
+            {
+                DebugLog.WriteException("Collection rollback notification failed", ex);
+            }
+        }
+
+        private static void TryDeleteDirectory(string path, string context)
+        {
+            try
+            {
+                if (Directory.Exists(path))
+                {
+                    Directory.Delete(path, true);
+                }
+            }
+            catch (Exception ex)
+            {
+                DebugLog.WriteException(context + ": " + path, ex);
             }
         }
 
