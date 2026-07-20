@@ -19,7 +19,8 @@ namespace AngryMouse.Cursors
 
         private const int CursorShowing = 0x00000001;
 
-        private static readonly Dictionary<IntPtr, string> CursorRolesByHandle = CreateCursorRolesByHandle();
+        private static readonly object CursorRolesLock = new object();
+        private static Dictionary<IntPtr, string> _cursorRolesByHandle = CreateCursorRolesByHandle();
 
         public static CursorVisualInfo BuiltIn(string status = "Using built-in cursor.")
         {
@@ -89,12 +90,23 @@ namespace AngryMouse.Cursors
                 return false;
             }
 
-            if (CursorRolesByHandle.TryGetValue(cursorHandle, out roleKey))
+            lock (CursorRolesLock)
             {
-                return true;
+                if (_cursorRolesByHandle.TryGetValue(cursorHandle, out roleKey))
+                {
+                    return true;
+                }
             }
 
             return SystemCursorHider.TryGetHiddenCursorRoleKey(cursorHandle, out roleKey);
+        }
+
+        internal static void RefreshSystemCursorRoles()
+        {
+            lock (CursorRolesLock)
+            {
+                _cursorRolesByHandle = CreateCursorRolesByHandle();
+            }
         }
 
         public static CursorVisualInfo LoadCollectionRole(string roleKey)

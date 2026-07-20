@@ -67,7 +67,11 @@ namespace AngryMouse.Cursors
                     if (SetSystemCursor(cursor, (uint)role.WindowsCursorId))
                     {
                         changedAny = true;
-                        hiddenCursorRolesByHandle[cursor] = role.Key;
+                        var installedCursor = LoadCursor(IntPtr.Zero, new IntPtr(role.WindowsCursorId));
+                        if (installedCursor != IntPtr.Zero)
+                        {
+                            hiddenCursorRolesByHandle[installedCursor] = role.Key;
+                        }
                         continue;
                     }
 
@@ -161,6 +165,7 @@ namespace AngryMouse.Cursors
             if (restored)
             {
                 _isHidden = false;
+                CursorVisualLoader.RefreshSystemCursorRoles();
             }
 
             return restored;
@@ -201,6 +206,9 @@ namespace AngryMouse.Cursors
 
         [DllImport("user32.dll", SetLastError = true)]
         private static extern bool SetSystemCursor(IntPtr hcur, uint id);
+
+        [DllImport("user32.dll")]
+        private static extern IntPtr LoadCursor(IntPtr hInstance, IntPtr lpCursorName);
 
         [DllImport("user32.dll", SetLastError = true)]
         private static extern bool SystemParametersInfo(uint uiAction, uint uiParam, IntPtr pvParam, uint fWinIni);
