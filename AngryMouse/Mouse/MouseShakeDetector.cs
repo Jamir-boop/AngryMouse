@@ -34,6 +34,9 @@ namespace AngryMouse.Mouse
         private bool _hasLastMouseEvent;
 
         private DateTime _shakeVisibleUntil = DateTime.MinValue;
+        private int _shakeVisibleStartedAt;
+        private int _shakeVisibleDuration;
+        private bool _shakeVisibleActive;
         private bool _hotkeyHeld;
         private bool _hotkeyMatched;
         private bool _toggleActive;
@@ -102,7 +105,7 @@ namespace AngryMouse.Mouse
                 {
                     _mousePositions.Clear();
                     _shakeGestureActive = false;
-                    _shakeVisibleUntil = DateTime.MinValue;
+                    ClearShakeVisibility();
                     ApplyEffectiveState(currentTime);
                     return;
                 }
@@ -127,7 +130,10 @@ namespace AngryMouse.Mouse
                     }
                     else
                     {
-                        _shakeVisibleUntil = currentTime.AddMilliseconds(VisibleDuration);
+                        _shakeVisibleDuration = Math.Max(0, VisibleDuration);
+                        _shakeVisibleStartedAt = Environment.TickCount;
+                        _shakeVisibleUntil = currentTime.AddMilliseconds(_shakeVisibleDuration);
+                        _shakeVisibleActive = true;
                         ApplyEffectiveState(currentTime);
                         if (!_timer.Enabled)
                         {
@@ -443,7 +449,7 @@ namespace AngryMouse.Mouse
         private void ToggleActivation(string source)
         {
             _toggleActive = !_toggleActive;
-            _shakeVisibleUntil = DateTime.MinValue;
+            ClearShakeVisibility();
             _hotkeyHeld = false;
             DebugLog.Write(
                 "Activation toggled: source=" +
@@ -463,7 +469,7 @@ namespace AngryMouse.Mouse
                 return;
             }
 
-            var active = (ShakeActivationEnabled && now < _shakeVisibleUntil) || _hotkeyHeld;
+            var active = (ShakeActivationEnabled && IsShakeVisible()) || _hotkeyHeld;
             SetShaking(active);
         }
 
@@ -487,7 +493,7 @@ namespace AngryMouse.Mouse
             var now = DateTime.Now;
             if (!ShakeActivationEnabled || ToggleMode)
             {
-                _shakeVisibleUntil = DateTime.MinValue;
+                ClearShakeVisibility();
                 _shakeGestureActive = false;
                 _mousePositions.Clear();
             }
@@ -533,7 +539,7 @@ namespace AngryMouse.Mouse
                 return;
             }
 
-            if (DateTime.Now < _shakeVisibleUntil)
+            if (IsShakeVisible())
             {
                 return;
             }
@@ -549,9 +555,9 @@ namespace AngryMouse.Mouse
 
             application.Dispatcher.BeginInvoke(new Action(() =>
             {
-                if (!ToggleMode && DateTime.Now >= _shakeVisibleUntil)
+                if (!ToggleMode && !IsShakeVisible())
                 {
-                    _shakeVisibleUntil = DateTime.MinValue;
+                    ClearShakeVisibility();
                     ApplyEffectiveState(DateTime.Now);
 
                     // Idle: stop the 100ms wakeups. OnMouseMove re-enables on the next shake.
@@ -590,6 +596,19 @@ namespace AngryMouse.Mouse
             return value == DateTime.MinValue
                 ? "None"
                 : value.ToString("O", CultureInfo.InvariantCulture);
+        }
+
+        private bool IsShakeVisible()
+        {
+            return _shakeVisibleActive &&
+                   unchecked((uint)(Environment.TickCount - _shakeVisibleStartedAt)) < (uint)_shakeVisibleDuration;
+        }
+
+        private void ClearShakeVisibility()
+        {
+            _shakeVisibleUntil = DateTime.MinValue;
+            _shakeVisibleDuration = 0;
+            _shakeVisibleActive = false;
         }
 
         private string FormatPressedKeys()
