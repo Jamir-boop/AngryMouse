@@ -14,7 +14,7 @@ Use this workflow for AngryMouse build verification and release packaging. Keep 
 - Terminal commands in this repo should be prefixed with `rtk` when available.
 - Use solution cwd: `C:\Users\superuser\Documents\AngryMouse`.
 - Use MSBuild binary: `C:\Program Files\Microsoft Visual Studio\18\Community\MSBuild\Current\Bin\MSBuild.exe`.
-- Use publish root: `C:\Users\superuser\Documents\AngryMouse\AngryMouse\publish`.
+- Use publish root: `C:\Users\superuser\Documents\AngryMouse\publish` (from the project `PublishUrl`/`PublishDir` value `..\publish\`).
 - Use GitHub release API with existing `git credential fill` token when `gh` is unavailable. Do not print tokens.
 
 ## Build And Test
@@ -44,7 +44,7 @@ Use manual-test language precisely. Build verifies compile/package integrity onl
 Create zip only after publish output exists for target version. Expected version folder pattern:
 
 ```text
-C:\Users\superuser\Documents\AngryMouse\AngryMouse\publish\Application Files\AngryMouse_X_Y_Z_0
+C:\Users\superuser\Documents\AngryMouse\publish\Application Files\AngryMouse_X_Y_Z_0
 ```
 
 Zip layout must match prior releases:
@@ -58,7 +58,7 @@ Application Files/AngryMouse_X_Y_Z_0/...
 For `<version>`, zip path is:
 
 ```text
-C:\Users\superuser\Documents\AngryMouse\AngryMouse\publish\AngryMouse-<version>.zip
+C:\Users\superuser\Documents\AngryMouse\publish\<version>.zip
 ```
 
 Verify the zip by opening it and checking first entries include `AngryMouse.application`, `AngryMouse.exe`, and the correct `Application Files/AngryMouse_X_Y_Z_0/` files.
@@ -91,4 +91,4 @@ rtk git tag <version>
 rtk git push origin <version>
 ```
 
-When replacing release zip, delete existing `AngryMouse-*.zip` asset on that release before uploading the new zip. Verify `/releases/latest` returns the expected tag and asset URL.
+When replacing a release zip, delete the existing `.zip` asset on that release before uploading `<version>.zip`. Verify `/releases/latest` returns the expected tag and asset URL.
