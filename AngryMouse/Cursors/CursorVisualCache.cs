@@ -267,8 +267,12 @@ namespace AngryMouse.Cursors
             {
                 if (File.Exists(cachePath) && File.Exists(metadataPath))
                 {
-                    TouchCacheFile(cachePath);
-                    return LoadCachedPng(cachePath, metadataPath);
+                    CursorCachedBitmap cachedBitmap;
+                    if (TryLoadCachedPng(cachePath, metadataPath, out cachedBitmap))
+                    {
+                        TouchCacheFile(cachePath);
+                        return cachedBitmap;
+                    }
                 }
             }
 
@@ -330,7 +334,11 @@ namespace AngryMouse.Cursors
             {
                 if (File.Exists(cachePath) && File.Exists(metadataPath))
                 {
-                    return LoadCachedPng(cachePath, metadataPath);
+                    CursorCachedBitmap cachedBitmap;
+                    if (TryLoadCachedPng(cachePath, metadataPath, out cachedBitmap))
+                    {
+                        return cachedBitmap;
+                    }
                 }
 
                 SavePng(cachePath, bitmap);
@@ -423,6 +431,42 @@ namespace AngryMouse.Cursors
                 metadata.CropTop,
                 metadata.UncroppedWidth,
                 metadata.UncroppedHeight);
+        }
+
+        private static bool TryLoadCachedPng(
+            string cachePath,
+            string metadataPath,
+            out CursorCachedBitmap cachedBitmap)
+        {
+            try
+            {
+                cachedBitmap = LoadCachedPng(cachePath, metadataPath);
+                return true;
+            }
+            catch (Exception ex) when (
+                ex is IOException ||
+                ex is UnauthorizedAccessException ||
+                ex is InvalidOperationException ||
+                ex is ArgumentException ||
+                ex is FormatException ||
+                ex is NotSupportedException)
+            {
+                DebugLog.WriteException("Corrupt cursor disk cache removed: " + cachePath, ex);
+                cachedBitmap = null;
+                try
+                {
+                    File.Delete(cachePath);
+                    File.Delete(metadataPath);
+                }
+                catch (Exception deleteException) when (
+                    deleteException is IOException ||
+                    deleteException is UnauthorizedAccessException)
+                {
+                    DebugLog.WriteException("Cursor disk cache removal failed: " + cachePath, deleteException);
+                }
+
+                return false;
+            }
         }
 
         private static BitmapSource LoadPng(string path)
