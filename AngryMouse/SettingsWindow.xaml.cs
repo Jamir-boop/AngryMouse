@@ -52,6 +52,8 @@ namespace AngryMouse
             "ShakeActivationEnabled",
             "HotkeyActivationEnabled",
             "HotkeyActivationMode",
+            "HotkeyActivationMethod",
+            "HotkeyDoubleControlRequireWindowsKey",
             "HotkeyModifiers",
             "HotkeyKey",
             "ShakeTrackingInterval",
@@ -106,8 +108,11 @@ namespace AngryMouse
             ShakeActivationEnabledCheckBox.IsChecked = Properties.Settings.Default.ShakeActivationEnabled;
             HotkeyActivationEnabledCheckBox.IsChecked = Properties.Settings.Default.HotkeyActivationEnabled;
             EnsureActivationSourceSelected();
-            SelectComboBoxItemByTag(HotkeyActivationModeComboBox, HotkeySettings.NormalizeActivationMode(Properties.Settings.Default.HotkeyActivationMode));
             NormalizeHotkeySettingValues();
+            SelectComboBoxItemByTag(HotkeyActivationModeComboBox, Properties.Settings.Default.HotkeyActivationMode);
+            SelectComboBoxItemByTag(HotkeyActivationMethodComboBox, Properties.Settings.Default.HotkeyActivationMethod);
+            HotkeyDoubleControlRequireWindowsKeyCheckBox.IsChecked =
+                Properties.Settings.Default.HotkeyDoubleControlRequireWindowsKey;
             UpdateHotkeyDisplay();
             UpdateActivationUiAvailability();
             ShakeTrackingIntervalSlider.Value = Properties.Settings.Default.ShakeTrackingInterval;
@@ -166,6 +171,12 @@ namespace AngryMouse
             HotkeyActivationModeComboBox.Items.Clear();
             AddComboBoxItem(HotkeyActivationModeComboBox, "Hold", HotkeySettings.HoldMode);
             AddComboBoxItem(HotkeyActivationModeComboBox, "Toggle", HotkeySettings.ToggleMode);
+
+            HotkeyActivationMethodComboBox.Items.Clear();
+            AddComboBoxItem(HotkeyActivationMethodComboBox, "Shortcut", HotkeySettings.ShortcutMethod);
+            AddComboBoxItem(HotkeyActivationMethodComboBox, "Double Left Ctrl", HotkeySettings.DoubleLeftControlMethod);
+            AddComboBoxItem(HotkeyActivationMethodComboBox, "Double Right Ctrl", HotkeySettings.DoubleRightControlMethod);
+            AddComboBoxItem(HotkeyActivationMethodComboBox, "Double Either Ctrl", HotkeySettings.DoubleEitherControlMethod);
         }
 
         private static void AddComboBoxItem(ComboBox comboBox, string content, string tag)
@@ -278,6 +289,8 @@ namespace AngryMouse
         {
             Properties.Settings.Default.HotkeyActivationMode =
                 HotkeySettings.NormalizeActivationMode(Properties.Settings.Default.HotkeyActivationMode);
+            Properties.Settings.Default.HotkeyActivationMethod =
+                HotkeySettings.NormalizeActivationMethod(Properties.Settings.Default.HotkeyActivationMethod);
             Properties.Settings.Default.HotkeyModifiers = HotkeySettings.NormalizeModifiers(Properties.Settings.Default.HotkeyModifiers);
             Properties.Settings.Default.HotkeyKey = HotkeySettings.NormalizeKey(Properties.Settings.Default.HotkeyKey);
 
@@ -314,6 +327,11 @@ namespace AngryMouse
             Properties.Settings.Default.ShakeActivationEnabled = ShakeActivationEnabledCheckBox.IsChecked == true;
             Properties.Settings.Default.HotkeyActivationEnabled = HotkeyActivationEnabledCheckBox.IsChecked == true;
             Properties.Settings.Default.HotkeyActivationMode = GetSelectedComboBoxTag(HotkeyActivationModeComboBox, HotkeySettings.HoldMode);
+            Properties.Settings.Default.HotkeyActivationMethod = GetSelectedComboBoxTag(
+                HotkeyActivationMethodComboBox,
+                HotkeySettings.ShortcutMethod);
+            Properties.Settings.Default.HotkeyDoubleControlRequireWindowsKey =
+                HotkeyDoubleControlRequireWindowsKeyCheckBox.IsChecked == true;
             NormalizeHotkeySettingValues();
             SaveSettings();
             UpdateActivationUiAvailability();
@@ -330,9 +348,25 @@ namespace AngryMouse
         {
             var shakeEnabled = ShakeActivationEnabledCheckBox.IsChecked == true;
             var hotkeyEnabled = HotkeyActivationEnabledCheckBox.IsChecked == true;
+            var method = GetSelectedComboBoxTag(
+                HotkeyActivationMethodComboBox,
+                HotkeySettings.ShortcutMethod);
+            var doubleControl = HotkeySettings.IsDoubleControlMethod(method);
+            var toggleMode = string.Equals(
+                GetSelectedComboBoxTag(HotkeyActivationModeComboBox, HotkeySettings.HoldMode),
+                HotkeySettings.ToggleMode,
+                StringComparison.OrdinalIgnoreCase);
 
             HotkeyActivationControlsGrid.IsEnabled = hotkeyEnabled;
             ShakeActivationControlsGrid.IsEnabled = shakeEnabled;
+            HotkeyRecorderPanel.Visibility = doubleControl ? Visibility.Collapsed : Visibility.Visible;
+            DoubleControlOptionsPanel.Visibility = doubleControl ? Visibility.Visible : Visibility.Collapsed;
+            HotkeyInputLabel.Content = doubleControl ? "Options" : "Shortcut";
+            DoubleControlHelpTextBlock.Text =
+                (toggleMode
+                    ? "Press the selected Ctrl key twice to toggle activation. "
+                    : "Tap the selected Ctrl key once, then hold the second press until you want to deactivate. ") +
+                "The keys are passed through to Windows and other apps. StickyKeys may latch Ctrl, FilterKeys may ignore the second press, and the gesture may also trigger PowerToys or Windows pointer-location effects.";
         }
 
         private void UpdateHotkeyDisplay()
@@ -353,6 +387,8 @@ namespace AngryMouse
             return "Shake=" + (Properties.Settings.Default.ShakeActivationEnabled ? "On" : "Off") +
                    ", Hotkey=" + (Properties.Settings.Default.HotkeyActivationEnabled ? "On" : "Off") +
                    ", Mode=" + HotkeySettings.NormalizeActivationMode(Properties.Settings.Default.HotkeyActivationMode) +
+                   ", Method=" + HotkeySettings.FormatActivationMethod(Properties.Settings.Default.HotkeyActivationMethod) +
+                   ", WinGuard=" + (Properties.Settings.Default.HotkeyDoubleControlRequireWindowsKey ? "On" : "Off") +
                    ", Shortcut=" + HotkeySettings.FormatDisplay(
                        Properties.Settings.Default.HotkeyModifiers,
                        Properties.Settings.Default.HotkeyKey);
@@ -1070,6 +1106,25 @@ namespace AngryMouse
         }
 
         private void HotkeyActivationModeComboBox_OnSelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (_loading) return;
+
+            SaveActivationSettings();
+        }
+
+        private void HotkeyActivationMethodComboBox_OnSelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (_loading) return;
+
+            if (_recordingHotkey)
+            {
+                StopHotkeyRecording();
+            }
+
+            SaveActivationSettings();
+        }
+
+        private void HotkeyDoubleControlRequireWindowsKeyCheckBox_OnChanged(object sender, RoutedEventArgs e)
         {
             if (_loading) return;
 

@@ -8,12 +8,56 @@ namespace AngryMouse.Util
     {
         public const string HoldMode = "Hold";
         public const string ToggleMode = "Toggle";
+        public const string ShortcutMethod = "Shortcut";
+        public const string DoubleLeftControlMethod = "DoubleLeftControl";
+        public const string DoubleRightControlMethod = "DoubleRightControl";
+        public const string DoubleEitherControlMethod = "DoubleEitherControl";
         public const string DefaultModifiers = "Control";
         public const string DefaultKey = "None";
 
         public static string NormalizeActivationMode(string value)
         {
             return string.Equals(value, ToggleMode, StringComparison.OrdinalIgnoreCase) ? ToggleMode : HoldMode;
+        }
+
+        public static string NormalizeActivationMethod(string value)
+        {
+            if (string.Equals(value, DoubleLeftControlMethod, StringComparison.OrdinalIgnoreCase))
+            {
+                return DoubleLeftControlMethod;
+            }
+
+            if (string.Equals(value, DoubleRightControlMethod, StringComparison.OrdinalIgnoreCase))
+            {
+                return DoubleRightControlMethod;
+            }
+
+            return string.Equals(value, DoubleEitherControlMethod, StringComparison.OrdinalIgnoreCase)
+                ? DoubleEitherControlMethod
+                : ShortcutMethod;
+        }
+
+        public static bool IsDoubleControlMethod(string value)
+        {
+            return !string.Equals(
+                NormalizeActivationMethod(value),
+                ShortcutMethod,
+                StringComparison.OrdinalIgnoreCase);
+        }
+
+        public static string FormatActivationMethod(string value)
+        {
+            switch (NormalizeActivationMethod(value))
+            {
+                case DoubleLeftControlMethod:
+                    return "Double Left Ctrl";
+                case DoubleRightControlMethod:
+                    return "Double Right Ctrl";
+                case DoubleEitherControlMethod:
+                    return "Double Either Ctrl";
+                default:
+                    return "Shortcut";
+            }
         }
 
         public static string NormalizeModifiers(string value)

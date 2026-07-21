@@ -21,7 +21,7 @@ namespace AngryMouse.Cursors
         private const string CursorCollectionsFolderName = "CursorCollections";
         private const string PackageSettingsFileName = "settings.xml";
         private const string PackageCollectionsRoot = "CursorCollections";
-        private const string PackageVersion = "2.5.3";
+        private const string PackageVersion = "2.12.1";
         private const int MaxPackageEntries = 1024;
         private const long MaxPackageEntryBytes = 64L * 1024 * 1024;
         private const long MaxPackageTotalBytes = 256L * 1024 * 1024;
@@ -891,6 +891,8 @@ namespace AngryMouse.Cursors
                     CreateSettingElement("ShakeActivationEnabled", settings.ShakeActivationEnabled.ToString().ToLowerInvariant()),
                     CreateSettingElement("HotkeyActivationEnabled", settings.HotkeyActivationEnabled.ToString().ToLowerInvariant()),
                     CreateSettingElement("HotkeyActivationMode", HotkeySettings.NormalizeActivationMode(settings.HotkeyActivationMode)),
+                    CreateSettingElement("HotkeyActivationMethod", HotkeySettings.NormalizeActivationMethod(settings.HotkeyActivationMethod)),
+                    CreateSettingElement("HotkeyDoubleControlRequireWindowsKey", settings.HotkeyDoubleControlRequireWindowsKey.ToString().ToLowerInvariant()),
                     CreateSettingElement("HotkeyModifiers", HotkeySettings.NormalizeModifiers(settings.HotkeyModifiers)),
                     CreateSettingElement("HotkeyKey", HotkeySettings.NormalizeKey(settings.HotkeyKey)),
                     CreateSettingElement("HideBuiltInCursor", settings.HideBuiltInCursor.ToString().ToLowerInvariant()),
@@ -1164,6 +1166,20 @@ namespace AngryMouse.Cursors
                 settings.HotkeyActivationMode = HotkeySettings.NormalizeActivationMode(stringValue);
             }
 
+            // Packages created before 2.12.0 had only the regular shortcut method.
+            settings.HotkeyActivationMethod = HotkeySettings.ShortcutMethod;
+            settings.HotkeyDoubleControlRequireWindowsKey = false;
+            if (TryGetSettingValue(values, "HotkeyActivationMethod", out stringValue))
+            {
+                settings.HotkeyActivationMethod = HotkeySettings.NormalizeActivationMethod(stringValue);
+            }
+
+            if (TryGetSettingValue(values, "HotkeyDoubleControlRequireWindowsKey", out stringValue) &&
+                bool.TryParse(stringValue, out boolValue))
+            {
+                settings.HotkeyDoubleControlRequireWindowsKey = boolValue;
+            }
+
             if (TryGetSettingValue(values, "HotkeyModifiers", out stringValue))
             {
                 settings.HotkeyModifiers = HotkeySettings.NormalizeModifiers(stringValue);
@@ -1382,6 +1398,7 @@ namespace AngryMouse.Cursors
             var originalShakeEnabled = settings.ShakeActivationEnabled;
             var originalHotkeyEnabled = settings.HotkeyActivationEnabled;
             var originalMode = settings.HotkeyActivationMode;
+            var originalMethod = settings.HotkeyActivationMethod;
             var originalModifiers = settings.HotkeyModifiers;
             var originalKey = settings.HotkeyKey;
 
@@ -1391,6 +1408,7 @@ namespace AngryMouse.Cursors
             }
 
             settings.HotkeyActivationMode = HotkeySettings.NormalizeActivationMode(settings.HotkeyActivationMode);
+            settings.HotkeyActivationMethod = HotkeySettings.NormalizeActivationMethod(settings.HotkeyActivationMethod);
             settings.HotkeyModifiers = HotkeySettings.NormalizeModifiers(settings.HotkeyModifiers);
             settings.HotkeyKey = HotkeySettings.NormalizeKey(settings.HotkeyKey);
 
@@ -1403,6 +1421,7 @@ namespace AngryMouse.Cursors
             if (originalShakeEnabled != settings.ShakeActivationEnabled ||
                 originalHotkeyEnabled != settings.HotkeyActivationEnabled ||
                 !string.Equals(originalMode, settings.HotkeyActivationMode, StringComparison.Ordinal) ||
+                !string.Equals(originalMethod, settings.HotkeyActivationMethod, StringComparison.Ordinal) ||
                 !string.Equals(originalModifiers, settings.HotkeyModifiers, StringComparison.Ordinal) ||
                 !string.Equals(originalKey, settings.HotkeyKey, StringComparison.Ordinal))
             {
@@ -1413,6 +1432,10 @@ namespace AngryMouse.Cursors
                     (settings.HotkeyActivationEnabled ? "On" : "Off") +
                     ", Mode=" +
                     settings.HotkeyActivationMode +
+                    ", Method=" +
+                    HotkeySettings.FormatActivationMethod(settings.HotkeyActivationMethod) +
+                    ", WinGuard=" +
+                    (settings.HotkeyDoubleControlRequireWindowsKey ? "On" : "Off") +
                     ", Shortcut=" +
                     HotkeySettings.FormatDisplay(settings.HotkeyModifiers, settings.HotkeyKey));
             }

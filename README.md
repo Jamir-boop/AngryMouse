@@ -8,7 +8,7 @@ AngryMouse is a Windows utility that makes the pointer grow when you shake the m
 
 ## Features
 
-- Activate by shaking the mouse, a configurable keyboard shortcut, or both.
+- Activate by shaking the mouse, a configurable keyboard shortcut or Double Ctrl gesture, or both.
 - Choose hold or toggle activation.
 - Tune shake sensitivity, visible duration, animation speed, and cursor size.
 - Use the current Windows cursor or a PNG cursor collection, with per-role hotspot adjustment.
@@ -27,9 +27,15 @@ AngryMouse requires Windows with .NET Framework 4.7.2 or later.
 
 ClickOnce automatic update checking is disabled. To update, download the latest release package and run its `AngryMouse.application` again.
 
+AngryMouse supports Windows 10 and Windows 11. Older Windows versions are best-effort and are not part of the compatibility test matrix.
+
 ## Use
 
-AngryMouse opens its settings window on a normal launch and continues running in the notification area. Configure an activation source, shake the mouse or press the configured shortcut, and use the tray menu to reopen settings or exit.
+AngryMouse opens its settings window on a normal launch and continues running in the notification area. Configure an activation source, shake the mouse or use the selected keyboard method, and use the tray menu to reopen settings or exit.
+
+Under **Activation > Hotkey**, choose a regular shortcut, Double Left Ctrl, Double Right Ctrl, or Double Either Ctrl. Double Either requires both taps to use the same physical Ctrl key. In Toggle mode, press Ctrl twice to toggle the enlarged cursor. In Hold mode, tap Ctrl once, then hold the second press until you want to deactivate it. You can optionally require the Windows key to remain held for the full gesture. The Ctrl and Windows keys are passed through to Windows and other applications.
+
+Keyboard activation is available only on the current interactive desktop, not the sign-in or secure desktop. AngryMouse clears incomplete key gestures after lock, unlock, session, UAC, or Ctrl+Alt+Del desktop transitions; an activation already latched in Toggle mode remains on.
 
 Custom collections are stored in `%APPDATA%\AngryMouse\CursorCollections`. A collection is a folder of PNG files; use the cursor-role editor to assign images and adjust hotspots. Settings ZIP imports are validated and custom collections are renamed when a name already exists.
 
@@ -61,6 +67,8 @@ Application Files/AngryMouse_X_Y_Z_0/...
 ## Troubleshooting
 
 - If no enlarged cursor appears, confirm at least one activation source is enabled and reduce the shake speed/turn thresholds.
+- If Double Ctrl also triggers another pointer effect, disable the conflicting Windows or PowerToys shortcut, choose a different Ctrl side, or enable the Windows-key requirement.
+- StickyKeys can latch Ctrl after repeated presses, while FilterKeys or BounceKeys can ignore the second press. If either accessibility feature interferes with Double Ctrl, use a regular AngryMouse shortcut instead.
 - If a custom collection is missing or empty, AngryMouse falls back to the bundled Adwaita collection.
 - If the normal cursor remains hidden after an abnormal exit, reopening or exiting AngryMouse restores the Windows cursor scheme; Windows mouse settings can also reload it.
 - Enable debug logging in Settings when diagnosing a problem. The log is `%APPDATA%\AngryMouse\debug.log` and is capped at 1 MiB.

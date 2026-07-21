@@ -5,6 +5,7 @@ using Gma.System.MouseKeyHook;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Windows;
+using System.Windows.Threading;
 
 namespace AngryMouse
 {
@@ -19,6 +20,10 @@ namespace AngryMouse
         private readonly IKeyboardMouseEvents _mouseEvents;
 
         private readonly MouseShakeDetector _detector;
+        private int _pendingMouseX;
+        private int _pendingMouseY;
+        private bool _mouseMoveQueued;
+        private bool _closed;
 
         /// <summary>
         /// List of screens.
@@ -66,11 +71,32 @@ namespace AngryMouse
 
         private void OnMouseMove(object sender, MouseEventExtArgs e)
         {
-            Coordinates.Content = e.X + "," + e.Y;
+            if (_closed)
+            {
+                return;
+            }
+
+            _pendingMouseX = e.X;
+            _pendingMouseY = e.Y;
+            if (_mouseMoveQueued)
+            {
+                return;
+            }
+
+            _mouseMoveQueued = true;
+            Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() =>
+            {
+                _mouseMoveQueued = false;
+                if (!_closed)
+                {
+                    Coordinates.Content = _pendingMouseX + "," + _pendingMouseY;
+                }
+            }));
         }
 
         private void Window_Closed(object sender, EventArgs e)
         {
+            _closed = true;
             _detector.MouseShake -= OnMouseShake;
             _mouseEvents.MouseMoveExt -= OnMouseMove;
         }

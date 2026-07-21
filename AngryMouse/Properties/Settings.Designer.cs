@@ -97,6 +97,30 @@ namespace AngryMouse.Properties {
 
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("Shortcut")]
+        public string HotkeyActivationMethod {
+            get {
+                return ((string)(this["HotkeyActivationMethod"]));
+            }
+            set {
+                this["HotkeyActivationMethod"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool HotkeyDoubleControlRequireWindowsKey {
+            get {
+                return ((bool)(this["HotkeyDoubleControlRequireWindowsKey"]));
+            }
+            set {
+                this["HotkeyDoubleControlRequireWindowsKey"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("Control")]
         public string HotkeyModifiers {
             get {

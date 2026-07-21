@@ -734,6 +734,7 @@ Grid.ColumnSpan="3">
 <Grid.RowDefinitions>
 <RowDefinition Height="Auto" />
 <RowDefinition Height="Auto" />
+<RowDefinition Height="Auto" />
 </Grid.RowDefinitions>
 <Label
 Grid.Column="0"
@@ -751,12 +752,27 @@ SelectionChanged="HotkeyActivationModeComboBox_OnSelectionChanged" />
 <Label
 Grid.Column="0"
 Grid.Row="1"
+Content="Method"
+Margin="2" />
+<ComboBox
+Name="HotkeyActivationMethodComboBox"
+Grid.Column="1"
+Grid.Row="1"
+Grid.ColumnSpan="2"
+Width="190"
+HorizontalAlignment="Left"
+Margin="2"
+SelectionChanged="HotkeyActivationMethodComboBox_OnSelectionChanged" />
+<Label
+Name="HotkeyInputLabel"
+Grid.Column="0"
+Grid.Row="2"
 Content="Shortcut"
 Margin="2" />
 <StackPanel
 Name="HotkeyRecorderPanel"
 Grid.Column="1"
-Grid.Row="1"
+Grid.Row="2"
 Grid.ColumnSpan="2"
 Orientation="Horizontal"
 Margin="2">
@@ -781,6 +797,27 @@ Name="HotkeyResetButton"
 Content="R_eset"
 Padding="8,2"
 Click="HotkeyResetButton_OnClick" />
+</StackPanel>
+<StackPanel
+Name="DoubleControlOptionsPanel"
+Grid.Column="1"
+Grid.Row="2"
+Grid.ColumnSpan="2"
+Margin="2"
+Visibility="Collapsed">
+<CheckBox
+Name="HotkeyDoubleControlRequireWindowsKeyCheckBox"
+Content="Require holding the _Windows key"
+Margin="0,0,0,4"
+Checked="HotkeyDoubleControlRequireWindowsKeyCheckBox_OnChanged"
+Unchecked="HotkeyDoubleControlRequireWindowsKeyCheckBox_OnChanged" />
+                            <TextBlock
+                                Name="DoubleControlHelpTextBlock"
+                                Text="The Ctrl keys are passed through to Windows and other apps. StickyKeys may latch Ctrl, FilterKeys may ignore the second press, and Double Ctrl may also trigger PowerToys or Windows pointer-location effects."
+                                TextWrapping="Wrap"
+MaxWidth="430"
+FontSize="11"
+Foreground="{DynamicResource Theme.SecondaryForegroundBrush}" />
 </StackPanel>
 </Grid>
 </Grid>

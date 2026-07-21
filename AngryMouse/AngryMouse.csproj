@@ -28,7 +28,7 @@
     <MapFileExtensions>true</MapFileExtensions>
     <ApplicationRevision>0</ApplicationRevision>
     <!-- ClickOnce manifest identity requires four version parts. Public app version is AssemblyInformationalVersion. -->
-    <ApplicationVersion>2.11.2.0</ApplicationVersion>
+    <ApplicationVersion>2.12.1.0</ApplicationVersion>
     <IsWebBootstrapper>false</IsWebBootstrapper>
     <UseApplicationTrust>false</UseApplicationTrust>
     <BootstrapperEnabled>false</BootstrapperEnabled>
@@ -125,6 +125,7 @@
     </Compile>
     <Compile Include="Util\CursorAnimationSettings.cs" />
     <Compile Include="Util\DebugLog.cs" />
+    <Compile Include="Util\DoubleControlGestureTracker.cs" />
     <Compile Include="Util\HotkeySettings.cs" />
     <Compile Include="Util\ShellUiDetector.cs" />
     <Compile Include="Util\WindowUtil.cs" />

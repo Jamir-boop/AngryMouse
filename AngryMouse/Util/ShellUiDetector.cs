@@ -12,6 +12,7 @@ namespace AngryMouse.Util
     internal static class ShellUiDetector
     {
         private const uint EVENT_SYSTEM_FOREGROUND = 0x0003;
+        private const uint EVENT_SYSTEM_DESKTOPSWITCH = 0x0020;
         private const uint WINEVENT_OUTOFCONTEXT = 0x0000;
         private const int GW_HWNDNEXT = 2;
 
@@ -39,11 +40,13 @@ namespace AngryMouse.Util
         };
 
         private static IntPtr _eventHook;
+        private static IntPtr _desktopSwitchHook;
         private static bool _started;
         private static bool _active;
         private static bool _shellUiActive;
 
         public static event Action<bool> ShellUiActiveChanged;
+        public static event Action DesktopSwitched;
 
         public static void Start()
         {
@@ -61,11 +64,20 @@ namespace AngryMouse.Util
                 0,
                 0,
                 WINEVENT_OUTOFCONTEXT);
+            _desktopSwitchHook = SetWinEventHook(
+                EVENT_SYSTEM_DESKTOPSWITCH,
+                EVENT_SYSTEM_DESKTOPSWITCH,
+                IntPtr.Zero,
+                WinEventProc,
+                0,
+                0,
+                WINEVENT_OUTOFCONTEXT);
             _started = true;
         }
 
         public static void Stop()
         {
+            _started = false;
             SetActive(false);
             PollTimer.Tick -= PollTimer_Tick;
 
@@ -75,7 +87,11 @@ namespace AngryMouse.Util
                 _eventHook = IntPtr.Zero;
             }
 
-            _started = false;
+            if (_desktopSwitchHook != IntPtr.Zero)
+            {
+                UnhookWinEvent(_desktopSwitchHook);
+                _desktopSwitchHook = IntPtr.Zero;
+            }
         }
 
         public static void SetActive(bool active)
@@ -113,7 +129,7 @@ namespace AngryMouse.Util
             uint dwEventThread,
             uint dwmsEventTime)
         {
-            if (!_started || !_active)
+            if (!_started)
             {
                 return;
             }
@@ -124,7 +140,16 @@ namespace AngryMouse.Util
                 return;
             }
 
-            dispatcher.BeginInvoke(new Action(EvaluateShellUi));
+            if (eventType == EVENT_SYSTEM_DESKTOPSWITCH)
+            {
+                dispatcher.BeginInvoke(new Action(() => DesktopSwitched?.Invoke()));
+                return;
+            }
+
+            if (_active)
+            {
+                dispatcher.BeginInvoke(new Action(EvaluateShellUi));
+            }
         }
 
         private static void EvaluateShellUi()

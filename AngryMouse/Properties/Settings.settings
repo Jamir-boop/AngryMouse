@@ -20,6 +20,12 @@
     <Setting Name="HotkeyActivationMode" Type="System.String" Scope="User">
       <Value Profile="(Default)">Hold</Value>
     </Setting>
+    <Setting Name="HotkeyActivationMethod" Type="System.String" Scope="User">
+      <Value Profile="(Default)">Shortcut</Value>
+    </Setting>
+    <Setting Name="HotkeyDoubleControlRequireWindowsKey" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">False</Value>
+    </Setting>
     <Setting Name="HotkeyModifiers" Type="System.String" Scope="User">
       <Value Profile="(Default)">Control</Value>
     </Setting>
