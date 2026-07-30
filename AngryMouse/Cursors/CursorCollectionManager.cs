@@ -21,7 +21,7 @@ namespace AngryMouse.Cursors
         private const string CursorCollectionsFolderName = "CursorCollections";
         private const string PackageSettingsFileName = "settings.xml";
         private const string PackageCollectionsRoot = "CursorCollections";
-        private const string PackageVersion = "2.12.1";
+        private const string PackageVersion = "2.12.2";
         private const int MaxPackageEntries = 1024;
         private const long MaxPackageEntryBytes = 64L * 1024 * 1024;
         private const long MaxPackageTotalBytes = 256L * 1024 * 1024;
